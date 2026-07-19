@@ -899,7 +899,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-182206';
+const VERSAO_APP='2026-07-19-182655';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -2841,49 +2841,103 @@ function lerCSVExtrato(txt){
 // O Bradesco não exporta OFX: só PDF e CSV. Extrair texto de PDF sem biblioteca
 // externa é possível porque o app pode inflar os streams com DecompressionStream,
 // que já vem no navegador. Funciona em PDF de TEXTO (o extrato é), não em digitalizado.
+// Guarda o que aconteceu na última leitura, para diagnóstico quando falha.
+let diagPDF={streams:0,inflados:0,comTexto:0,caracteres:0,linhas:0,metodos:{}};
+
+async function inflar(dados){
+  // PDF usa FlateDecode = zlib. Mas há arquivos com deflate cru (sem cabeçalho
+  // zlib), e o navegador precisa do formato certo. Tenta os dois.
+  for(const metodo of ['deflate','deflate-raw']){
+    try{
+      const fluxo=new Blob([dados]).stream().pipeThrough(new DecompressionStream(metodo));
+      const txt=await new Response(fluxo).text();
+      if(txt&&txt.length)return{txt,metodo};
+    }catch(e){}
+  }
+  return null;
+}
+
 async function extrairTextoPDF(buffer){
   const bytes=new Uint8Array(buffer);
+  diagPDF={streams:0,inflados:0,comTexto:0,caracteres:0,linhas:0,metodos:{}};
+
   // lê como latin1 para preservar os offsets de byte
   let cru=''; const pedaco=8192;
   for(let i=0;i<bytes.length;i+=pedaco){
     cru+=String.fromCharCode.apply(null,bytes.subarray(i,i+pedaco));
   }
+
   const partes=[];
-  const re=/stream\r?\n?([\s\S]*?)endstream/g;
-  let m;
-  while((m=re.exec(cru))!==null){
-    const inicio=m.index+m[0].indexOf(m[1]);
-    const fim=inicio+m[1].length;
-    const dados=bytes.subarray(inicio,fim);
-    let texto='';
-    try{
-      const ds=new DecompressionStream('deflate');
-      const fluxo=new Blob([dados]).stream().pipeThrough(ds);
-      texto=await new Response(fluxo).text();
-    }catch(e){
-      // stream sem compressão (ou codec diferente): tenta como texto puro
-      texto=m[1];
+  // acha cada "stream" e o "endstream" correspondente por posição, em vez de
+  // regex sobre binário (dado comprimido pode conter a palavra e cortar errado)
+  let pos=0;
+  while(true){
+    const ini=cru.indexOf('stream',pos);
+    if(ini<0)break;
+    let d=ini+6;
+    if(cru[d]==='\r')d++;
+    if(cru[d]==='\n')d++;
+    const fim=cru.indexOf('endstream',d);
+    if(fim<0)break;
+    pos=fim+9;
+    diagPDF.streams++;
+    const dados=bytes.subarray(d,fim);
+    if(!dados.length)continue;
+
+    const r=await inflar(dados);
+    let texto;
+    if(r){
+      texto=r.txt;
+      diagPDF.inflados++;
+      diagPDF.metodos[r.metodo]=(diagPDF.metodos[r.metodo]||0)+1;
+    }else{
+      texto=cru.substring(d,fim);        // stream sem compressão
+      diagPDF.metodos.semCompressao=(diagPDF.metodos.semCompressao||0)+1;
     }
-    if(/\(|TJ|Tj/.test(texto))partes.push(texto);
+    if(/\bTJ\b|\bTj\b/.test(texto)){
+      diagPDF.comTexto++;
+      partes.push(texto);
+    }
   }
-  return partes.map(conteudoParaTexto).join('\n');
+
+  const texto=partes.map(conteudoParaTexto).join('\n');
+  diagPDF.caracteres=texto.length;
+  diagPDF.linhas=texto.split('\n').filter(l=>l.trim()).length;
+  return texto;
 }
 
 // Converte operadores de texto do PDF em linhas legíveis.
+// Td/TD/T*/Tm/ET marcam mudança de linha; Tj/TJ trazem o texto. Aceita literal
+// "(texto)" e hexadecimal "<48656C6C6F>", que alguns geradores usam.
 function conteudoParaTexto(conteudo){
   const linhas=[];
   let atual='';
-  // Td/TD/T* e ET marcam mudança de linha
-  const tokens=conteudo.split(/(\bTd\b|\bTD\b|\bT\*\b|\bET\b|\bTJ\b|\bTj\b)/);
+  const tokens=conteudo.split(/(\bTd\b|\bTD\b|\bT\*\b|\bTm\b|\bET\b|\bTJ\b|\bTj\b)/);
+  const decodifica=(trecho)=>{
+    let saida='';
+    // literais entre parênteses
+    for(const m of trecho.matchAll(/\(((?:\\.|[^\\()])*)\)/g)){
+      saida+=m[1].replace(/\\n/g,' ').replace(/\\r/g,' ')
+                 .replace(/\\([()\\])/g,'$1')
+                 .replace(/\\(\d{1,3})/g,(s,o)=>String.fromCharCode(parseInt(o,8)));
+    }
+    // strings hexadecimais
+    if(!saida){
+      for(const m of trecho.matchAll(/<([0-9A-Fa-f\s]+)>/g)){
+        const hex=m[1].replace(/\s/g,'');
+        for(let i=0;i+1<hex.length;i+=2){
+          const c=parseInt(hex.substr(i,2),16);
+          if(c>=32)saida+=String.fromCharCode(c);
+        }
+      }
+    }
+    return saida;
+  };
   for(let i=0;i<tokens.length;i++){
     const t=tokens[i];
     if(t==='Tj'||t==='TJ'){
-      // pega os literais ( ... ) do trecho anterior
-      const trecho=tokens[i-1]||'';
-      const textos=[...trecho.matchAll(/\(((?:\\.|[^\\()])*)\)/g)]
-        .map(x=>x[1].replace(/\\([()\\])/g,'$1').replace(/\\(\d{3})/g,(s,o)=>String.fromCharCode(parseInt(o,8))));
-      atual+=textos.join('');
-    }else if(t==='Td'||t==='TD'||t==='T*'||t==='ET'){
+      atual+=decodifica(tokens[i-1]||'');
+    }else if(t==='Td'||t==='TD'||t==='T*'||t==='Tm'||t==='ET'){
       if(atual.trim())linhas.push(atual);
       atual='';
     }
@@ -2916,9 +2970,24 @@ function importarExtrato(input){
       }
     }catch(err){ extratoImportado=[]; }
     if(!extratoImportado.length){
-      alert(ehPDF
-        ? '📄 Não consegui ler esse PDF.\n\nPDF é feito para imprimir, não para o computador ler — às vezes não dá mesmo.\n\nNo Bradesco Net Empresa, exporte o mesmo extrato em CSV e use esse arquivo. A leitura fica exata.'
-        : 'Não consegui ler esse arquivo.\n\nNo Bradesco Net Empresa, exporte o extrato em CSV e tente de novo.');
+      if(ehPDF){
+        // Diagnóstico: sem isso, "não consegui ler" não diz NADA sobre o motivo,
+        // e depurar formato de PDF de banco sem o arquivo em mãos é adivinhação.
+        const d=diagPDF;
+        const onde = d.streams===0        ? 'Não achei conteúdo dentro do arquivo.'
+                   : d.inflados===0       ? 'Achei o conteúdo mas não consegui descompactar.'
+                   : d.comTexto===0       ? 'Descompactei, mas não achei texto — o extrato pode ser uma imagem digitalizada.'
+                   : d.caracteres===0     ? 'Achei o texto mas não consegui extrair as letras.'
+                   : 'Extraí o texto, mas não reconheci nenhuma linha com data e valor.';
+        alert('📄 Não consegui ler esse PDF.\n\n'+onde+
+              '\n\n👉 Use o CSV: no Bradesco Net Empresa, exporte o mesmo extrato em CSV. A leitura fica exata.'+
+              '\n\n— — —\nSe quiser me mandar o diagnóstico:\n'+
+              'blocos '+d.streams+' · abertos '+d.inflados+' · com texto '+d.comTexto+
+              ' · letras '+d.caracteres+' · linhas '+d.linhas+
+              '\nmétodos: '+(Object.keys(d.metodos).length?JSON.stringify(d.metodos):'nenhum'));
+      }else{
+        alert('Não consegui ler esse arquivo.\n\nNo Bradesco Net Empresa, exporte o extrato em CSV e tente de novo.');
+      }
       return;
     }
     if(ehPDF){
