@@ -668,11 +668,30 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <button class="tipo-btn entrada active" id="tipoEntrada" onclick="setTipo('entrada')">💚 Entrada</button>
       <button class="tipo-btn saida" id="tipoSaida" onclick="setTipo('saida')">🔴 Saída</button>
     </div>
+    <!-- Foto do comprovante: fica anexada ao lançamento e, se a nota tiver QR
+         Code, o app lê a chave direto da imagem e preenche o resto. -->
+    <div class="form-group">
+      <label class="form-label">📸 Foto do comprovante</label>
+      <div class="foto-upload-area" id="recFotoArea" style="height:120px;">
+        <span class="foto-upload-icon">🧾</span>
+        <span class="foto-upload-label">Toque para fotografar a nota ou o recibo</span>
+        <input type="file" accept="image/*" capture="environment" class="foto-upload-btn" id="recFotoInput" onchange="aoFotografarComprovante(this)">
+        <button class="foto-troca" id="recFotoTroca" style="display:none" onclick="document.getElementById('recFotoInput').click();event.stopPropagation();">Trocar</button>
+      </div>
+      <input type="hidden" id="recFoto">
+      <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;" id="recFotoDica">Se a nota tiver QR Code, eu leio os dados dela sozinho.</div>
+    </div>
+
     <div class="form-group"><label class="form-label">Descrição</label><input class="form-input" id="recDesc" placeholder="Ex: Banho Golden Retriever"></div>
     <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="recValor" type="number" placeholder="0,00"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="recData" type="date"></div>
-      <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="recCategoria"><option>Atendimento</option><option>Pacote mensal</option><option>Produto vendido</option><option>Aluguel</option><option>Energia</option><option>Água</option><option>Transporte</option><option>Equipe</option><option>Produtos consumo</option><option>Marketing</option><option>Outros</option></select></div>
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <!-- opções geradas por montarSelectCategorias(): a lista é editável pela Ju -->
+        <select class="form-select" id="recCategoria"></select>
+        <button class="btn-report" style="width:100%;margin-top:6px;padding:8px;font-size:12px;" onclick="abrirCategorias()">⚙️ Editar categorias</button>
+      </div>
     </div>
     <button class="btn-primary" onclick="salvarLancamento()">✅ Salvar lançamento</button>
     <button class="btn-secondary" onclick="closeModal('modalReceita')">Cancelar</button>
@@ -755,6 +774,20 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     </div>
     <div id="zapLista"></div>
     <button class="btn-secondary" onclick="closeModal('modalMensagens')">Fechar</button>
+  </div>
+</div>
+
+<!-- MODAL: CATEGORIAS -->
+<div class="modal-overlay" id="modalCategorias">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚙️ Categorias</div>
+    <div style="font-size:13px;color:var(--cinza-claro);line-height:1.55;margin-bottom:6px;">
+      Organize do seu jeito. Renomear já corrige os lançamentos antigos;
+      categoria em uso não pode ser excluída.
+    </div>
+    <div id="catLista"></div>
+    <button class="btn-secondary" style="margin-top:14px;" onclick="closeModal('modalCategorias');renderFin()">Fechar</button>
   </div>
 </div>
 
@@ -914,7 +947,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-191824';
+const VERSAO_APP='2026-07-19-192625';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -1282,6 +1315,7 @@ function openModal(id){
     document.getElementById('recCupom').innerHTML='';
     ['recDesc','recValor'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('recData').value=hojeISO();
+    limparFotoComprovante();
     setTipo('entrada');
   }
   if(id==='modalCliente'){document.getElementById('cliPhoto').value='';document.getElementById('fotoUploadArea').querySelector('img')?.remove();document.getElementById('fotoBtnTroca').style.display='none';document.getElementById('fotoUploadArea').querySelector('.foto-upload-icon').style.display='';document.getElementById('fotoUploadArea').querySelector('.foto-upload-label').style.display='';}
@@ -2908,6 +2942,190 @@ function deletarPet(tutorId,petId){
   verPerfil(c.id);renderClientes();renderDash();
 }
 
+// ─── FOTO DO COMPROVANTE ───
+// ⚠️ NÃO faz OCR (ler o texto da nota). Isso exigiria uma biblioteca externa de
+// vários MB, que quebraria o app offline e self-contained. O que dá para fazer
+// bem, e é o que resolve na prática:
+//   1. guardar a foto anexada ao lançamento (prova do gasto, sempre à mão);
+//   2. se a nota tiver QR Code, LER A CHAVE direto da imagem e preencher
+//      fornecedor, data e nº da nota — o mesmo caminho do cupom fiscal.
+// Leitura de QR na imagem depende do BarcodeDetector (Android). Onde não existe,
+// a foto continua sendo anexada normalmente.
+function aoFotografarComprovante(input){
+  if(!input.files||!input.files[0])return;
+  const arquivo=input.files[0];
+  const dica=document.getElementById('recFotoDica');
+  dica.textContent='Processando a foto...';
+  comprimirFoto(arquivo,async(dataUrl)=>{
+    document.getElementById('recFoto').value=dataUrl;
+    const area=document.getElementById('recFotoArea');
+    let img=area.querySelector('img');
+    if(!img){img=document.createElement('img');area.appendChild(img);}
+    img.src=dataUrl;
+    area.querySelector('.foto-upload-icon').style.display='none';
+    area.querySelector('.foto-upload-label').style.display='none';
+    document.getElementById('recFotoTroca').style.display='block';
+    dica.innerHTML='<b style="color:var(--verde);">Comprovante anexado.</b> Procurando QR Code...';
+    // tenta o QR na imagem ORIGINAL (a comprimida perde detalhe do código)
+    const chave=await lerQRdaImagem(arquivo);
+    if(!chave){
+      dica.innerHTML='<b style="color:var(--verde);">Comprovante anexado.</b> Não achei QR Code — preencha os dados abaixo.';
+      return;
+    }
+    if(!chaveNFValida(chave)){
+      dica.innerHTML='<b style="color:var(--verde);">Comprovante anexado.</b> Li um código, mas não é de nota fiscal.';
+      return;
+    }
+    const jaTem=lancamentos.find(l=>l.chaveNF===chave&&l.id!==(parseInt(document.getElementById('recId').value)||0));
+    if(jaTem){
+      dica.innerHTML='<b style="color:var(--vermelho);">⚠️ Essa nota já foi lançada</b> como "'+esc(jaTem.desc)+'" ('+brl(jaTem.valor)+').';
+      return;
+    }
+    const d=lerChaveNF(chave);
+    cupomLido={chaveNF:chave};
+    setTipo('saida');
+    if(!document.getElementById('recDesc').value)
+      document.getElementById('recDesc').value=(fornecedorPorCnpj(d.cnpj)||'Compra CNPJ '+d.cnpjFmt)+' · NF '+d.numero;
+    document.getElementById('recData').value=d.dataAprox;
+    dica.innerHTML='<b style="color:var(--verde);">✅ Nota lida!</b> CNPJ '+d.cnpjFmt+' · '+d.mes+'/'+d.ano
+      +'<br>Confira a data e digite o valor — o QR não traz o valor.';
+    document.getElementById('recValor').focus();
+  },()=>{
+    dica.textContent='Não consegui ler essa imagem. Tente outra foto.';
+  });
+}
+
+// abre o comprovante em tamanho cheio
+function verComprovante(id){
+  const l=lancamentos.find(x=>x.id===id);
+  if(!l||!l.foto)return;
+  abrirDetalhe('🧾 Comprovante',
+    `<div style="font-size:13px;margin-bottom:10px;">${esc(l.desc)} — ${brl(l.valor)}<br>
+     <span style="color:var(--cinza-claro);font-size:12px;">${esc(l.cat)} · ${formatData(l.data)}</span></div>
+     <img src="${l.foto}" style="width:100%;border-radius:12px;border:1px solid var(--borda);">`);
+}
+
+function limparFotoComprovante(valor){
+  const area=document.getElementById('recFotoArea');
+  if(!area)return;
+  document.getElementById('recFoto').value=valor||'';
+  const img=area.querySelector('img');
+  if(valor){
+    let i=img;
+    if(!i){i=document.createElement('img');area.appendChild(i);}
+    i.src=valor;
+    area.querySelector('.foto-upload-icon').style.display='none';
+    area.querySelector('.foto-upload-label').style.display='none';
+    document.getElementById('recFotoTroca').style.display='block';
+    document.getElementById('recFotoDica').innerHTML='<b style="color:var(--verde);">Comprovante anexado.</b>';
+  }else{
+    if(img)img.remove();
+    area.querySelector('.foto-upload-icon').style.display='';
+    area.querySelector('.foto-upload-label').style.display='';
+    document.getElementById('recFotoTroca').style.display='none';
+    document.getElementById('recFotoDica').textContent='Se a nota tiver QR Code, eu leio os dados dela sozinho.';
+  }
+}
+
+// procura QR Code dentro de uma imagem
+async function lerQRdaImagem(arquivo){
+  if(!('BarcodeDetector' in window))return '';
+  try{
+    const detector=new BarcodeDetector({formats:['qr_code']});
+    const bitmap=await createImageBitmap(arquivo);
+    const codigos=await detector.detect(bitmap);
+    if(bitmap.close)bitmap.close();
+    for(const c of codigos){
+      const chave=extrairChaveNF(c.rawValue);
+      if(chave)return chave;
+    }
+  }catch(e){}
+  return '';
+}
+
+// ─── CATEGORIAS (editáveis pela Ju) ───
+// Antes eram fixas no HTML. Cada negócio tem suas contas, e ela precisa poder
+// criar "Vale da assistente" ou "Conta de luz" sem depender de mim.
+const CATEGORIAS_PADRAO={
+  entrada:['Atendimento','Pacote mensal','Produto vendido','Outros'],
+  saida:['Aluguel','Energia','Água','Internet','Transporte','Equipe',
+         'Produtos consumo','Marketing','Manutenção','Impostos','Outros']
+};
+function categorias(tipo){
+  const salvas=DB.get('categorias');
+  if(salvas&&salvas[tipo]&&salvas[tipo].length)return salvas[tipo];
+  return CATEGORIAS_PADRAO[tipo]||[];
+}
+function salvarCategorias(tipo,lista){
+  const atual=DB.get('categorias')||{entrada:categorias('entrada'),saida:categorias('saida')};
+  atual[tipo]=lista;
+  return DB.set('categorias',atual);
+}
+// preenche o <select> do lançamento conforme entrada/saída
+function montarSelectCategorias(manter){
+  const sel=document.getElementById('recCategoria');
+  const lista=categorias(tipoAtual);
+  const anterior=manter||sel.value;
+  sel.innerHTML=lista.map(c=>`<option>${esc(c)}</option>`).join('');
+  if(anterior&&lista.includes(anterior))sel.value=anterior;
+}
+
+function abrirCategorias(){
+  renderCategorias();
+  openModal('modalCategorias');
+}
+function renderCategorias(){
+  const cont=document.getElementById('catLista');
+  const montar=(tipo,rotulo,cor)=>{
+    const lista=categorias(tipo);
+    return `<div class="sep">${rotulo}</div>`
+      +lista.map((c,i)=>`<div class="det-linha">
+          <span style="color:${cor};">${esc(c)}</span>
+          <span style="display:flex;gap:6px;">
+            <button class="btn-report" style="padding:5px 9px;font-size:12px;" onclick="renomearCategoria('${tipo}',${i})">✏️</button>
+            <button class="btn-delete" onclick="excluirCategoria('${tipo}',${i})">🗑</button>
+          </span></div>`).join('')
+      +`<button class="btn-report" style="width:100%;margin-top:8px;" onclick="novaCategoria('${tipo}')">+ Nova categoria de ${rotulo.toLowerCase()}</button>`;
+  };
+  cont.innerHTML=montar('entrada','Receitas','var(--verde)')+montar('saida','Despesas','var(--vermelho)');
+}
+function novaCategoria(tipo){
+  const nome=(prompt('Nome da nova categoria:')||'').trim();
+  if(!nome)return;
+  const lista=categorias(tipo);
+  if(lista.some(c=>c.toLowerCase()===nome.toLowerCase())){alert('Já existe uma categoria com esse nome.');return;}
+  lista.push(nome);
+  if(!salvarCategorias(tipo,lista))return;
+  renderCategorias();montarSelectCategorias();
+}
+function renomearCategoria(tipo,i){
+  const lista=categorias(tipo);
+  const antigo=lista[i];
+  const novo=(prompt('Novo nome para "'+antigo+'":',antigo)||'').trim();
+  if(!novo||novo===antigo)return;
+  lista[i]=novo;
+  if(!salvarCategorias(tipo,lista))return;
+  // renomeia também nos lançamentos já feitos, senão eles somem dos relatórios
+  let mexeu=0;
+  lancamentos.forEach(l=>{if(l.cat===antigo){l.cat=novo;mexeu++;}});
+  if(mexeu)DB.set('lanc',lancamentos);
+  renderCategorias();montarSelectCategorias();renderFin();
+  if(mexeu)alert('✅ Renomeada — e atualizei em '+mexeu+' lançamento(s) que já usavam ela.');
+}
+function excluirCategoria(tipo,i){
+  const lista=categorias(tipo);
+  const nome=lista[i];
+  const emUso=lancamentos.filter(l=>l.cat===nome).length;
+  if(emUso){
+    alert('Não dá para excluir "'+nome+'".\n\nExistem '+emUso+' lançamento(s) usando essa categoria. Renomeie-a ou mude esses lançamentos primeiro.');
+    return;
+  }
+  if(!confirm('Excluir a categoria "'+nome+'"?'))return;
+  lista.splice(i,1);
+  if(!salvarCategorias(tipo,lista))return;
+  renderCategorias();montarSelectCategorias();
+}
+
 // ─── LEITURA DE CUPOM FISCAL / NOTA ───
 // ⚠️ O QR Code da NFC-e (versão 2.0, a válida desde 2018) NÃO carrega o valor da
 // nota — isso existia na v1.0 e foi removido. Ele traz a CHAVE DE ACESSO de 44
@@ -3529,11 +3747,17 @@ function importarExtrato(input){
       }
       return;
     }
-    if(ehPDF){
-      alert('📄 Li '+extratoImportado.length+' lançamento(s) do PDF.\n\n⚠️ PDF é interpretação de layout e pode errar. Confira os valores antes de confirmar.\n\nO Excel (.xlsx) do banco é leitura exata — prefira ele.');
-    }else if(ehXLSX){
-      alert('📗 Li '+extratoImportado.length+' lançamento(s) da planilha do banco.');
-    }
+    const total=extratoImportado.length;
+    // dá baixa sozinho no que bate sem dúvida; o resto fica para ela decidir
+    const auto=conciliarAutomatico();
+    const sobraram=extratoImportado.length;
+    let resumo='Li '+total+' lançamento(s) do extrato.\n\n';
+    resumo+='✅ '+auto.feitas+' conciliado(s) automaticamente\n';
+    if(auto.ambiguas)resumo+='🤔 '+auto.ambiguas+' com mais de um lançamento parecido — escolha você\n';
+    resumo+=(sobraram?'⚠️ '+sobraram+' precisam de atenção':'🎉 Nada pendente, o caixa bateu com o banco!');
+    if(ehPDF)resumo+='\n\n⚠️ PDF é interpretação de layout e pode errar. Confira os valores.\nO Excel do banco é leitura exata — prefira ele.';
+    alert((ehPDF?'📄 ':ehXLSX?'📗 ':'🏦 ')+resumo);
+    renderFin();renderDash();
     renderConciliacao();
   };
   if(ehPDF||ehXLSX)leitor.readAsArrayBuffer(arq);
@@ -3550,6 +3774,32 @@ function acharLancamentoParecido(item){
     const d1=new Date(l.data+'T12:00:00'), d2=new Date(item.data+'T12:00:00');
     return Math.abs((d1-d2)/86400000)<=3;
   });
+}
+
+// Concilia sozinho o que bate SEM AMBIGUIDADE: mesmo valor, mesmo tipo, até 3
+// dias de diferença, e um único candidato. Quando há dois lançamentos iguais no
+// período, NÃO decide — deixa para a Ju, senão baixa o errado calado.
+function conciliarAutomatico(){
+  let feitas=0, ambiguas=0;
+  for(let i=extratoImportado.length-1;i>=0;i--){
+    const item=extratoImportado[i];
+    const candidatos=lancamentos.filter(l=>{
+      if(l.conciliado)return false;
+      if(l.tipo!==item.tipo)return false;
+      if(Math.abs(l.valor-item.valor)>0.01)return false;
+      const d1=new Date(l.data+'T12:00:00'), d2=new Date(item.data+'T12:00:00');
+      return Math.abs((d1-d2)/86400000)<=3;
+    });
+    if(candidatos.length===1){
+      candidatos[0].conciliado=true;
+      extratoImportado.splice(i,1);
+      feitas++;
+    }else if(candidatos.length>1){
+      ambiguas++;
+    }
+  }
+  if(feitas)DB.set('lanc',lancamentos);
+  return {feitas,ambiguas};
 }
 
 function renderConciliacao(){
@@ -3638,7 +3888,8 @@ function salvarLancamento(){
   const id=parseInt(document.getElementById('recId').value)||0;
   const campos={tipo:tipoAtual,desc,valor,
     data:document.getElementById('recData').value,
-    cat:document.getElementById('recCategoria').value};
+    cat:document.getElementById('recCategoria').value,
+    foto:document.getElementById('recFoto').value||''};
   if(id){
     // EDITAR: mantém o id (e a chave do cupom, se veio de leitura)
     const l=lancamentos.find(x=>x.id===id);
@@ -3661,14 +3912,21 @@ function editarLanc(id){
   document.getElementById('recDesc').value=l.desc||'';
   document.getElementById('recValor').value=l.valor||'';
   document.getElementById('recData').value=l.data||hojeISO();
-  document.getElementById('recCategoria').value=l.cat||'Outros';
-  setTipo(l.tipo||'entrada');
+  setTipo(l.tipo||'entrada');           // troca a lista de categorias antes...
+  montarSelectCategorias(l.cat);        // ...e só então seleciona a do lançamento
+  limparFotoComprovante(l.foto||'');
   document.getElementById('recCupom').innerHTML=l.chaveNF
     ? `<div class="det-nota" style="margin-top:0;">🧾 Veio de cupom fiscal<br><span style="font-size:10px;word-break:break-all;">${esc(l.chaveNF)}</span></div>`
     : '';
   document.getElementById('modalReceita').classList.add('open');
 }
-function setTipo(t){tipoAtual=t;document.getElementById('tipoEntrada').classList.toggle('active',t==='entrada');document.getElementById('tipoSaida').classList.toggle('active',t==='saida');}
+function setTipo(t){
+  tipoAtual=t;
+  document.getElementById('tipoEntrada').classList.toggle('active',t==='entrada');
+  document.getElementById('tipoSaida').classList.toggle('active',t==='saida');
+  // receita e despesa têm listas de categoria diferentes
+  montarSelectCategorias();
+}
 
 // ─── PERÍODO ───
 const PERIODO_LABEL={mes:'do mês',trimestre:'do trimestre',semestre:'do semestre',ano:'do ano',tudo:'(tudo)'};
@@ -3731,7 +3989,7 @@ function renderFin(){
     <div class="fin-item">
       <div style="flex:1;min-width:0;">
         <div class="fin-desc" style="${l.pessoal?'opacity:0.55;':''}">${esc(l.desc)}${l.pessoal?' <span class="badge badge-cinza" style="font-size:10px;">pessoal</span>':''}</div>
-        <div class="fin-meta">${esc(l.cat)} · ${formatData(l.data)}</div>
+        <div class="fin-meta">${esc(l.cat)} · ${formatData(l.data)}${l.foto?` · <span style="color:var(--roxo);cursor:pointer;" onclick="verComprovante(${l.id})">🧾 comprovante</span>`:''}${l.conciliado?' · <span style="color:var(--verde);">✓ no banco</span>':''}</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;"><div class="fin-valor ${l.tipo}">${valoresOcultos?'R$ ••••':(l.tipo==='entrada'?'+':'-')+'R$ '+l.valor.toLocaleString('pt-BR')}</div><button class="btn-report" style="padding:6px 9px;font-size:12px;${l.pessoal?'border-color:var(--roxo);color:var(--roxo);':''}" onclick="alternarPessoal(${l.id})" title="${l.pessoal?'Voltar a contar como da loja':'Marcar como pessoal (fora do resultado)'}">${l.pessoal?'🏠':'👤'}</button><button class="btn-report" style="padding:6px 9px;font-size:12px;" onclick="editarLanc(${l.id})">✏️</button><button class="btn-delete" onclick="deletarLanc(${l.id})">🗑</button></div>
     </div>`).join('');
@@ -4083,6 +4341,7 @@ function iniciarApp(){
   ligarBuscaRaca('petRaca','petPorte','petRacaAviso');
   montarSelectServicos();
   montarChipsRecibo();
+  montarSelectCategorias();
   document.getElementById('atendData').value=hojeISO();
   document.getElementById('recData').value=hojeISO();
   renderDash();
