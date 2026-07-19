@@ -914,7 +914,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-191447';
+const VERSAO_APP='2026-07-19-191625';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -2606,12 +2606,15 @@ function deletarAtend(id){if(!confirm('Excluir agendamento?'))return;atendimento
 // ─── EXPEDIENTE ───
 // Terça a sábado, 9h–12h30 e 13h30–16h (almoço no meio). Informado pela Ju em
 // 19/07/2026. ⚠️ A mesma informação existe no agendar.html — mudou aqui, mude lá.
-const EXPEDIENTE=[{de:9*60,ate:12*60+30},{de:13*60+30,ate:16*60}];
+// `tol` = quanto pode passar do fim da janela. Manhã ZERO (senão invade o
+// almoço); tarde 60min (o último horário é 16h e pode terminar até 17h).
+const EXPEDIENTE=[
+  {de:9*60,     ate:12*60+30, tol:0},
+  {de:13*60+30, ate:16*60,    tol:60}
+];
 const EXPEDIENTE_TXT='Terça a sábado · 9h às 12h30 e 13h30 às 16h';
-// o atendimento pode terminar depois do último horário; o que não pode é
-// começar fora da janela ou atravessar o almoço
 function dentroDoExpediente(ini,fim){
-  return EXPEDIENTE.some(j=>ini>=j.de&&ini<=j.ate&&fim<=j.ate+60);
+  return EXPEDIENTE.some(j=>ini>=j.de&&ini<=j.ate&&fim<=j.ate+(j.tol||0));
 }
 
 // ─── CHOQUE DE HORÁRIO ───

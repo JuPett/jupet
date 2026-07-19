@@ -329,9 +329,14 @@ const DIAS_ABERTOS=[2,3,4,5,6];        // 0=dom 1=seg ... 6=sáb
 // daqui e da DURAÇÃO do serviço — uma tosa modelada de 2h não pode começar
 // 11h30, senão atravessa o almoço.
 // ⚠️ O mesmo expediente existe no index.html (EXPEDIENTE). Mudou aqui, mude lá.
-const EXPEDIENTE=[{de:9*60, ate:12*60+30},{de:13*60+30, ate:16*60}];
+// `tol` = quanto o atendimento pode passar do fim da janela.
+// Manhã: ZERO — se passar, invade o almoço dela.
+// Tarde: 60min — o último horário é 16h e pode terminar até 17h.
+const EXPEDIENTE=[
+  {de:9*60,       ate:12*60+30, tol:0},
+  {de:13*60+30,   ate:16*60,    tol:60}
+];
 const PASSO=30;                        // de meia em meia hora
-const TOLERANCIA_FIM=60;               // pode terminar até 1h após o fim da janela
 const DIAS_A_MOSTRAR=21;               // janela de dias oferecida
 const WHATSAPP='5571987699236';
 
@@ -503,7 +508,7 @@ function horariosPossiveis(dur){
   const lista=[];
   EXPEDIENTE.forEach(j=>{
     for(let t=j.de;t<=j.ate;t+=PASSO){
-      if(t+dur<=j.ate+TOLERANCIA_FIM)lista.push(t);
+      if(t+dur<=j.ate+(j.tol||0))lista.push(t);
     }
   });
   return lista;
