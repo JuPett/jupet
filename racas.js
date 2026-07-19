@@ -10,11 +10,17 @@
 // um SRD pode ter qualquer tamanho, e filhote não tem o porte do adulto.
 // Critério: Pequeno até ~10kg · Médio 10–25kg · Grande acima de 25kg.
 
-const RACAS = [
-  // sem raça definida vem primeiro, é o caso mais comum no balcão
+// sem raça definida vem primeiro: é o caso mais comum no balcão
+const RACAS_TOPO = [
   { n: 'SRD — Sem raça definida (vira-lata)', p: '' },
-  { n: 'Não sei a raça',                      p: '' },
+  { n: 'Não sei a raça',                      p: '' }
+];
+// escape para o que não estiver na lista
+const RACAS_FIM = [
+  { n: 'Outra raça (digitar)', p: '' }
+];
 
+const RACAS_LISTA = [
   { n: 'Affenpinscher',                    p: 'Pequeno' },
   { n: 'Airedale Terrier',                 p: 'Grande'  },
   { n: 'Akita Americano',                  p: 'Grande'  },
@@ -164,10 +170,15 @@ const RACAS = [
   { n: 'Welsh Terrier',                    p: 'Pequeno' },
   { n: 'West Highland White Terrier (Westie)', p: 'Pequeno' },
   { n: 'Whippet',                          p: 'Médio'   },
-  { n: 'Yorkshire Terrier',                p: 'Pequeno' },
+  { n: 'Yorkshire Terrier',                p: 'Pequeno' }
+];
 
-  // sempre por último: escape para o que não está na lista
-  { n: 'Outra raça (digitar)',             p: '' }
+// Ordena por código, não à mão: a lista é grande e manter a ordem manualmente
+// falha na primeira inclusão apressada. localeCompare pt-BR trata os acentos.
+const RACAS = [
+  ...RACAS_TOPO,
+  ...RACAS_LISTA.slice().sort((a, b) => a.n.localeCompare(b.n, 'pt-BR')),
+  ...RACAS_FIM
 ];
 
 // porte típico de uma raça ('' quando não dá para saber, como SRD)
