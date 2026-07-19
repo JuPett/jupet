@@ -52,6 +52,7 @@ desinstalar o app no iPhone **apaga tudo**. Por isso:
 |---|---|
 | `index.html` | O app inteiro (uso da Ju) |
 | `agendar.html` | **Página pública** de pedido de horário (uso do cliente) |
+| `racas.js` | Lista de raças **compartilhada** pelos dois HTMLs |
 | `manual.html` | Manual de uso, escrito para a Ju |
 | `manifest.json` · `sw.js` | Instalável + abre offline |
 | `icon-192/512.png`, `apple-touch-icon.png` | Ícones (patinha branca no roxo) |
@@ -133,6 +134,24 @@ confirmar, ajustar o número e remover a flag.
 **O porte vem do cadastro do pet** — `porteDoPetSelecionado()` lê o pet escolhido no
 agendamento, então o preço sai certo sem ninguém digitar. No Recibo há um seletor de
 porte próprio (o recibo não exige cliente cadastrado).
+
+## Raças (`racas.js`)
+
+Arquivo **compartilhado** pelos dois HTMLs — é a única lista que virou arquivo próprio,
+porque duplicar ~150 raças garantiria divergência. Carregado com `<script src>` nos dois.
+
+A cadeia é **raça → porte → preço**: escolher "Golden Retriever" preenche porte Grande,
+que faz o banho sair R$ 85. Uma escolha em vez de três campos.
+
+- `RACAS_TOPO` (SRD, "não sei") · `RACAS_LISTA` (as raças) · `RACAS_FIM` ("Outra raça").
+  `RACAS` é montado ordenando só o meio — **não manter ordem à mão**, o código ordena.
+- **SRD e "não sei" têm porte vazio** e não mexem no porte escolhido: um vira-lata pode
+  ter qualquer tamanho. Mesma coisa para "Outra raça".
+- **"Outra raça (digitar)"** revela um campo de texto; `racaFinal()` devolve o que foi
+  digitado. `setRaca()` faz o caminho de volta: raça fora da lista reabre como "Outra"
+  com o texto preservado.
+- O porte da raça é **sugestão editável** — Poodle vai de toy a standard, e filhote não
+  tem o porte do adulto. `setRaca()` de propósito **não** sobrescreve o porte salvo.
 
 No `index.html`, `SERVICOS_LISTA` é a **fonte única**: o `<select>` do agendamento e
 os chips do Recibo são **gerados** dela (`montarSelectServicos`, `montarChipsRecibo`).
