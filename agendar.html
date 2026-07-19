@@ -93,6 +93,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 .raca-vazio{padding:12px 13px;font-size:12px;color:var(--cinza-claro);line-height:1.5;}
 .raca-alerta{background:#FDEAEA;border-radius:12px;padding:13px;margin-top:8px;font-size:13px;color:#A32D2D;line-height:1.55;}
 .rodape{text-align:center;padding:24px 20px;font-size:12px;color:var(--cinza-claro);line-height:1.7;}
+.obr{color:#D64545;font-weight:600;}
+.legenda-obr{font-size:11.5px;color:var(--cinza-claro);margin-bottom:14px;}
+.falta{border-color:#E9A0A0 !important;background:#FFF7F7;}
 .erro{color:#A32D2D;font-size:12px;margin-top:8px;display:none;}
 </style>
 </head>
@@ -111,18 +114,19 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <!-- 1. QUEM -->
     <div class="card">
       <div class="passo"><div class="passo-num">1</div><div class="passo-txt">Sobre você e seu pet</div></div>
-      <div class="form-group"><label class="form-label">Seu nome</label><input class="form-input" id="tutor" placeholder="Nome completo" oninput="atualizar()"></div>
-      <div class="form-group"><label class="form-label">Seu WhatsApp</label><input class="form-input" id="tel" type="tel" inputmode="numeric" placeholder="(71) 9 0000-0000" oninput="mascaraTel(this);atualizar()"></div>
-      <div class="form-group"><label class="form-label">Nome do pet</label><input class="form-input" id="pet" placeholder="Nome do pet" oninput="atualizar()"></div>
+      <div class="legenda-obr"><span class="obr">*</span> preenchimento obrigatório</div>
+      <div class="form-group"><label class="form-label">Seu nome <span class="obr">*</span></label><input class="form-input" id="tutor" placeholder="Nome completo" oninput="atualizar()"></div>
+      <div class="form-group"><label class="form-label">Seu WhatsApp <span class="obr">*</span></label><input class="form-input" id="tel" type="tel" inputmode="numeric" placeholder="(71) 9 0000-0000" oninput="mascaraTel(this);atualizar()"></div>
+      <div class="form-group"><label class="form-label">Nome do pet <span class="obr">*</span></label><input class="form-input" id="pet" placeholder="Nome do pet" oninput="atualizar()"></div>
       <div class="form-group">
-        <label class="form-label">Raça</label>
+        <label class="form-label">Raça <span class="obr">*</span></label>
         <input class="form-input" id="raca" placeholder="Digite para buscar (ex: york, maltes...)" autocomplete="off"
                oninput="racaBuscar('raca')" onfocus="racaBuscar('raca')">
         <div class="raca-lista" id="racaLista"></div>
         <div id="racaAviso"></div>
       </div>
       <div class="form-group">
-        <label class="form-label">Porte</label>
+        <label class="form-label">Porte <span class="obr">*</span></label>
         <select class="form-select" id="porte" onchange="aoTrocarPorte()"><option>Pequeno</option><option>Médio</option><option>Grande</option></select>
         <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;" id="porteOrigem">Preenche sozinho ao escolher a raça — mas você pode ajustar.</div>
       </div>
@@ -167,7 +171,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 
     <!-- 2. SERVIÇO -->
     <div class="card">
-      <div class="passo"><div class="passo-num">2</div><div class="passo-txt">O que seu pet precisa</div></div>
+      <div class="passo"><div class="passo-num">2</div><div class="passo-txt">O que seu pet precisa <span class="obr">*</span></div></div>
       <div style="font-size:12px;color:var(--roxo);background:var(--lilas-palido);border-radius:10px;padding:9px 12px;margin-bottom:12px;" id="porteAviso">Preços para porte pequeno.</div>
       <div class="chips" id="servicos"></div>
       <div style="font-size:11px;color:var(--cinza-claro);margin-top:12px;line-height:1.5;">
@@ -179,11 +183,11 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <div class="card">
       <div class="passo"><div class="passo-num">3</div><div class="passo-txt">Quando fica melhor</div></div>
       <div class="form-group">
-        <label class="form-label">Dia</label>
+        <label class="form-label">Dia <span class="obr">*</span></label>
         <div class="dias" id="dias"></div>
       </div>
       <div class="form-group" style="margin-bottom:0;">
-        <label class="form-label">Horário</label>
+        <label class="form-label">Horário <span class="obr">*</span></label>
         <div class="horas" id="horas"></div>
       </div>
     </div>
@@ -499,17 +503,27 @@ function atualizar(){
   const pet=document.getElementById('pet').value.trim();
   const tel=document.getElementById('tel').value.trim();
   const aceitou=document.getElementById('aceitou').checked;
+  const raca=racaFinal();
   // raça não atendida trava o envio: melhor barrar aqui do que a Ju ter que
   // recusar depois, com o cliente já contando com o horário.
-  const bloqueada=!!racaBloqueada(racaFinal());
-  const ok=tutor&&pet&&tel.replace(/\D/g,'').length>=10&&servicoSel&&diaSel&&horaSel&&aceitou&&!bloqueada;
+  const bloqueada=!!racaBloqueada(raca);
+  const telOk=tel.replace(/\D/g,'').length>=10;
+  const ok=tutor&&pet&&telOk&&raca&&servicoSel&&diaSel&&horaSel&&aceitou&&!bloqueada;
   document.getElementById('botao').disabled=!ok;
   document.getElementById('botao').textContent=bloqueada?'Raça não atendida':'💬 Pedir pelo WhatsApp';
 
+  // marca em vermelho claro o campo que falta, para a pessoa achar na hora
+  const marcar=(id,vazio)=>{
+    const el=document.getElementById(id);
+    if(el)el.classList.toggle('falta',!!vazio);
+  };
+  marcar('tutor',!tutor); marcar('tel',!telOk); marcar('pet',!pet); marcar('raca',!raca);
+
   const faltando=[];
   if(!tutor)faltando.push('seu nome');
-  if(!tel||tel.replace(/\D/g,'').length<10)faltando.push('seu WhatsApp');
+  if(!telOk)faltando.push('seu WhatsApp');
   if(!pet)faltando.push('o nome do pet');
+  if(!raca)faltando.push('a raça');
   if(!servicoSel)faltando.push('o serviço');
   if(!diaSel)faltando.push('o dia');
   if(!horaSel)faltando.push('o horário');
