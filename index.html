@@ -363,6 +363,10 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
   <!-- AGENDA -->
   <div class="screen" id="screen-agenda">
     <div class="sec-header"><div class="sec-title">Agenda</div><button class="btn-add" onclick="openModal('modalAtend')">+ Agendar</button></div>
+    <div class="report-actions">
+      <button class="btn-report" onclick="abrirModalPedido()">📥 Pedido do zap</button>
+      <button class="btn-report" onclick="compartilharLink()">🔗 Link p/ clientes</button>
+    </div>
     <div class="card" style="margin-bottom:12px;"><input type="date" class="form-input" id="agendaFiltroData" onchange="renderAgenda()"></div>
     <div id="agendaLista"></div>
   </div>
@@ -642,6 +646,24 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     </div>
     <button class="btn-primary" onclick="salvarPet()">✅ Salvar pet</button>
     <button class="btn-secondary" onclick="closeModal('modalPet')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL: PEDIDO DO WHATSAPP -->
+<div class="modal-overlay" id="modalPedido">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📥 Pedido do WhatsApp</div>
+    <div style="font-size:13px;color:var(--cinza-claro);line-height:1.55;margin-bottom:14px;">
+      No WhatsApp, segure a mensagem do cliente → <b>Copiar</b>. Depois cole aqui embaixo e toque em Ler pedido.
+      O agendamento vem preenchido — você só confere e salva.
+    </div>
+    <div class="form-group">
+      <textarea class="form-input" id="pedidoTexto" rows="7" placeholder="Cole aqui a mensagem do cliente..." style="resize:vertical;font-family:'DM Sans',sans-serif;"></textarea>
+    </div>
+    <div id="pedidoAviso"></div>
+    <button class="btn-primary" onclick="lerPedido()">✅ Ler pedido</button>
+    <button class="btn-secondary" onclick="closeModal('modalPedido')">Cancelar</button>
   </div>
 </div>
 
@@ -1174,6 +1196,138 @@ function sugerirRetornoPorPet(p){
 // escapa texto do usuário antes de jogar em innerHTML
 function esc(s){
   return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ─── PEDIDO VINDO DO LINK PÚBLICO (agendar.html) ───
+// A página pública não enxerga esta agenda (os dados vivem só neste celular),
+// então o cliente manda um PEDIDO pelo WhatsApp com rótulos fixos. Aqui a gente
+// lê esses rótulos e preenche o agendamento — ela não redigita nada.
+// ⚠️ Os rótulos precisam bater com os do montarMensagem() do agendar.html.
+const LINK_AGENDAMENTO='https://jupet.pages.dev/agendar';
+let pedidoPendente=null;
+
+function abrirModalPedido(){
+  document.getElementById('pedidoTexto').value='';
+  document.getElementById('pedidoAviso').innerHTML='';
+  openModal('modalPedido');
+}
+
+function compartilharLink(){
+  const msg='Oi! 🐾 Para pedir seu horário na Ju Pet é só abrir este link:\n\n'+LINK_AGENDAMENTO+'\n\nVocê escolhe o serviço e o melhor dia, e eu confirmo por aqui. 💜';
+  if(navigator.share){
+    navigator.share({title:'Agendar na Ju Pet',text:msg}).catch(()=>copiarTexto(msg));
+  }else{
+    copiarTexto(msg);
+  }
+}
+function copiarTexto(t){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(t).then(()=>alert('✅ Link copiado!\n\nAgora é só colar no WhatsApp, no Instagram ou na bio.'))
+      .catch(()=>alert('Link para os clientes:\n\n'+LINK_AGENDAMENTO));
+  }else{
+    alert('Link para os clientes:\n\n'+LINK_AGENDAMENTO);
+  }
+}
+
+// pega "Rotulo: valor" de qualquer linha, tolerando acento e maiúscula
+function campoPedido(txt,rotulos){
+  for(const r of rotulos){
+    const m=txt.match(new RegExp('^[^\\S\\n]*'+r+'[^\\S\\n]*:[^\\S\\n]*(.+)$','im'));
+    if(m&&m[1].trim())return m[1].trim();
+  }
+  return '';
+}
+function dataBRparaISO(s){
+  const m=(s||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if(!m)return '';
+  let ano=m[3];if(ano.length===2)ano='20'+ano;
+  return ano+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+}
+function soDigitos(s){return (s||'').replace(/\D/g,'');}
+
+function lerPedido(){
+  const txt=document.getElementById('pedidoTexto').value||'';
+  const aviso=document.getElementById('pedidoAviso');
+  if(!txt.trim()){aviso.innerHTML='<div class="det-nota" style="background:var(--vermelho-claro);color:var(--vermelho);">Cole a mensagem do cliente primeiro.</div>';return;}
+
+  const p={
+    tutor:campoPedido(txt,['Tutor','Nome']),
+    tel:campoPedido(txt,['Telefone','WhatsApp','Whats','Fone','Celular']),
+    pet:campoPedido(txt,['Pet','Nome do pet']),
+    porte:campoPedido(txt,['Porte']),
+    raca:campoPedido(txt,['Ra[cç]a']),
+    servico:campoPedido(txt,['Servi[cç]o']),
+    valor:parseFloat(campoPedido(txt,['Valor']).replace(',','.'))||0,
+    data:dataBRparaISO(campoPedido(txt,['Dia','Data'])),
+    hora:(campoPedido(txt,['Hora','Hor[aá]rio']).match(/\d{1,2}:\d{2}/)||[''])[0],
+    obs:campoPedido(txt,['Obs','Observa[cç][aã]o'])
+  };
+
+  if(!p.tutor||!p.pet){
+    aviso.innerHTML='<div class="det-nota" style="background:var(--vermelho-claro);color:var(--vermelho);">Não achei o tutor e o pet nessa mensagem. Confira se colou a mensagem inteira — ou cadastre na mão pelo "+ Agendar".</div>';
+    return;
+  }
+
+  pedidoPendente=p;
+  closeModal('modalPedido');
+
+  // Já é cliente? Casa por telefone (mais confiável) e, se não, por nome do tutor + pet.
+  const digitos=soDigitos(p.tel);
+  let achado=null;
+  for(const c of clientes){
+    const mesmoTel=digitos&&soDigitos(c.tel)&&soDigitos(c.tel).slice(-8)===digitos.slice(-8);
+    const mesmoNome=(c.nome||'').trim().toLowerCase()===p.tutor.toLowerCase();
+    if(mesmoTel||mesmoNome){
+      const pet=petsDe(c).find(x=>(x.nome||'').trim().toLowerCase()===p.pet.toLowerCase());
+      if(pet){achado={c,p:pet};break;}
+      if(mesmoTel&&!achado)achado={c,p:null};   // tutor conhecido, pet novo
+    }
+  }
+
+  if(achado&&achado.p){
+    openModal('modalAtend');
+    selecionarClienteAtend(achado.c.id,achado.p.id);
+    aplicarPedidoPendente();
+    return;
+  }
+  if(achado&&!achado.p){
+    // tutor já existe, mas o pet é novo → adiciona o pet a ele
+    alert('👤 '+achado.c.nome+' já é cliente, mas o pet "'+p.pet+'" ainda não está cadastrado.\n\nVou abrir o cadastro do pet.');
+    abrirModalPet(achado.c.id);
+    document.getElementById('petNome').value=p.pet;
+    if(p.raca)document.getElementById('petRaca').value=p.raca;
+    if(p.porte)document.getElementById('petPorte').value=p.porte;
+    if(p.obs)document.getElementById('petObs').value=p.obs;
+    voltarProAgendamento=true;
+    return;
+  }
+
+  // cliente novo → abre o cadastro já preenchido; ao salvar volta pro agendamento
+  openModal('modalCliente');
+  document.getElementById('cliNome').value=p.tutor;
+  document.getElementById('cliTel').value=p.tel;
+  document.getElementById('cliPet').value=p.pet;
+  if(p.raca)document.getElementById('cliRaca').value=p.raca;
+  if(p.porte)document.getElementById('cliPorte').value=p.porte;
+  if(p.obs)document.getElementById('cliObs').value=p.obs;
+  voltarProAgendamento=true;
+}
+
+// aplica serviço/dia/hora do pedido no modal de agendamento já aberto
+function aplicarPedidoPendente(){
+  const p=pedidoPendente;if(!p)return;
+  if(p.servico){
+    const sel=document.getElementById('atendServico');
+    const achou=[...sel.options].find(o=>o.value.toLowerCase()===p.servico.toLowerCase());
+    if(achou){sel.value=achou.value;aoTrocarServico();}
+    else{sel.value='Outro / personalizado';aoTrocarServico();}
+  }
+  if(p.valor)document.getElementById('atendValor').value=p.valor;
+  if(p.data)document.getElementById('atendData').value=p.data;
+  if(p.hora)document.getElementById('atendHora').value=p.hora;
+  if(p.obs)document.getElementById('atendObs').value=p.obs;
+  pedidoPendente=null;
+  alert('📥 Pedido carregado!\n\nConfira o dia e o horário — o cliente escolheu sem ver sua agenda, então pode bater com algo já marcado.\n\nDepois de salvar, responda confirmando no WhatsApp.');
 }
 
 // ─── ESTOQUE ───
@@ -1765,6 +1919,7 @@ function salvarCliente(){
     voltarProAgendamento=false;
     openModal('modalAtend');
     selecionarClienteAtend(obj.id,obj.pets[0].id);
+    aplicarPedidoPendente();
   }
 }
 
@@ -1873,9 +2028,19 @@ function salvarPet(){
   if(!nome){alert('Informe o nome do pet.');return;}
   if(!Array.isArray(c.pets))c.pets=[];
   c.pets.push({id:Date.now(),nome,raca:document.getElementById('petRaca').value,porte:document.getElementById('petPorte').value,obs:document.getElementById('petObs').value,pacote:document.getElementById('petPacote').value,fidelidade:parseInt(document.getElementById('petFidelidade').value)||0,aniv:document.getElementById('petAniv').value,photo:document.getElementById('petPhoto').value});
-  DB.set('clientes',clientes);
+  if(!DB.set('clientes',clientes))return;
   closeModal('modalPet');
-  verPerfil(c.id);renderClientes();renderDash();
+  const petNovo=c.pets[c.pets.length-1];
+  renderClientes();renderDash();
+  // veio de um pedido do WhatsApp: volta pro agendamento com o pet já escolhido
+  if(voltarProAgendamento){
+    voltarProAgendamento=false;
+    openModal('modalAtend');
+    selecionarClienteAtend(c.id,petNovo.id);
+    aplicarPedidoPendente();
+    return;
+  }
+  verPerfil(c.id);
 }
 // ─── FIDELIDADE: +1 carimbo (a cada 10 banhos, 1 hidratação grátis) ───
 function carimbar(tutorId,petId){
