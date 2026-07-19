@@ -126,9 +126,24 @@ mas cobram mensalidade e também exigem backend.
 
 O caminho implementado é **importar o extrato** exportado do Net Empresa:
 
-⚠️ **O Bradesco só exporta PDF e CSV — não tem OFX** (confirmado pelo usuário em
-19/07/2026). O `lerOFX()` continua no código para outros bancos, mas não é o caminho
-dela. **Recomendar sempre o CSV**, que é leitura exata.
+⚠️ **O Bradesco não exporta OFX.** Ele dá **Excel (.xlsx), CSV e PDF** (confirmado com
+os arquivos reais em 19/07/2026). O `lerOFX()` fica no código para outros bancos.
+
+**Ordem de preferência: Excel → CSV → PDF.** O `.xlsx` vem em colunas de verdade
+(`Data | Descrição | Documento | Tipo | Valor | Saldo`) com a descrição completa numa
+célula só — leitura exata. O PDF exige interpretar layout e pode errar.
+Validado: Excel e PDF do mesmo extrato produzem **os 14 lançamentos idênticos** em
+data, valor e tipo.
+
+- **`lerXLSX()` + `lerZip()`** — XLSX é um ZIP de XMLs. O navegador não abre ZIP
+  sozinho, então `lerZip()` lê o **diretório central** do arquivo (não o cabeçalho
+  local: com o bit de "data descriptor" ligado, os tamanhos lá vêm zerados) e infla
+  cada item com `DecompressionStream('deflate-raw')` — ZIP usa deflate cru, não zlib.
+  Sem biblioteca externa, mantendo o app self-contained.
+- ⚠️ No XLSX os textos ficam em `xl/sharedStrings.xml` e as células referenciam por
+  índice (`t="s"`). Ler só `<v>` devolve números em vez de texto.
+- ⚠️ **`.xlsx` não pode entrar na lista de extensões recusadas** em `importarExtrato`
+  — é ZIP por dentro, e a regra que barrava `.zip` barrava a planilha junto.
 
 - **`lerLinhasExtrato()` é o interpretador único** — serve para CSV e para o texto
   extraído do PDF. A ideia: uma linha de extrato é "tem uma data e tem um valor";
@@ -447,3 +462,10 @@ O app nasceu como HTML solto em `C:\Users\freud\OneDrive\Projeto Ju pet\jupe_ext
 expansão 2026). **Foi movido para cá em 19/07/2026** por risco de conflito de
 sincronização do OneDrive. A pasta antiga ainda existe e está **desatualizada** —
 a fonte da verdade é `C:\Users\freud\jupet`.
+
+## Aviso sobre scripts Python neste repo
+
+NAO usar Python com `io.open(arquivo,'w')` para reescrever o `index.html`.
+Em 19/07/2026 isso **zerou o arquivo**: o open truncou antes de falhar ao
+reencodar (surrogates no UTF-8 do arquivo). Recuperado com `git checkout`.
+Usar as ferramentas de edicao, que fazem escrita atomica.
