@@ -899,7 +899,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-182655';
+const VERSAO_APP='2026-07-19-182804';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -2877,10 +2877,14 @@ async function extrairTextoPDF(buffer){
     let d=ini+6;
     if(cru[d]==='\r')d++;
     if(cru[d]==='\n')d++;
-    const fim=cru.indexOf('endstream',d);
+    let fim=cru.indexOf('endstream',d);
     if(fim<0)break;
     pos=fim+9;
     diagPDF.streams++;
+    // O PDF escreve uma quebra de linha ANTES de "endstream". Se esse byte
+    // entrar junto, o descompactador recusa o bloco inteiro por lixo no fim —
+    // era exatamente por isso que nenhum stream abria.
+    while(fim>d&&(bytes[fim-1]===0x0A||bytes[fim-1]===0x0D))fim--;
     const dados=bytes.subarray(d,fim);
     if(!dados.length)continue;
 
