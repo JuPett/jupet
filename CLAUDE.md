@@ -75,6 +75,38 @@ com o financeiro que faz o estoque ser mantido — lista solta ninguém atualiza
 Dados: `produtos` (`jupet_produtos`) e `movimentacoes` (`jupet_mov`, histórico de
 entrada/saída). Alerta de reposição quando `qtd <= minimo`, no painel e na tela.
 
+### Consumo automático e previsão de compra
+
+Produto de **uso** ganha `rende` (quantos atendimentos uma unidade cobre) e
+`aplicaEm` (`banho`/`tosa`/`todos`). Com isso o estoque fica ligado à agenda:
+
+- `consumirProdutosDoAtendimento()` roda ao **concluir** um atendimento. Ele conta
+  atendimentos em `p.usos` e **só baixa 1 unidade quando fecha o rendimento** —
+  frasco pela metade confunde, contagem inteira não. Registra a movimentação com
+  `motivo:'uso'` e o `atendimentoId`.
+- `tipoDoServico()` classifica pelo nome: contém "tosa" → tosa; "banho"/"spa"/"pacote"
+  → banho. Se criar serviço com outro nome, revisar essa função.
+- `previsaoProduto()` usa o **ritmo real dos últimos 28 dias** (`ritmoAtendimentos`)
+  para dizer quantos dias o estoque aguenta e até quando comprar — com **7 dias de
+  folga**, porque avisar no dia que acaba não serve para nada.
+
+## Financeiro: editar e ler cupom
+
+- **`editarLanc(id)`** abre o modal preenchido; `salvarLancamento()` decide entre criar
+  e atualizar pelo campo escondido `recId`. `openModal('modalReceita')` **sempre volta
+  ao modo NOVO** — quem edita entra por `editarLanc`, não por `openModal`.
+- **Leitura de cupom fiscal** (`analisarCupom`): aceita a chave de 44 dígitos, o link
+  do QR Code ou texto colado. Valida o **dígito verificador (módulo 11)** e extrai
+  UF, mês/ano, CNPJ do fornecedor e nº da nota. Guarda `chaveNF` no lançamento, o que
+  permite **barrar cupom lançado duas vezes**.
+- ⚠️ **O QR Code da NFC-e NÃO traz o valor.** Isso existia na versão 1.0, desativada
+  em 2018; a 2.0 removeu `vNF` e `dhEmi`. Pegar o valor exigiria consultar a SEFAZ —
+  bloqueado por CORS no navegador e diferente em cada estado. Por isso o app preenche
+  tudo menos o valor, e diz isso ao usuário em vez de fingir que leu.
+- ⚠️ **A chave só tem ano e mês**, não o dia — o app usa dia 1 e avisa para conferir.
+- Scanner nativo (`BarcodeDetector`) aparece só onde existe (Android Chrome). No iOS
+  o caminho é colar, igual ao "Pedido do zap".
+
 ## Agendamento pelo cliente (`agendar.html`)
 
 **https://jupet.pages.dev/agendar** — página pública, sem login, para o cliente.
