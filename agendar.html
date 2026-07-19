@@ -210,7 +210,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 
       <label class="aceite" for="aceitou">
         <input type="checkbox" id="aceitou" onchange="atualizar()">
-        <span>Li e concordo com os combinados acima.</span>
+        <span>Li e concordo com os combinados acima, e com o uso dos meus dados para o atendimento.</span>
       </label>
     </div>
 
@@ -224,6 +224,27 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div class="aviso">
         ⚠️ Este é um <b>pedido de horário</b>, não uma reserva confirmada. A Tia Ju vai responder pelo WhatsApp confirmando ou sugerindo outro horário.
       </div>
+
+      <!-- LGPD (Lei 13.709/2018): o titular precisa saber o que é coletado, para
+           quê, quem recebe e como pedir exclusão. Aqui é simples porque a página
+           NÃO tem servidor — nada é gravado, os dados só viajam na mensagem que o
+           próprio cliente envia pelo WhatsApp dele. -->
+      <details class="explica" style="margin-top:12px;">
+        <summary>🔒 Como cuidamos dos seus dados</summary>
+        <div class="explica-corpo">
+          <p><b>Esta página não guarda nada.</b> Ela funciona no seu próprio celular e não envia informação para nenhum servidor. O que você preenche vira <u>uma mensagem de WhatsApp que quem envia é você</u>.</p>
+
+          <p><b>O que a Ju Pet recebe:</b> seu nome, seu WhatsApp e os dados do seu pet (nome, raça, porte e o que você escrever nas observações).</p>
+
+          <p><b>Para que é usado:</b> só para agendar e realizar o atendimento, e para falar com você sobre ele — confirmar horário, avisar que o pet está pronto e lembrar do retorno.</p>
+
+          <p><b>Onde fica:</b> no celular da Ju Pet, no aplicativo de gestão dela. <b>Não compartilhamos com ninguém</b> e não usamos para vender lista nem para propaganda de terceiros.</p>
+
+          <p><b>Seus direitos:</b> você pode pedir a qualquer momento para <b>ver, corrigir ou apagar</b> seus dados — é só falar no WhatsApp (71) 98769-9236. A gente atende sem burocracia.</p>
+
+          <p style="margin-bottom:0;font-size:11.5px;color:var(--cinza-claro);">Lei Geral de Proteção de Dados (Lei nº 13.709/2018). Responsável pelos dados: Ju Pet — Banho &amp; Tosa, Acupe de Brotas, Salvador-BA.</p>
+        </div>
+      </details>
     </div>
 
     <!-- PACOTES (informativo) -->
