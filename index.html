@@ -413,10 +413,10 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div class="metric vermelho tocavel" onclick="detalheEstoqueBaixo()"><div class="metric-label">Precisa repor ›</div><div class="metric-value" id="estBaixo">0</div><div class="metric-sub">no mínimo ou abaixo</div></div>
     </div>
 
-    <div class="tipo-toggle">
-      <button class="tipo-btn active" id="estFiltroTodos" onclick="setFiltroEstoque('todos',this)">Todos</button>
-      <button class="tipo-btn" id="estFiltroRevenda" onclick="setFiltroEstoque('revenda',this)">🛍️ Revenda</button>
-      <button class="tipo-btn" id="estFiltroUso" onclick="setFiltroEstoque('uso',this)">🧴 Uso interno</button>
+    <div class="tipo-toggle" style="font-size:12px;">
+      <button class="tipo-btn active" id="estFiltroTodos" style="white-space:nowrap;padding:9px 4px;" onclick="setFiltroEstoque('todos',this)">Todos</button>
+      <button class="tipo-btn" id="estFiltroRevenda" style="white-space:nowrap;padding:9px 4px;font-size:12px;" onclick="setFiltroEstoque('revenda',this)">🛍️ Revenda</button>
+      <button class="tipo-btn" id="estFiltroUso" style="white-space:nowrap;padding:9px 4px;font-size:12px;" onclick="setFiltroEstoque('uso',this)">🧴 Uso interno</button>
     </div>
 
     <div class="search-bar"><span style="font-size:18px;color:var(--lilas);">🔍</span><input type="text" placeholder="Buscar produto..." id="estBusca" oninput="renderEstoque()"></div>
