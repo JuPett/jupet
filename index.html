@@ -899,7 +899,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-185024';
+const VERSAO_APP='2026-07-19-185501';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -2046,6 +2046,22 @@ function brl(v){
   return 'R$ '+Number(v||0).toLocaleString('pt-BR');
 }
 
+// ─── PESSOAL × LOJA ───
+// A conta do Bradesco é MEI e mistura movimentação pessoal com a da loja (o
+// extrato real de 07/2026 tinha PIX entre contas da própria dona e capital de
+// giro). Se tudo virar receita, o faturamento da Ju Pet aparece inflado.
+// Marcado como pessoal: continua no extrato e na conciliação (o caixa precisa
+// bater com o banco), mas NÃO entra no resultado da loja.
+function daLoja(l){return !l.pessoal;}
+function soDaLoja(arr){return arr.filter(daLoja);}
+
+function alternarPessoal(id){
+  const l=lancamentos.find(x=>x.id===id);if(!l)return;
+  l.pessoal=!l.pessoal;
+  if(!DB.set('lanc',lancamentos))return;
+  renderFin();renderDash();
+}
+
 function abrirDetalhe(titulo,html){
   document.getElementById('detTitulo').textContent=titulo;
   document.getElementById('detCorpo').innerHTML=html;
@@ -2062,7 +2078,7 @@ function irParaAgendaHoje(){
 // Receita do mês → de onde veio, por categoria e por lançamento
 function detalheReceita(){
   const mes=hojeISO().substring(0,7);
-  const ent=lancamentos.filter(l=>l.tipo==='entrada'&&l.data&&l.data.startsWith(mes));
+  const ent=lancamentos.filter(l=>l.tipo==='entrada'&&l.data&&l.data.startsWith(mes)&&daLoja(l));
   if(!ent.length){
     abrirDetalhe('Receita do mês',vazio('Nenhuma entrada lançada este mês.')+
       '<div class="det-nota">A receita entra quando você conclui um atendimento na agenda ou salva um recibo.</div>');
@@ -2118,7 +2134,7 @@ function detalheClientes(){
 // Break-even → a conta explicada, sem economês
 function detalheBreakEven(){
   const mes=hojeISO().substring(0,7);
-  const doMes=lancamentos.filter(l=>l.data&&l.data.startsWith(mes));
+  const doMes=soDaLoja(lancamentos.filter(l=>l.data&&l.data.startsWith(mes)));
   const receita=doMes.filter(l=>l.tipo==='entrada').reduce((s,l)=>s+l.valor,0);
   const varia=doMes.filter(l=>l.tipo==='saida').reduce((s,l)=>s+l.valor,0);
   const pct=Math.min(100,Math.round(receita/TOTAL_FIXO*100));
@@ -2184,7 +2200,7 @@ function renderDash(){
   const proximos=atHoje.filter(a=>a.hora&&a.status==='agendado').sort((a,b)=>a.hora.localeCompare(b.hora));
   document.getElementById('dashProximo').textContent=proximos.length?proximos[0].hora:'—';
   const mesAtual=hoje.substring(0,7);
-  const entradas=lancamentos.filter(l=>l.tipo==='entrada'&&l.data&&l.data.startsWith(mesAtual));
+  const entradas=lancamentos.filter(l=>l.tipo==='entrada'&&l.data&&l.data.startsWith(mesAtual)&&daLoja(l));
   const totalE=entradas.reduce((s,l)=>s+l.valor,0);
   document.getElementById('dashReceita').textContent=brl(totalE);
   document.getElementById('dashReceitaSub').textContent=entradas.length+(entradas.length===1?' entrada':' entradas');
@@ -3277,7 +3293,8 @@ function renderConciliacao(){
       </div>
       <div style="display:flex;gap:6px;margin-top:8px;">
         ${par?`<button class="btn-report" style="flex:1;padding:8px;font-size:12px;border-color:var(--verde);color:var(--verde);" onclick="conciliar(${i},${par.id})">✓ Confirmar</button>`
-             :`<button class="btn-report" style="flex:1;padding:8px;font-size:12px;" onclick="lancarDoExtrato(${i})">+ Lançar</button>`}
+             :`<button class="btn-report" style="flex:1;padding:8px;font-size:12px;" onclick="lancarDoExtrato(${i})">+ Lançar</button>`
+              +`<button class="btn-report" style="flex:1;padding:8px;font-size:12px;" onclick="lancarDoExtrato(${i},true)" title="Entra no caixa mas fica fora do resultado da loja">👤 Pessoal</button>`}
         <button class="btn-report" style="padding:8px 12px;font-size:12px;color:var(--cinza-claro);" onclick="ignorarExtrato(${i})">Ignorar</button>
       </div>
     </div>`;
@@ -3295,9 +3312,18 @@ function conciliar(i,lancId){
   extratoImportado.splice(i,1);
   renderConciliacao();renderFin();
 }
-function lancarDoExtrato(i){
+// `pessoal` lança direto, sem abrir o modal: é movimentação que não é da loja,
+// então não há categoria nem descrição para revisar — só precisa constar no caixa.
+function lancarDoExtrato(i,pessoal){
   const item=extratoImportado[i];
   extratoImportado.splice(i,1);
+  if(pessoal){
+    lancamentos.push({id:Date.now(),tipo:item.tipo,desc:item.desc,valor:item.valor,
+                      data:item.data,cat:'Outros',pessoal:true,conciliado:true});
+    DB.set('lanc',lancamentos);
+    renderConciliacao();renderFin();renderDash();
+    return;
+  }
   openModal('modalReceita');
   setTipo(item.tipo);
   document.getElementById('recDesc').value=item.desc;
@@ -3393,8 +3419,11 @@ function renderFin(){
     DESPESAS_FIXAS.map(d=>`<div class="fin-item"><div><div class="fin-desc">${esc(d.nome)}</div></div><div class="fin-valor saida">${brl(d.valor)}</div></div>`).join('')+
     `<div class="det-total" style="font-size:14px;"><span>Total por mês</span><span>${brl(TOTAL_FIXO)}</span></div>`;
   const lista=lancamentos.filter(noPeriodo);
-  const eList=lista.filter(l=>l.tipo==='entrada');
-  const sList=lista.filter(l=>l.tipo==='saida');
+  // os totais são o resultado da LOJA: o que está marcado como pessoal fica de
+  // fora da conta, mas continua aparecendo na lista abaixo (marcado)
+  const eList=soDaLoja(lista).filter(l=>l.tipo==='entrada');
+  const sList=soDaLoja(lista).filter(l=>l.tipo==='saida');
+  const nPessoais=lista.filter(l=>l.pessoal).length;
   const totalE=eList.reduce((s,l)=>s+l.valor,0);
   const totalS=sList.reduce((s,l)=>s+l.valor,0);
   const saldo=totalE-totalS;
@@ -3414,14 +3443,18 @@ function renderFin(){
   const metaFixa=TOTAL_FIXO*nMeses;
   const pct=Math.min(100,Math.round((totalE/metaFixa)*100));
   document.getElementById('finProgress').style.width=pct+'%';
-  document.getElementById('finMeta').textContent=pct+'% da meta de despesas fixas (R$ '+metaFixa.toLocaleString('pt-BR')+(nMeses>1?' · '+nMeses+' meses':'')+') coberto';
+  document.getElementById('finMeta').innerHTML=pct+'% da meta de despesas fixas ('+brl(metaFixa)+(nMeses>1?' · '+nMeses+' meses':'')+') coberto'
+    +(nPessoais?'<br><span style="color:var(--cinza-claro);">'+nPessoais+' lançamento'+(nPessoais>1?'s':'')+' marcado'+(nPessoais>1?'s':'')+' como <b>pessoal</b> — fora desta conta</span>':'');
   const todos=lista.slice().sort((a,b)=>b.data.localeCompare(a.data));
   const cont=document.getElementById('finLancamentos');
   if(!todos.length){cont.innerHTML='<div class="empty"><div class="empty-icon">💰</div><div class="empty-text">Nenhum lançamento neste período</div></div>';return;}
   cont.innerHTML=todos.map(l=>`
     <div class="fin-item">
-      <div><div class="fin-desc">${esc(l.desc)}</div><div class="fin-meta">${esc(l.cat)} · ${formatData(l.data)}</div></div>
-      <div style="display:flex;align-items:center;gap:8px;"><div class="fin-valor ${l.tipo}">${valoresOcultos?'R$ ••••':(l.tipo==='entrada'?'+':'-')+'R$ '+l.valor.toLocaleString('pt-BR')}</div><button class="btn-report" style="padding:6px 10px;font-size:12px;" onclick="editarLanc(${l.id})">✏️</button><button class="btn-delete" onclick="deletarLanc(${l.id})">🗑</button></div>
+      <div style="flex:1;min-width:0;">
+        <div class="fin-desc" style="${l.pessoal?'opacity:0.55;':''}">${esc(l.desc)}${l.pessoal?' <span class="badge badge-cinza" style="font-size:10px;">pessoal</span>':''}</div>
+        <div class="fin-meta">${esc(l.cat)} · ${formatData(l.data)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;"><div class="fin-valor ${l.tipo}">${valoresOcultos?'R$ ••••':(l.tipo==='entrada'?'+':'-')+'R$ '+l.valor.toLocaleString('pt-BR')}</div><button class="btn-report" style="padding:6px 9px;font-size:12px;${l.pessoal?'border-color:var(--roxo);color:var(--roxo);':''}" onclick="alternarPessoal(${l.id})" title="${l.pessoal?'Voltar a contar como da loja':'Marcar como pessoal (fora do resultado)'}">${l.pessoal?'🏠':'👤'}</button><button class="btn-report" style="padding:6px 9px;font-size:12px;" onclick="editarLanc(${l.id})">✏️</button><button class="btn-delete" onclick="deletarLanc(${l.id})">🗑</button></div>
     </div>`).join('');
 }
 function deletarLanc(id){
@@ -3438,7 +3471,8 @@ function gerarRelatorio(){
   const mes=mesISO(hoje);
   const nomesMes=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const mesNome=nomesMes[hoje.getMonth()]+' de '+hoje.getFullYear();
-  const doMes=lancamentos.filter(l=>l.data&&l.data.startsWith(mes));
+  // relatório é da LOJA: movimentação pessoal fica fora
+  const doMes=soDaLoja(lancamentos.filter(l=>l.data&&l.data.startsWith(mes)));
   const entradas=doMes.filter(l=>l.tipo==='entrada');
   const saidas=doMes.filter(l=>l.tipo==='saida');
   const totalE=entradas.reduce((s,l)=>s+l.valor,0);
