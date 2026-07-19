@@ -1,3 +1,4 @@
 .env.deploy.ps1
 _check.js
 *.log
+.wrangler/

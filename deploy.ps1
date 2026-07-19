@@ -10,6 +10,9 @@
 
 $ErrorActionPreference = "Stop"
 
+# Roda sempre a partir da pasta do script, independente de onde foi chamado.
+Set-Location $PSScriptRoot
+
 Write-Host "=== Deploy Ju Pet ===" -ForegroundColor Magenta
 
 # -- 1. Credenciais ------------------------------------------------------------
@@ -73,7 +76,7 @@ $ErrorActionPreference = "Stop"
 
 # -- 5. Publicar ---------------------------------------------------------------
 Write-Host "--- Publicando no Cloudflare Pages..." -ForegroundColor Yellow
-npx wrangler pages deploy $PSScriptRoot --project-name jupet --branch main --commit-dirty=true
+npx wrangler pages deploy "." --project-name jupet --branch main --commit-dirty=true
 if ($LASTEXITCODE -ne 0) { Write-Host "Deploy falhou!" -ForegroundColor Red; exit 1 }
 
 Write-Host ""
