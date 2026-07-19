@@ -107,6 +107,26 @@ Produto de **uso** ganha `rende` (quantos atendimentos uma unidade cobre) e
 - Scanner nativo (`BarcodeDetector`) aparece só onde existe (Android Chrome). No iOS
   o caminho é colar, igual ao "Pedido do zap".
 
+## Pessoal × Loja (`l.pessoal`)
+
+A conta do Bradesco é **MEI e mistura o pessoal com o da loja**. No extrato real de
+07/2026, dos 14 lançamentos, 5 eram PIX entre contas da própria dona ou capital de
+giro — sem separar, o faturamento da Ju Pet aparecia como **R$ 1.730** quando o da
+loja era **R$ 0,02**.
+
+`daLoja(l)` / `soDaLoja(arr)` filtram. Marcado como pessoal:
+- **continua** na lista de lançamentos (com etiqueta) e conta como conciliado — o
+  caixa precisa bater com o banco;
+- **não entra** em: receita do painel, totais do Financeiro, break-even, detalhe de
+  receita e relatório mensal.
+
+Ao criar qualquer soma nova de dinheiro **da loja**, passar por `soDaLoja()`. Somar
+`lancamentos` direto volta a inflar o faturamento.
+
+Na conciliação há o botão **👤 Pessoal**, que lança direto sem abrir o modal (não há
+categoria a revisar). Na lista, o botão alterna entre 👤 (marcar) e 🏠 (voltar a ser
+da loja).
+
 ## Olhinho (ocultar valores)
 
 A Ju abre o app no balcão com o cliente do lado. `alternarValores()` mascara todo o
