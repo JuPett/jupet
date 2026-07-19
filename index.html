@@ -2768,8 +2768,11 @@ function lerOFX(txt){
 function lerCSVExtrato(txt){
   const itens=[];
   const linhas=txt.split(/\r?\n/).filter(l=>l.trim());
+  // Separador: ';' ou tab. NUNCA ',' quando há ';' — no Brasil a vírgula é o
+  // separador DECIMAL, e dividir por ela quebra "65,00" em dois campos.
+  const sep=/;/.test(txt)?/;/:/\t/.test(txt)?/\t/:/,/;
   linhas.forEach(l=>{
-    const c=l.split(/[;,\t]/).map(x=>x.replace(/^"|"$/g,'').trim());
+    const c=l.split(sep).map(x=>x.replace(/^"|"$/g,'').trim());
     const dm=c.find(x=>/^\d{2}\/\d{2}\/\d{2,4}$/.test(x));
     if(!dm)return;                                   // linha de cabeçalho/rodapé
     const nums=c.filter(x=>/^-?[\d.]+,\d{2}$/.test(x))
