@@ -447,7 +447,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <button class="periodo-btn" data-periodo="tudo" onclick="setPeriodo('tudo',this)">Tudo</button>
     </div>
     <div class="report-actions">
-      <button class="btn-report" onclick="gerarRelatorio()">📄 Relatório mensal (PDF)</button>
+      <button class="btn-report" onclick="abrirModalCupom()">🧾 Ler cupom fiscal</button>
+      <button class="btn-report" onclick="gerarRelatorio()">📄 Relatório (PDF)</button>
     </div>
     <div class="metrics">
       <div class="metric verde"><div class="metric-label" id="finEntradasLabel">Entradas do mês</div><div class="metric-value" id="finEntradas">R$ 0</div></div>
@@ -628,7 +629,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 <div class="modal-overlay" id="modalReceita">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">Lançamento Financeiro</div>
+    <div class="modal-title" id="recTitulo">Lançamento Financeiro</div>
+    <input type="hidden" id="recId">
+    <div id="recCupom"></div>
     <div class="tipo-toggle">
       <button class="tipo-btn entrada active" id="tipoEntrada" onclick="setTipo('entrada')">💚 Entrada</button>
       <button class="tipo-btn saida" id="tipoSaida" onclick="setTipo('saida')">🔴 Saída</button>
@@ -709,6 +712,25 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
   </div>
 </div>
 
+<!-- MODAL: LER CUPOM FISCAL -->
+<div class="modal-overlay" id="modalCupom">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🧾 Ler cupom fiscal</div>
+    <div style="font-size:13px;color:var(--cinza-claro);line-height:1.55;margin-bottom:14px;">
+      Aponte a câmera do celular para o <b>QR Code do cupom</b>. Quando abrir o link, copie e cole aqui.
+      Também funciona colando a chave de 44 números impressa no cupom.
+    </div>
+    <button class="btn-report" id="cupomEscanear" style="width:100%;margin-bottom:12px;" onclick="escanearCupom()">📷 Escanear com a câmera</button>
+    <div class="form-group">
+      <textarea class="form-input" id="cupomTexto" rows="4" placeholder="Cole aqui o link do QR Code ou a chave de 44 números..." style="resize:vertical;font-family:'DM Sans',sans-serif;"></textarea>
+    </div>
+    <button class="btn-primary" onclick="analisarCupom()">🔍 Ler cupom</button>
+    <div id="cupomResultado"></div>
+    <button class="btn-secondary" onclick="closeModal('modalCupom')">Cancelar</button>
+  </div>
+</div>
+
 <!-- MODAL: REMARCAR (pedido que caiu em horário ocupado) -->
 <div class="modal-overlay" id="modalRemarcar">
   <div class="modal">
@@ -770,6 +792,30 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <div class="form-row">
       <div class="form-group"><label class="form-label">Quantidade atual</label><input class="form-input" id="prodQtd" type="number" step="1" placeholder="0" value="0"></div>
       <div class="form-group"><label class="form-label">Avisar quando chegar em</label><input class="form-input" id="prodMinimo" type="number" step="1" placeholder="2" value="2"></div>
+    </div>
+
+    <!-- Só para produto de USO: quantos atendimentos uma unidade atende.
+         É o que liga o estoque à agenda e permite prever a compra. -->
+    <div id="prodConsumoGrupo" style="display:none;">
+      <div class="sep">Consumo por atendimento</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Rende quantos banhos/tosas</label>
+          <input class="form-input" id="prodRende" type="number" min="0" step="1" placeholder="Ex: 80">
+          <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;">1 unidade dá para quantos atendimentos</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Usado em</label>
+          <select class="form-select" id="prodAplicaEm">
+            <option value="todos">Todos os atendimentos</option>
+            <option value="banho">Só banhos</option>
+            <option value="tosa">Só tosas</option>
+          </select>
+        </div>
+      </div>
+      <div class="det-nota" style="margin-top:0;" id="prodConsumoDica">
+        Preenchendo isso, o app desconta sozinho conforme os atendimentos vão sendo concluídos e avisa quando estiver perto de acabar.
+      </div>
     </div>
 
     <div class="form-group"><label class="form-label">Observação</label><input class="form-input" id="prodObs" placeholder="Marca, fornecedor, etc."></div>
@@ -1163,7 +1209,15 @@ function openModal(id){
     if(!document.getElementById('atendClienteId').value)limparSelecaoAtend();
     aoTrocarServico(); // já traz o preço de tabela do serviço em foco
   }
-  if(id==='modalReceita'){document.getElementById('recData').value=hojeISO();setTipo('entrada');}
+  if(id==='modalReceita'){
+    // sempre entra em modo NOVO — editarLanc() abre o modal por outro caminho
+    document.getElementById('recId').value='';
+    document.getElementById('recTitulo').textContent='Lançamento Financeiro';
+    document.getElementById('recCupom').innerHTML='';
+    ['recDesc','recValor'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('recData').value=hojeISO();
+    setTipo('entrada');
+  }
   if(id==='modalCliente'){document.getElementById('cliPhoto').value='';document.getElementById('fotoUploadArea').querySelector('img')?.remove();document.getElementById('fotoBtnTroca').style.display='none';document.getElementById('fotoUploadArea').querySelector('.foto-upload-icon').style.display='';document.getElementById('fotoUploadArea').querySelector('.foto-upload-label').style.display='';}
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
@@ -1622,6 +1676,12 @@ function renderEstoque(){
             ${p.tipo==='revenda'&&p.preco?' · venda '+brl(p.preco):''}
           </div>
           ${p.obs?`<div style="font-size:11px;color:var(--cinza-claro);margin-top:2px;">📝 ${esc(p.obs)}</div>`:''}
+          ${(()=>{const pv=previsaoProduto(p);
+            if(!pv)return '';
+            if(pv.semDados)return '<div style="font-size:11px;color:var(--cinza-claro);margin-top:3px;">📈 sem atendimentos suficientes para prever</div>';
+            return `<div style="font-size:11px;margin-top:3px;color:${pv.urgente?'var(--vermelho)':'var(--roxo)'};">
+              📈 dura ~<b>${pv.dias} dias</b> no seu ritmo · ${pv.urgente?'<b>comprar agora</b>':'comprar até <b>'+pv.comprarAte+'</b>'}</div>`;
+          })()}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:20px;font-weight:500;color:${zerado?'var(--vermelho)':baixo?'#B8930A':'var(--roxo)'};">${qtd}</div>
@@ -1640,12 +1700,83 @@ function renderEstoque(){
   }).join('');
 }
 
+// ─── CONSUMO AUTOMÁTICO PELO ATENDIMENTO ───
+// Liga o estoque à agenda: cada atendimento concluído gasta um pouquinho dos
+// produtos de uso. Como fração de frasco confunde, o app conta ATENDIMENTOS
+// (`usos`) e só baixa 1 unidade quando fecha o rendimento (`rende`).
+function tipoDoServico(servico){
+  const s=(servico||'').toLowerCase();
+  if(s.includes('tosa'))return 'tosa';
+  if(s.includes('banho')||s.includes('spa')||s.includes('pacote'))return 'banho';
+  return 'outro';
+}
+function produtosUsadosEm(servico){
+  const t=tipoDoServico(servico);
+  return produtos.filter(p=>p.tipo==='uso'&&(parseInt(p.rende)||0)>0
+    &&(p.aplicaEm==='todos'||!p.aplicaEm||p.aplicaEm===t));
+}
+
+// chamado quando um atendimento é concluído
+function consumirProdutosDoAtendimento(a){
+  const usados=produtosUsadosEm(a.servico);
+  if(!usados.length)return;
+  const acabando=[];
+  usados.forEach(p=>{
+    p.usos=(parseInt(p.usos)||0)+1;
+    if(p.usos>=(parseInt(p.rende)||0)){
+      p.usos=0;
+      p.qtd=Math.max(0,(parseInt(p.qtd)||0)-1);
+      movimentacoes.push({id:Date.now()+Math.floor(Math.random()*1000),produtoId:p.id,
+        tipo:'saida',qtd:1,motivo:'uso',valor:0,data:a.data,atendimentoId:a.id});
+      if(estoqueBaixo(p))acabando.push(p);
+    }
+  });
+  DB.set('produtos',produtos);DB.set('mov',movimentacoes);
+  if(acabando.length){
+    alert('📦 Acabou uma unidade e o estoque ficou baixo:\n\n'+
+      acabando.map(p=>'• '+p.nome+': restam '+p.qtd).join('\n')+
+      '\n\nHora de repor.');
+  }
+}
+
+// ─── PREVISÃO DE COMPRA ───
+// Ritmo real dos últimos 28 dias → quantos atendimentos por dia → quantos dias
+// o estoque ainda aguenta. É o que responde "quando preciso comprar".
+function ritmoAtendimentos(tipo){
+  const fim=new Date(); const ini=new Date(); ini.setDate(ini.getDate()-28);
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const de=iso(ini), ate=iso(fim);
+  const n=atendimentos.filter(a=>a.status==='concluido'&&a.data>=de&&a.data<=ate
+    &&(tipo==='todos'||tipoDoServico(a.servico)===tipo)).length;
+  return n/28;   // atendimentos por dia
+}
+function previsaoProduto(p){
+  const rende=parseInt(p.rende)||0;
+  if(p.tipo!=='uso'||!rende)return null;
+  const porDia=ritmoAtendimentos(p.aplicaEm||'todos');
+  if(porDia<=0)return {semDados:true};
+  const qtd=parseInt(p.qtd)||0;
+  const usos=parseInt(p.usos)||0;
+  // atendimentos que o estoque ainda cobre
+  const restantes=Math.max(0,qtd*rende-usos);
+  const dias=Math.floor(restantes/porDia);
+  const d=new Date(); d.setDate(d.getDate()+dias);
+  // avisa com folga: uma semana antes de acabar
+  return {
+    porDia:porDia, restantes, dias,
+    acabaEm:d.toLocaleDateString('pt-BR'),
+    comprarAte:(()=>{const c=new Date();c.setDate(c.getDate()+Math.max(0,dias-7));return c.toLocaleDateString('pt-BR');})(),
+    urgente:dias<=7
+  };
+}
+
 // ─── CADASTRO DE PRODUTO ───
 function setTipoProduto(t){
   document.getElementById('prodTipoRevenda').classList.toggle('active',t==='revenda');
   document.getElementById('prodTipoUso').classList.toggle('active',t==='uso');
   document.getElementById('prodTipoRevenda').dataset.sel=t;
   document.getElementById('prodPrecoGrupo').style.display=t==='revenda'?'':'none';
+  document.getElementById('prodConsumoGrupo').style.display=t==='uso'?'':'none';
   document.getElementById('prodTipoDica').textContent=t==='revenda'
     ? 'Revenda: você vende para o cliente e vira receita.'
     : 'Uso interno: consumido no atendimento, não gera receita.';
@@ -1674,6 +1805,8 @@ function abrirModalProduto(id){
   document.getElementById('prodQtd').value=p?(parseInt(p.qtd)||0):0;
   document.getElementById('prodMinimo').value=p?(parseInt(p.minimo)||0):2;
   document.getElementById('prodObs').value=p?(p.obs||''):'';
+  document.getElementById('prodRende').value=p&&p.rende?p.rende:'';
+  document.getElementById('prodAplicaEm').value=p&&p.aplicaEm?p.aplicaEm:'todos';
   setTipoProduto(p?p.tipo:'revenda');
   openModal('modalProduto');
 }
@@ -1687,7 +1820,9 @@ function salvarProduto(){
     preco:tipo==='revenda'?(parseFloat(document.getElementById('prodPreco').value)||0):0,
     qtd:parseInt(document.getElementById('prodQtd').value)||0,
     minimo:parseInt(document.getElementById('prodMinimo').value)||0,
-    obs:document.getElementById('prodObs').value.trim()
+    obs:document.getElementById('prodObs').value.trim(),
+    rende:tipo==='uso'?(parseInt(document.getElementById('prodRende').value)||0):0,
+    aplicaEm:tipo==='uso'?document.getElementById('prodAplicaEm').value:''
   };
   const id=parseInt(document.getElementById('prodId').value)||0;
   if(id){
@@ -2216,7 +2351,7 @@ function salvarAtend(){
   limparSelecaoAtend();
   ['atendHora','atendObs'].forEach(id=>document.getElementById(id).value='');
   aoTrocarServico();
-  if(obj.status==='concluido')lancarReceitaDoAtend(obj);
+  if(obj.status==='concluido'){lancarReceitaDoAtend(obj);consumirProdutosDoAtendimento(obj);}
   renderDash();renderAgenda();
 }
 
@@ -2247,6 +2382,7 @@ function concluirAtend(id){
   a.status='concluido';
   if(!DB.set('atend',atendimentos))return;
   lancarReceitaDoAtend(a);
+  consumirProdutosDoAtendimento(a);
   // +1 carimbo de fidelidade quando o serviço é banho
   if(/banho/i.test(a.servico||'')&&a.clienteId&&a.petId){
     const c=tutorPorId(a.clienteId);
@@ -2435,16 +2571,188 @@ function deletarPet(tutorId,petId){
   verPerfil(c.id);renderClientes();renderDash();
 }
 
+// ─── LEITURA DE CUPOM FISCAL / NOTA ───
+// ⚠️ O QR Code da NFC-e (versão 2.0, a válida desde 2018) NÃO carrega o valor da
+// nota — isso existia na v1.0 e foi removido. Ele traz a CHAVE DE ACESSO de 44
+// dígitos, e é dela que dá para extrair data, CNPJ do fornecedor e nº da nota.
+// Pegar o valor exigiria consultar a SEFAZ, que bloqueia chamada de navegador
+// (CORS) e muda de estado para estado. Então: o app preenche tudo menos o valor.
+//
+// Estrutura da chave (44 dígitos):
+//   1-2 UF · 3-6 AAMM · 7-20 CNPJ · 21-22 modelo · 23-25 série
+//   26-34 número · 35 tpEmis · 36-43 código · 44 dígito verificador
+let cupomLido=null;
+
+const UF_POR_CODIGO={11:'RO',12:'AC',13:'AM',14:'RR',15:'PA',16:'AP',17:'TO',21:'MA',22:'PI',
+ 23:'CE',24:'RN',25:'PB',26:'PE',27:'AL',28:'SE',29:'BA',31:'MG',32:'ES',33:'RJ',35:'SP',
+ 41:'PR',42:'SC',43:'RS',50:'MS',51:'MT',52:'GO',53:'DF'};
+
+// aceita a chave solta, o link do QR Code ou o texto todo colado
+function extrairChaveNF(texto){
+  const t=(texto||'').replace(/\D/g,'');
+  // procura 44 dígitos seguidos em qualquer lugar
+  const m=(texto||'').match(/\d{44}/) || t.match(/\d{44}/);
+  return m?m[0]:'';
+}
+
+// dígito verificador por módulo 11 — confirma que a chave é real, não digitada errado
+function chaveNFValida(chave){
+  if(!/^\d{44}$/.test(chave))return false;
+  const pesos=[2,3,4,5,6,7,8,9];
+  let soma=0,p=0;
+  for(let i=42;i>=0;i--){soma+=parseInt(chave[i])*pesos[p%8];p++;}
+  const resto=soma%11;
+  const dv=(resto===0||resto===1)?0:11-resto;
+  return dv===parseInt(chave[43]);
+}
+
+function lerChaveNF(chave){
+  const uf=UF_POR_CODIGO[parseInt(chave.substring(0,2))]||'';
+  const ano='20'+chave.substring(2,4);
+  const mes=chave.substring(4,6);
+  const cnpj=chave.substring(6,20);
+  const modelo=chave.substring(20,22);
+  const numero=parseInt(chave.substring(25,34));
+  return{
+    chave,uf,ano,mes,cnpj,numero,
+    cnpjFmt:cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'),
+    tipo:modelo==='65'?'Cupom fiscal (NFC-e)':modelo==='55'?'Nota fiscal (NF-e)':'Documento fiscal',
+    // dia não vem na chave: só ano e mês. Usa o dia 1 e a Ju ajusta se precisar.
+    dataAprox:ano+'-'+mes+'-01'
+  };
+}
+
+function abrirModalCupom(){
+  document.getElementById('cupomTexto').value='';
+  document.getElementById('cupomResultado').innerHTML='';
+  openModal('modalCupom');
+  // scanner nativo, quando o navegador tem (Android Chrome). iOS não tem: usa colar.
+  document.getElementById('cupomEscanear').style.display=
+    ('BarcodeDetector' in window)?'':'none';
+}
+
+async function escanearCupom(){
+  const res=document.getElementById('cupomResultado');
+  try{
+    const detector=new BarcodeDetector({formats:['qr_code']});
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const video=document.createElement('video');
+    video.srcObject=stream; video.setAttribute('playsinline',''); await video.play();
+    res.innerHTML='<div class="det-nota">📷 Aponte a câmera para o QR Code do cupom...</div>';
+    const parar=()=>stream.getTracks().forEach(t=>t.stop());
+    const inicio=Date.now();
+    const tentar=async()=>{
+      if(Date.now()-inicio>25000){parar();res.innerHTML='<div class="det-nota">Não consegui ler. Tente colar o código.</div>';return;}
+      try{
+        const codigos=await detector.detect(video);
+        if(codigos.length){
+          parar();
+          document.getElementById('cupomTexto').value=codigos[0].rawValue;
+          analisarCupom();
+          return;
+        }
+      }catch(e){}
+      requestAnimationFrame(tentar);
+    };
+    tentar();
+  }catch(e){
+    res.innerHTML='<div class="det-nota">Não consegui abrir a câmera. Cole o código do cupom no campo acima.</div>';
+  }
+}
+
+function analisarCupom(){
+  const res=document.getElementById('cupomResultado');
+  const chave=extrairChaveNF(document.getElementById('cupomTexto').value);
+  if(!chave){
+    res.innerHTML='<div class="det-nota" style="background:var(--vermelho-claro);color:var(--vermelho);">Não achei a chave de 44 dígitos aí. Cole o link do QR Code ou a chave que vem impressa no cupom.</div>';
+    return;
+  }
+  if(!chaveNFValida(chave)){
+    res.innerHTML='<div class="det-nota" style="background:var(--vermelho-claro);color:var(--vermelho);">Essa chave não passou na verificação — provavelmente falta ou sobra um dígito. Confira e tente de novo.</div>';
+    return;
+  }
+  const jaTem=lancamentos.find(l=>l.chaveNF===chave);
+  if(jaTem){
+    res.innerHTML=`<div class="det-nota" style="background:var(--amarelo-claro);color:#8C5510;">⚠️ <b>Esse cupom já foi lançado.</b><br>"${esc(jaTem.desc)}" — ${brl(jaTem.valor)} em ${formatData(jaTem.data)}.<br>Lançar de novo duplicaria a despesa.</div>`;
+    return;
+  }
+  const d=lerChaveNF(chave);
+  cupomLido={chaveNF:chave};
+  res.innerHTML=`<div class="det-nota" style="background:var(--verde-claro);color:var(--verde);">
+    ✅ <b>${d.tipo} lido!</b><br>
+    Fornecedor (CNPJ): <b>${d.cnpjFmt}</b><br>
+    Emissão: <b>${d.mes}/${d.ano}</b>${d.uf?' · '+d.uf:''} · Nota nº ${d.numero}
+  </div>
+  <div class="det-nota" style="margin-top:8px;">
+    A chave do cupom <b>não traz o valor</b> (a Receita tirou esse dado do QR Code em 2018).
+    Digite o valor olhando o cupom — o resto já vai preenchido.
+  </div>
+  <button class="btn-primary" onclick="usarCupom('${chave}')">Continuar</button>`;
+}
+
+function usarCupom(chave){
+  const d=lerChaveNF(chave);
+  closeModal('modalCupom');
+  openModal('modalReceita');
+  cupomLido={chaveNF:chave};
+  setTipo('saida');
+  document.getElementById('recDesc').value=(fornecedorPorCnpj(d.cnpj)||'Compra CNPJ '+d.cnpjFmt)+' · NF '+d.numero;
+  document.getElementById('recData').value=d.dataAprox;
+  document.getElementById('recCategoria').value='Produtos consumo';
+  document.getElementById('recCupom').innerHTML=
+    `<div class="det-nota" style="margin-top:0;">🧾 <b>${d.tipo}</b> · CNPJ ${d.cnpjFmt} · ${d.mes}/${d.ano}<br>
+     <span style="font-size:11px;">Confira a data e digite o valor do cupom.</span></div>`;
+  document.getElementById('recValor').focus();
+}
+
+// A Ju nomeia o fornecedor uma vez; da próxima o CNPJ já vem com nome.
+function fornecedorPorCnpj(cnpj){
+  const mapa=DB.get('fornecedores')||{};
+  return mapa[cnpj]||'';
+}
+function salvarFornecedor(cnpj,nome){
+  const mapa=DB.get('fornecedores')||{};
+  mapa[cnpj]=nome;
+  DB.set('fornecedores',mapa);
+}
+
 // ─── FINANCEIRO ───
 function salvarLancamento(){
   const desc=document.getElementById('recDesc').value.trim();
   const valor=parseFloat(document.getElementById('recValor').value)||0;
   if(!desc||!valor){alert('Preencha descrição e valor.');return;}
-  lancamentos.push({id:Date.now(),tipo:tipoAtual,desc,valor,data:document.getElementById('recData').value,cat:document.getElementById('recCategoria').value});
-  DB.set('lanc',lancamentos);
+  const id=parseInt(document.getElementById('recId').value)||0;
+  const campos={tipo:tipoAtual,desc,valor,
+    data:document.getElementById('recData').value,
+    cat:document.getElementById('recCategoria').value};
+  if(id){
+    // EDITAR: mantém o id (e a chave do cupom, se veio de leitura)
+    const l=lancamentos.find(x=>x.id===id);
+    if(!l){alert('Lançamento não encontrado.');return;}
+    Object.assign(l,campos);
+  }else{
+    lancamentos.push(Object.assign({id:Date.now()},campos,cupomLido||{}));
+  }
+  if(!DB.set('lanc',lancamentos))return;
+  cupomLido=null;
   closeModal('modalReceita');
-  ['recDesc','recValor'].forEach(id=>document.getElementById(id).value='');
   renderFin();renderDash();
+}
+
+// abre o modal já preenchido para editar
+function editarLanc(id){
+  const l=lancamentos.find(x=>x.id===id);if(!l)return;
+  document.getElementById('recId').value=l.id;
+  document.getElementById('recTitulo').textContent='Editar lançamento';
+  document.getElementById('recDesc').value=l.desc||'';
+  document.getElementById('recValor').value=l.valor||'';
+  document.getElementById('recData').value=l.data||hojeISO();
+  document.getElementById('recCategoria').value=l.cat||'Outros';
+  setTipo(l.tipo||'entrada');
+  document.getElementById('recCupom').innerHTML=l.chaveNF
+    ? `<div class="det-nota" style="margin-top:0;">🧾 Veio de cupom fiscal<br><span style="font-size:10px;word-break:break-all;">${esc(l.chaveNF)}</span></div>`
+    : '';
+  document.getElementById('modalReceita').classList.add('open');
 }
 function setTipo(t){tipoAtual=t;document.getElementById('tipoEntrada').classList.toggle('active',t==='entrada');document.getElementById('tipoSaida').classList.toggle('active',t==='saida');}
 
@@ -2504,10 +2812,15 @@ function renderFin(){
   cont.innerHTML=todos.map(l=>`
     <div class="fin-item">
       <div><div class="fin-desc">${esc(l.desc)}</div><div class="fin-meta">${esc(l.cat)} · ${formatData(l.data)}</div></div>
-      <div style="display:flex;align-items:center;gap:8px;"><div class="fin-valor ${l.tipo}">${l.tipo==='entrada'?'+':'-'}R$ ${l.valor.toLocaleString('pt-BR')}</div><button class="btn-delete" onclick="deletarLanc(${l.id})">🗑</button></div>
+      <div style="display:flex;align-items:center;gap:8px;"><div class="fin-valor ${l.tipo}">${l.tipo==='entrada'?'+':'-'}R$ ${l.valor.toLocaleString('pt-BR')}</div><button class="btn-report" style="padding:6px 10px;font-size:12px;" onclick="editarLanc(${l.id})">✏️</button><button class="btn-delete" onclick="deletarLanc(${l.id})">🗑</button></div>
     </div>`).join('');
 }
-function deletarLanc(id){if(!confirm('Excluir?'))return;lancamentos=lancamentos.filter(l=>l.id!==id);DB.set('lanc',lancamentos);renderFin();renderDash();}
+function deletarLanc(id){
+  const l=lancamentos.find(x=>x.id===id);
+  if(!confirm('Excluir este lançamento?\n\n'+(l?l.desc+' — '+brl(l.valor):'')))return;
+  lancamentos=lancamentos.filter(x=>x.id!==id);
+  DB.set('lanc',lancamentos);renderFin();renderDash();
+}
 function formatData(d){if(!d)return'';const[y,m,day]=d.split('-');return day+'/'+m+'/'+y;}
 
 // ─── RELATÓRIO MENSAL (PDF via impressão) ───
