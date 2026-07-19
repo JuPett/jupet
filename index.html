@@ -416,6 +416,19 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div id="cofreEstado"></div>
       <div id="cofreBotoes"></div>
     </div>
+
+    <!-- VERSÃO E ATUALIZAÇÃO -->
+    <div class="card">
+      <div class="sec-header"><div class="sec-title">🔄 Versão do app</div></div>
+      <div style="font-size:12px;color:var(--cinza-claro);line-height:1.5;margin-bottom:10px;">
+        O app se atualiza sozinho ao abrir. Se algo parecer travado numa versão antiga,
+        toque abaixo para forçar a atualização — seus dados não são afetados.
+      </div>
+      <div class="det-nota" style="margin-top:0;">
+        Instalada neste aparelho: <b id="versaoApp">—</b>
+      </div>
+      <button class="btn-report" style="width:100%;margin-top:10px;" onclick="forcarAtualizacao()">🔄 Buscar atualização agora</button>
+    </div>
   </div>
 
   <!-- AGENDA -->
@@ -883,6 +896,11 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 <script src="./foto.js"></script>
 <script src="./cofre.js"></script>
 <script>
+// Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
+// celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
+// vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
+const VERSAO_APP='2026-07-19-182206';
+
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
 //   ABERTO   — sem PIN. Cada chave em texto puro no localStorage (como sempre foi).
@@ -3359,8 +3377,29 @@ function importarBackup(input){
   reader.readAsText(input.files[0]);
 }
 
+// Atualização forçada: derruba o service worker e todo o cache, e recarrega do
+// servidor. É a saída quando o aparelho fica preso numa versão antiga — o cache
+// do PWA no iPhone é teimoso. NÃO apaga dados: eles ficam no localStorage.
+async function forcarAtualizacao(){
+  if(!confirm('Buscar a versão mais nova do app?\n\nA tela vai recarregar. Seus clientes, agenda e financeiro NÃO são afetados.'))return;
+  try{
+    if('serviceWorker' in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister()));
+    }
+    if(window.caches){
+      const chaves=await caches.keys();
+      await Promise.all(chaves.map(k=>caches.delete(k)));
+    }
+  }catch(e){}
+  // querystring nova força o servidor em vez do cache do navegador
+  location.href=location.pathname+'?atualizar='+Date.now();
+}
+
 // estado da proteção, no painel
 function renderCofreInfo(){
+  const v=document.getElementById('versaoApp');
+  if(v)v.textContent=VERSAO_APP==='dev'?'versão de desenvolvimento':VERSAO_APP;
   const est=document.getElementById('cofreEstado');
   const bts=document.getElementById('cofreBotoes');
   if(!est||!bts)return;

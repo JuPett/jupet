@@ -47,6 +47,17 @@ if ($sw -notmatch "const VERSAO = '[^']*';") {
 }
 $swNovo = [regex]::Replace($sw, "const VERSAO = '[^']*';", "const VERSAO = '$versao';")
 [System.IO.File]::WriteAllText($swPath, $swNovo, $utf8SemBom)
+
+# Mesmo carimbo no index.html, para dar para ver no proprio celular qual versao
+# aquele aparelho esta rodando. Sem isso, "ja atualizou?" vira adivinhacao.
+$idxPath = Join-Path $PSScriptRoot "index.html"
+$idx     = [System.IO.File]::ReadAllText($idxPath, $utf8SemBom)
+if ($idx -notmatch "const VERSAO_APP='[^']*';") {
+  Write-Host "Nao achei VERSAO_APP no index.html - deploy abortado!" -ForegroundColor Red
+  exit 1
+}
+$idxNovo = [regex]::Replace($idx, "const VERSAO_APP='[^']*';", "const VERSAO_APP='$versao';")
+[System.IO.File]::WriteAllText($idxPath, $idxNovo, $utf8SemBom)
 Write-Host "--- Versao do service worker: $versao" -ForegroundColor Green
 
 # -- 3. Sanidade do codigo -----------------------------------------------------
