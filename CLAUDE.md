@@ -145,8 +145,35 @@ dela. **Recomendar sempre o CSV**, que é leitura exata.
 - **`extrairTextoPDF()`** infla os streams do PDF com **`DecompressionStream` nativo**
   — sem biblioteca externa, o que preserva o app self-contained e offline. Funciona em
   PDF de **texto** (o extrato é), não em digitalizado.
-  ⚠️ **Extração de PDF é aproximada.** O app avisa isso ao ler e pede para conferir os
-  valores antes de confirmar cada linha. Nunca tratar como exata — o CSV é que é.
+
+### As 3 armadilhas do PDF do Bradesco (calibrado no arquivo real, 19/07/2026)
+
+Cada uma sozinha zerava a leitura. Foram descobertas testando contra um extrato de
+verdade — nenhuma teria aparecido em teste sintético:
+
+1. **Quebra de linha antes de `endstream`.** Se aquele byte entra junto com o dado
+   comprimido, o `DecompressionStream` rejeita o bloco inteiro. `extrairTextoPDF`
+   recua sobre `\n`/`\r` antes de inflar. Sintoma: `inflados: 0`.
+2. **Fonte com codificação própria.** O texto guardado não é `OPERACAO`, é
+   `23(5$&$2`. O PDF traz a correspondência num objeto **`/ToUnicode`**, e
+   `montarMapaFonte()` + `parseToUnicode()` leem essa tabela (`beginbfchar` e
+   `beginbfrange`). **Sem isso o texto sai ilegível e nada é reconhecido.**
+   Sintoma: `letras > 0` mas `0 lançamentos`.
+3. **Colunas são fragmentos separados.** Data, descrição e valor não estão no mesmo
+   comando de texto. `conteudoParaTexto()` agrupa pela **coordenada Y** (tolerância
+   de 2pt) e ordena por X. Quebrar linha a cada operador de posição — que é o óbvio —
+   produz 74 fragmentos onde nenhum tem data E valor ao mesmo tempo.
+
+E do lado do `lerLinhasExtrato`, o layout real exigiu:
+- **A descrição não está na linha do lançamento.** Um PIX ocupa 3 linhas: o rótulo
+  (`PIX ENVIADO`) acima, a linha com data/tipo/valor no meio, e o favorecido
+  (`DES: ...`) abaixo. O parser guarda o rótulo pendente e olha a linha seguinte.
+- **`Saldo do dia` tem data e valor** e viraria lançamento falso — `RE_IGNORAR` barra.
+- Existe coluna **`Tipo`** escrita (Crédito/Débito): é a fonte mais confiável, antes
+  da marca D/C e do sinal do número.
+
+⚠️ Mesmo funcionando, **PDF é interpretação de layout**. O app avisa ao ler e pede
+conferência. **O CSV continua sendo o caminho exato** — recomendar ele sempre.
 - `acharLancamentoParecido()` casa por **mesmo valor + mesmo tipo + até 3 dias** de
   diferença (o banco registra em D+1/D+2).
 - Linha sem par vira "+ Lançar" com o modal já preenchido. Conciliado marca
