@@ -101,11 +101,37 @@ agendamento, não o fechamento** — o atendimento pode terminar às 17h. Está 
 oferecer 16:00 na grade; não remover. Mudou? Altere lá e faça deploy — não há tela
 de configuração ainda.
 
-**Tabela de preços:** os preços do `agendar.html` (`SERVICOS`) e os do app
-(`SERVICOS` no `index.html`, mais os chips do Recibo) precisam bater. Hoje são
-listas separadas nos dois arquivos — ao atualizar preço, atualizar nos dois.
-⚠️ A Ju vai enviar a tabela real (pendente em 19/07/2026); os valores atuais vieram
-do app antigo e podem estar defasados.
+## Tabela de preços
+
+Fonte: PDF **"Ju Pet — Tabela de Serviços"**, recebido da Ju em 19/07/2026.
+
+**Vários preços são FAIXA, não valor fixo** — dependem de porte, pelagem e do estado
+do pet no dia. O app **sugere o mínimo** e mostra a faixa na dica; quem decide o valor
+final é a Ju, olhando o pet. **Nunca converter faixa em valor único**: seria cobrar a
+menos sem perceber. Três formatos: faixa (`min`+`max`), `apartir:true` (desembolo) e
+`consultar:true` (outros tipos de tosa, sem valor sugerido).
+
+| | |
+|---|---|
+| Banho simples · finalização | 65 · 80 |
+| Banho + hidratação · Spa Premium | 100–120 · 130–150 |
+| Tosa higiênica · máquina · modelada | 75 · 90 · 120–150 |
+| Hidratação · Mechas · Perfume | 25–60 · 30–60 · 10 |
+| Desembolo leve · médio · intenso | a partir de 20 · 50 · 100 |
+| Pacotes Essencial · Cuidado · Spa Pet | 120 · 250 · 350 |
+| Pacote Família · Manutenção (2 pets) | 220–480 · 360–750 |
+
+No `index.html`, `SERVICOS_LISTA` é a **fonte única**: o `<select>` do agendamento e
+os chips do Recibo são **gerados** dela (`montarSelectServicos`, `montarChipsRecibo`).
+Não voltar a digitar opção ou chip no HTML.
+
+⚠️ O `agendar.html` tem a **própria cópia** da tabela (é página separada, para o
+cliente). Ao mudar preço, mudar nos **dois** arquivos.
+
+**Regras da loja** (chegada, retirada, taxa de espera, falta sem aviso, pagamento,
+extras, dermatite) estão na página do cliente, no passo 4, e o **aceite é obrigatório**
+para liberar o envio. A mensagem que chega para a Ju registra "✔ Li e aceito os
+combinados". Vieram do mesmo PDF — se a Ju mudar uma regra, mudar lá.
 
 ## Padrão visual
 

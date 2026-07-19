@@ -57,7 +57,8 @@ nenhuma mensagem — daí a checagem ser obrigatória.
 
 1. Não dá para **editar** cliente, pet ou lançamento já salvo — só criar e apagar.
    (Produto já pode ser editado.)
-2. **Preço de serviço não varia por porte** — falta a tabela real da Ju.
+2. **Preço em faixa é resolvido pela Ju no atendimento** — o app sugere o mínimo e
+   mostra a faixa. Não há regra automática por porte; a tabela oficial não define uma.
 3. Despesas fixas ainda são **valores fixos no código** (agora num lugar só,
    `DESPESAS_FIXAS`) — falta uma tela para a Ju editar sozinha.
 4. Apagar cliente deixa os atendimentos dele órfãos no financeiro.
