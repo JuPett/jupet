@@ -310,6 +310,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <!-- RETORNOS RECOMENDADOS -->
     <div id="dashRetornoContainer"></div>
 
+    <!-- ESTOQUE ACABANDO -->
+    <div id="dashEstoqueContainer"></div>
+
     <!-- Cada número abre o detalhe por trás dele. Sem isso o painel só informa;
          com isso ela toca no número e entende de onde veio. -->
     <div class="metrics">
@@ -401,6 +404,25 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <div class="card" id="finLancamentos"><div class="empty"><div class="empty-icon">💰</div><div class="empty-text">Nenhum lançamento ainda</div></div></div>
   </div>
 
+  <!-- ESTOQUE -->
+  <div class="screen" id="screen-estoque">
+    <div class="sec-header"><div class="sec-title">Estoque</div><button class="btn-add" onclick="abrirModalProduto()">+ Produto</button></div>
+
+    <div class="metrics">
+      <div class="metric tocavel" onclick="detalheEstoqueValor()"><div class="metric-label">Valor em estoque ›</div><div class="metric-value" id="estValor">R$ 0</div><div class="metric-sub" id="estValorSub">a preço de custo</div></div>
+      <div class="metric vermelho tocavel" onclick="detalheEstoqueBaixo()"><div class="metric-label">Precisa repor ›</div><div class="metric-value" id="estBaixo">0</div><div class="metric-sub">no mínimo ou abaixo</div></div>
+    </div>
+
+    <div class="tipo-toggle">
+      <button class="tipo-btn active" id="estFiltroTodos" onclick="setFiltroEstoque('todos',this)">Todos</button>
+      <button class="tipo-btn" id="estFiltroRevenda" onclick="setFiltroEstoque('revenda',this)">🛍️ Revenda</button>
+      <button class="tipo-btn" id="estFiltroUso" onclick="setFiltroEstoque('uso',this)">🧴 Uso interno</button>
+    </div>
+
+    <div class="search-bar"><span style="font-size:18px;color:var(--lilas);">🔍</span><input type="text" placeholder="Buscar produto..." id="estBusca" oninput="renderEstoque()"></div>
+    <div id="estLista"></div>
+  </div>
+
   <!-- RECIBO -->
   <div class="screen" id="screen-recibo">
     <div class="sec-header"><div class="sec-title">Gerar Recibo</div></div>
@@ -448,6 +470,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
   <button class="nav-btn active" onclick="goScreen('dash',this)"><span class="nav-icon">🏠</span>Início</button>
   <button class="nav-btn" onclick="goScreen('agenda',this)"><span class="nav-icon">📅</span>Agenda</button>
   <button class="nav-btn" onclick="goScreen('clientes',this)"><span class="nav-icon">🐶</span>Clientes</button>
+  <button class="nav-btn" onclick="goScreen('estoque',this)"><span class="nav-icon">📦</span>Estoque</button>
   <button class="nav-btn" onclick="goScreen('fin',this)"><span class="nav-icon">💰</span>Financeiro</button>
   <button class="nav-btn" onclick="goRecibo()"><span class="nav-icon">🧾</span>Recibo</button>
 </nav>
@@ -622,6 +645,64 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
   </div>
 </div>
 
+<!-- MODAL: PRODUTO (cadastrar / editar) -->
+<div class="modal-overlay" id="modalProduto">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="prodTitulo">Novo Produto</div>
+    <input type="hidden" id="prodId">
+
+    <div class="form-group">
+      <label class="form-label">Para que serve</label>
+      <div class="tipo-toggle" style="margin-bottom:0;">
+        <button class="tipo-btn active" id="prodTipoRevenda" onclick="setTipoProduto('revenda')">🛍️ Revenda</button>
+        <button class="tipo-btn" id="prodTipoUso" onclick="setTipoProduto('uso')">🧴 Uso interno</button>
+      </div>
+      <div style="font-size:11px;color:var(--cinza-claro);margin-top:6px;" id="prodTipoDica">Revenda: você vende para o cliente e vira receita.</div>
+    </div>
+
+    <div class="form-group"><label class="form-label">Nome do produto</label><input class="form-input" id="prodNome" placeholder="Ex: Shampoo neutro 500ml"></div>
+
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Custo (R$)</label><input class="form-input" id="prodCusto" type="number" step="0.01" placeholder="0,00"><div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;">quanto você paga</div></div>
+      <div class="form-group" id="prodPrecoGrupo"><label class="form-label">Venda (R$)</label><input class="form-input" id="prodPreco" type="number" step="0.01" placeholder="0,00" oninput="mostrarMargem()"><div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;" id="prodMargem">quanto o cliente paga</div></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Quantidade atual</label><input class="form-input" id="prodQtd" type="number" step="1" placeholder="0" value="0"></div>
+      <div class="form-group"><label class="form-label">Avisar quando chegar em</label><input class="form-input" id="prodMinimo" type="number" step="1" placeholder="2" value="2"></div>
+    </div>
+
+    <div class="form-group"><label class="form-label">Observação</label><input class="form-input" id="prodObs" placeholder="Marca, fornecedor, etc."></div>
+
+    <button class="btn-primary" onclick="salvarProduto()">✅ Salvar produto</button>
+    <button class="btn-secondary" onclick="closeModal('modalProduto')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL: MOVIMENTAR ESTOQUE (vender / repor / dar baixa) -->
+<div class="modal-overlay" id="modalMov">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="movTitulo">Movimentar</div>
+    <input type="hidden" id="movProdId"><input type="hidden" id="movTipo">
+    <div id="movResumo"></div>
+    <div class="form-group"><label class="form-label">Quantidade</label><input class="form-input" id="movQtd" type="number" step="1" min="1" value="1" oninput="atualizarMov()"></div>
+    <div class="form-group" id="movValorGrupo">
+      <label class="form-label" id="movValorLabel">Valor total (R$)</label>
+      <input class="form-input" id="movValor" type="number" step="0.01" placeholder="0,00">
+      <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;" id="movValorDica"></div>
+    </div>
+    <div class="form-group" id="movMotivoGrupo" style="display:none;">
+      <label class="form-label">Motivo da baixa</label>
+      <select class="form-select" id="movMotivo"><option value="uso">Usado no atendimento</option><option value="perda">Perda / quebra / vencido</option><option value="ajuste">Ajuste de contagem</option></select>
+    </div>
+    <div id="movAviso"></div>
+    <button class="btn-primary" onclick="salvarMov()" id="movBotao">Confirmar</button>
+    <button class="btn-secondary" onclick="closeModal('modalMov')">Cancelar</button>
+  </div>
+</div>
+
 <!-- MODAL: DETALHE (o que está por trás de cada número do painel) -->
 <div class="modal-overlay" id="modalDetalhe">
   <div class="modal">
@@ -651,6 +732,9 @@ const DB={
 let atendimentos=DB.get('atend')||[];
 let clientes=DB.get('clientes')||[];
 let lancamentos=DB.get('lanc')||[];
+let produtos=DB.get('produtos')||[];
+let movimentacoes=DB.get('mov')||[];   // histórico de entrada/saída do estoque
+let filtroEstoque='todos';
 let tipoAtual='entrada';
 let servicosRecibo=[];
 let periodoFin='mes';
@@ -801,6 +885,7 @@ function goScreen(name,btn){
   if(name==='dash')renderDash();
   if(name==='agenda'){initAgendaData();renderAgenda();}
   if(name==='clientes')renderClientes();
+  if(name==='estoque')renderEstoque();
   if(name==='fin')renderFin();
   if(name==='recibo')initRecibo();
 }
@@ -1091,6 +1176,271 @@ function esc(s){
   return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// ─── ESTOQUE ───
+// Dois tipos de produto, porque num banho e tosa eles se comportam diferente:
+//   'revenda' → vendido ao cliente, a saída VIRA RECEITA
+//   'uso'     → shampoo, lâmina; consumido no serviço, a saída é só baixa
+// A compra de qualquer um dos dois vira DESPESA. É essa ligação com o financeiro
+// que faz o estoque ser mantido — lista solta ninguém atualiza.
+function produtoPorId(id){return produtos.find(p=>p.id===id);}
+function estoqueBaixo(p){return (parseInt(p.qtd)||0) <= (parseInt(p.minimo)||0);}
+function produtosBaixos(){return produtos.filter(estoqueBaixo);}
+function valorEstoque(){return produtos.reduce((s,p)=>s+(parseFloat(p.custo)||0)*(parseInt(p.qtd)||0),0);}
+
+function setFiltroEstoque(f,btn){
+  filtroEstoque=f;
+  document.querySelectorAll('#screen-estoque .tipo-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderEstoque();
+}
+
+function renderEstoque(){
+  document.getElementById('estValor').textContent=brl(Math.round(valorEstoque()));
+  const nBaixo=produtosBaixos().length;
+  document.getElementById('estValorSub').textContent=produtos.length+(produtos.length===1?' produto':' produtos');
+  document.getElementById('estBaixo').textContent=nBaixo;
+
+  const q=(document.getElementById('estBusca').value||'').toLowerCase();
+  const lista=produtos.filter(p=>{
+    if(filtroEstoque!=='todos'&&p.tipo!==filtroEstoque)return false;
+    return !q||(p.nome||'').toLowerCase().includes(q);
+  });
+  const cont=document.getElementById('estLista');
+  if(!produtos.length){
+    cont.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">Nenhum produto cadastrado.<br><br>Cadastre o que você usa (shampoo, lâmina) e o que você vende (coleira, ração).</div></div>';
+    return;
+  }
+  if(!lista.length){cont.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Nenhum produto nesse filtro</div></div>';return;}
+
+  cont.innerHTML=lista.map(p=>{
+    const qtd=parseInt(p.qtd)||0;
+    const baixo=estoqueBaixo(p);
+    const zerado=qtd<=0;
+    const icone=p.tipo==='revenda'?'🛍️':'🧴';
+    const badge=zerado
+      ? '<span class="badge badge-vermelho">acabou</span>'
+      : baixo?'<span class="badge badge-amarelo">repor</span>':'<span class="badge badge-verde">ok</span>';
+    return `<div class="card card-sm" style="margin-bottom:10px;${baixo?'border-left:4px solid var(--vermelho);':''}">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="font-size:22px;">${icone}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:500;color:var(--cinza);word-break:break-word;">${esc(p.nome)}</div>
+          <div style="font-size:11px;color:var(--cinza-claro);margin-top:2px;">
+            ${p.tipo==='revenda'?'Revenda':'Uso interno'}
+            ${p.custo?' · custo '+brl(p.custo):''}
+            ${p.tipo==='revenda'&&p.preco?' · venda '+brl(p.preco):''}
+          </div>
+          ${p.obs?`<div style="font-size:11px;color:var(--cinza-claro);margin-top:2px;">📝 ${esc(p.obs)}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:20px;font-weight:500;color:${zerado?'var(--vermelho)':baixo?'#B8930A':'var(--roxo)'};">${qtd}</div>
+          <div style="font-size:10px;color:var(--cinza-claro);">mín. ${parseInt(p.minimo)||0}</div>
+          ${badge}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+        ${p.tipo==='revenda'?`<button class="btn-report" style="flex:1;padding:9px;font-size:12px;${zerado?'opacity:0.45;':''}" onclick="abrirMov(${p.id},'venda')">💵 Vender</button>`:''}
+        <button class="btn-report" style="flex:1;padding:9px;font-size:12px;" onclick="abrirMov(${p.id},'compra')">➕ Repor</button>
+        <button class="btn-report" style="flex:1;padding:9px;font-size:12px;" onclick="abrirMov(${p.id},'baixa')">➖ Baixa</button>
+        <button class="btn-report" style="padding:9px 12px;font-size:12px;" onclick="abrirModalProduto(${p.id})">✏️</button>
+        <button class="btn-delete" onclick="deletarProduto(${p.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── CADASTRO DE PRODUTO ───
+function setTipoProduto(t){
+  document.getElementById('prodTipoRevenda').classList.toggle('active',t==='revenda');
+  document.getElementById('prodTipoUso').classList.toggle('active',t==='uso');
+  document.getElementById('prodTipoRevenda').dataset.sel=t;
+  document.getElementById('prodPrecoGrupo').style.display=t==='revenda'?'':'none';
+  document.getElementById('prodTipoDica').textContent=t==='revenda'
+    ? 'Revenda: você vende para o cliente e vira receita.'
+    : 'Uso interno: consumido no atendimento, não gera receita.';
+  mostrarMargem();
+}
+function tipoProdutoAtual(){return document.getElementById('prodTipoRevenda').dataset.sel||'revenda';}
+function mostrarMargem(){
+  const c=parseFloat(document.getElementById('prodCusto').value)||0;
+  const v=parseFloat(document.getElementById('prodPreco').value)||0;
+  const el=document.getElementById('prodMargem');
+  if(c>0&&v>0){
+    const lucro=v-c;
+    const pct=Math.round(lucro/c*100);
+    el.innerHTML=lucro>=0
+      ? `lucro de <b style="color:var(--verde);">${brl(lucro)}</b> por unidade (${pct}%)`
+      : `<b style="color:var(--vermelho);">prejuízo de ${brl(Math.abs(lucro))}</b> por unidade`;
+  }else{el.textContent='quanto o cliente paga';}
+}
+function abrirModalProduto(id){
+  const p=id?produtoPorId(id):null;
+  document.getElementById('prodTitulo').textContent=p?'Editar produto':'Novo Produto';
+  document.getElementById('prodId').value=p?p.id:'';
+  document.getElementById('prodNome').value=p?p.nome:'';
+  document.getElementById('prodCusto').value=p&&p.custo?p.custo:'';
+  document.getElementById('prodPreco').value=p&&p.preco?p.preco:'';
+  document.getElementById('prodQtd').value=p?(parseInt(p.qtd)||0):0;
+  document.getElementById('prodMinimo').value=p?(parseInt(p.minimo)||0):2;
+  document.getElementById('prodObs').value=p?(p.obs||''):'';
+  setTipoProduto(p?p.tipo:'revenda');
+  openModal('modalProduto');
+}
+function salvarProduto(){
+  const nome=document.getElementById('prodNome').value.trim();
+  if(!nome){alert('Informe o nome do produto.');return;}
+  const tipo=tipoProdutoAtual();
+  const dados={
+    nome, tipo,
+    custo:parseFloat(document.getElementById('prodCusto').value)||0,
+    preco:tipo==='revenda'?(parseFloat(document.getElementById('prodPreco').value)||0):0,
+    qtd:parseInt(document.getElementById('prodQtd').value)||0,
+    minimo:parseInt(document.getElementById('prodMinimo').value)||0,
+    obs:document.getElementById('prodObs').value.trim()
+  };
+  const id=parseInt(document.getElementById('prodId').value)||0;
+  if(id){
+    const p=produtoPorId(id);if(!p)return;
+    Object.assign(p,dados);
+  }else{
+    produtos.push(Object.assign({id:Date.now()},dados));
+  }
+  if(!DB.set('produtos',produtos)){if(!id)produtos.pop();return;}
+  closeModal('modalProduto');
+  renderEstoque();renderDash();
+}
+function deletarProduto(id){
+  const p=produtoPorId(id);if(!p)return;
+  if(!confirm('Excluir "'+p.nome+'" do estoque?\n\nO histórico de movimentação dele também some.'))return;
+  produtos=produtos.filter(x=>x.id!==id);
+  movimentacoes=movimentacoes.filter(m=>m.produtoId!==id);
+  DB.set('produtos',produtos);DB.set('mov',movimentacoes);
+  renderEstoque();renderDash();
+}
+
+// ─── MOVIMENTAÇÃO ───
+function abrirMov(prodId,tipo){
+  const p=produtoPorId(prodId);if(!p)return;
+  const qtd=parseInt(p.qtd)||0;
+  if(tipo==='venda'&&qtd<=0){alert('"'+p.nome+'" está com estoque zerado.\n\nUse "Repor" antes de vender.');return;}
+  document.getElementById('movProdId').value=prodId;
+  document.getElementById('movTipo').value=tipo;
+  document.getElementById('movQtd').value=1;
+  document.getElementById('movMotivoGrupo').style.display=tipo==='baixa'?'':'none';
+  document.getElementById('movValorGrupo').style.display=tipo==='baixa'?'none':'';
+  const titulos={venda:'💵 Vender produto',compra:'➕ Repor estoque',baixa:'➖ Dar baixa'};
+  document.getElementById('movTitulo').textContent=titulos[tipo];
+  document.getElementById('movBotao').textContent=
+    tipo==='venda'?'✅ Vender e lançar receita':tipo==='compra'?'✅ Repor e lançar despesa':'✅ Dar baixa';
+  document.getElementById('movValorLabel').textContent=tipo==='venda'?'Valor recebido (R$)':'Valor pago (R$)';
+  document.getElementById('movResumo').innerHTML=
+    `<div style="background:var(--lilas-palido);border-radius:12px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:500;color:var(--roxo);">${esc(p.nome)}</div>
+      <div style="font-size:12px;color:var(--cinza-claro);margin-top:2px;">Em estoque agora: <b>${qtd}</b>${p.tipo==='revenda'&&p.preco?' · venda '+brl(p.preco):''}${p.custo?' · custo '+brl(p.custo):''}</div>
+    </div>`;
+  atualizarMov();
+  openModal('modalMov');
+}
+function atualizarMov(){
+  const p=produtoPorId(parseInt(document.getElementById('movProdId').value));if(!p)return;
+  const tipo=document.getElementById('movTipo').value;
+  const q=parseInt(document.getElementById('movQtd').value)||0;
+  const qtdAtual=parseInt(p.qtd)||0;
+  // sugere o valor pelo cadastro; ela pode alterar (desconto, promoção)
+  if(tipo==='venda')document.getElementById('movValor').value=((parseFloat(p.preco)||0)*q).toFixed(2);
+  if(tipo==='compra')document.getElementById('movValor').value=((parseFloat(p.custo)||0)*q).toFixed(2);
+  document.getElementById('movValorDica').textContent=
+    tipo==='venda'?'Entra como receita no financeiro. Pode alterar se deu desconto.'
+                  :'Sai como despesa no financeiro. Pode alterar se o preço mudou.';
+  const depois=tipo==='compra'?qtdAtual+q:qtdAtual-q;
+  const aviso=document.getElementById('movAviso');
+  if(tipo!=='compra'&&q>qtdAtual){
+    aviso.innerHTML=`<div class="det-nota" style="background:var(--vermelho-claro);color:var(--vermelho);">⚠️ Você só tem <b>${qtdAtual}</b> em estoque. Não dá para tirar ${q}.</div>`;
+  }else{
+    aviso.innerHTML=`<div class="det-nota">Estoque depois: <b>${depois}</b>${depois<=(parseInt(p.minimo)||0)?' — <b>vai precisar repor</b>':''}</div>`;
+  }
+}
+function salvarMov(){
+  const p=produtoPorId(parseInt(document.getElementById('movProdId').value));if(!p)return;
+  const tipo=document.getElementById('movTipo').value;
+  const q=parseInt(document.getElementById('movQtd').value)||0;
+  if(q<=0){alert('Informe uma quantidade maior que zero.');return;}
+  const qtdAtual=parseInt(p.qtd)||0;
+  if(tipo!=='compra'&&q>qtdAtual){alert('Você só tem '+qtdAtual+' em estoque.');return;}
+
+  const valor=parseFloat(document.getElementById('movValor').value)||0;
+  const motivo=tipo==='baixa'?document.getElementById('movMotivo').value:tipo;
+  const data=hojeISO();
+
+  // 1) mexe no estoque
+  p.qtd=tipo==='compra'?qtdAtual+q:qtdAtual-q;
+
+  // 2) reflete no financeiro (só venda e compra movimentam dinheiro)
+  let lancId=null;
+  if(tipo==='venda'&&valor>0){
+    const l={id:Date.now(),tipo:'entrada',desc:p.nome+(q>1?' ×'+q:''),valor,data,cat:'Produto vendido'};
+    lancamentos.push(l);lancId=l.id;
+  }else if(tipo==='compra'&&valor>0){
+    const l={id:Date.now(),tipo:'saida',desc:p.nome+(q>1?' ×'+q:''),valor,data,cat:'Produtos consumo'};
+    lancamentos.push(l);lancId=l.id;
+  }
+
+  // 3) histórico
+  movimentacoes.push({id:Date.now()+1,produtoId:p.id,tipo:tipo==='compra'?'entrada':'saida',qtd:q,motivo,valor,data,lancamentoId:lancId});
+
+  const ok=DB.set('produtos',produtos)&&DB.set('mov',movimentacoes)&&(lancId?DB.set('lanc',lancamentos):true);
+  if(!ok)return;
+  closeModal('modalMov');
+  if(estoqueBaixo(p))alert('📦 Atenção: "'+p.nome+'" ficou com '+p.qtd+' em estoque. Hora de repor.');
+  renderEstoque();renderDash();renderFin();
+}
+
+// aviso no painel inicial — para ela não descobrir que acabou na hora do banho
+function renderAlertaEstoque(){
+  const cont=document.getElementById('dashEstoqueContainer');
+  const baixos=produtosBaixos();
+  if(!baixos.length){cont.innerHTML='';return;}
+  const acabaram=baixos.filter(p=>(parseInt(p.qtd)||0)<=0);
+  cont.innerHTML=`<div class="retorno-banner tocavel" style="background:linear-gradient(135deg,#C4643A,#A32D2D);" onclick="goScreen('estoque',document.querySelectorAll('.nav-btn')[3])">
+    <div class="retorno-banner-title">📦 Estoque acabando</div>
+    ${baixos.slice(0,5).map(p=>{
+      const q=parseInt(p.qtd)||0;
+      return `<div class="retorno-item">
+        <div class="retorno-avatar">${p.tipo==='revenda'?'🛍️':'🧴'}</div>
+        <div class="retorno-info"><div class="retorno-nome">${esc(p.nome)}</div>
+        <div class="retorno-meta">${q<=0?'acabou':'restam '+q}· mínimo ${parseInt(p.minimo)||0}</div></div>
+      </div>`;
+    }).join('')}
+    ${baixos.length>5?`<div class="retorno-meta" style="margin-top:8px;">e mais ${baixos.length-5}...</div>`:''}
+    <div class="retorno-meta" style="margin-top:8px;opacity:0.9;">${acabaram.length?acabaram.length+' já acabaram · ':''}toque para ver o estoque ›</div>
+  </div>`;
+}
+
+// detalhes tocáveis do estoque
+function detalheEstoqueValor(){
+  if(!produtos.length){abrirDetalhe('Valor em estoque',vazio('Nenhum produto cadastrado.'));return;}
+  const linhas=produtos.slice().sort((a,b)=>((b.custo||0)*(b.qtd||0))-((a.custo||0)*(a.qtd||0))).map(p=>{
+    const tot=(parseFloat(p.custo)||0)*(parseInt(p.qtd)||0);
+    return `<div class="det-linha"><div><div>${esc(p.nome)}</div><div class="det-sub">${parseInt(p.qtd)||0} × ${brl(p.custo)}</div></div><span>${brl(tot)}</span></div>`;
+  }).join('');
+  abrirDetalhe('Valor em estoque',linhas+
+    `<div class="det-total"><span>Total a custo</span><span>${brl(Math.round(valorEstoque()))}</span></div>`+
+    '<div class="det-nota">É quanto dinheiro está parado em produto. Contado pelo <b>custo</b>, não pelo preço de venda.</div>');
+}
+function detalheEstoqueBaixo(){
+  const baixos=produtosBaixos();
+  if(!baixos.length){
+    abrirDetalhe('Precisa repor',vazio('Nenhum produto no mínimo. 👍'));return;
+  }
+  const linhas=baixos.map(p=>{
+    const q=parseInt(p.qtd)||0;
+    return `<div class="det-linha tocavel" onclick="closeModal('modalDetalhe');abrirMov(${p.id},'compra')">
+      <div><div>${esc(p.nome)}</div><div class="det-sub">${q<=0?'acabou':'restam '+q} · mínimo ${parseInt(p.minimo)||0}</div></div>
+      <span style="color:var(--roxo);font-size:12px;">repor ›</span></div>`;
+  }).join('');
+  abrirDetalhe('Precisa repor',linhas+'<div class="det-nota">Toque em um produto para lançar a reposição.</div>');
+}
+
 // ─── DETALHE DOS NÚMEROS DO PAINEL ───
 // Cada card do painel abre o que está por trás dele. O número sozinho informa;
 // o detalhe explica de onde veio e o que fazer com aquilo.
@@ -1263,6 +1613,7 @@ function renderDash(){
   document.getElementById('dashFidelidade').textContent='⭐ Clubinho fidelidade: '+carimbos+' carimbos'+(quase?' · '+quase+' perto da hidratação grátis 🎁':'');
   renderAniversarios();
   renderRetornos();
+  renderAlertaEstoque();
   renderBackupInfo();
   const cont=document.getElementById('dashAgendaHoje');
   if(!atHoje.length){cont.innerHTML='<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Sem agendamentos para hoje</div></div>';return;}
@@ -1727,10 +2078,12 @@ function copiarRecibo(){
 // Os dados vivem no localStorage deste navegador. Trocar de celular, limpar o
 // navegador ou (no iPhone) 7 dias sem abrir o app apagam tudo. Isto é a saída.
 function exportarBackup(){
+  // ⚠️ Ao criar um tipo novo de dado, INCLUIR AQUI e no importarBackup.
+  // Um dado fora do backup é um dado que se perde na troca de celular.
   const dump={
-    _app:'Ju Pet', _versao:1,
+    _app:'Ju Pet', _versao:2,
     _gerado_em:new Date().toISOString(),
-    clientes, atendimentos, lancamentos
+    clientes, atendimentos, lancamentos, produtos, movimentacoes
   };
   const blob=new Blob([JSON.stringify(dump)],{type:'application/json'});
   const d=new Date();
@@ -1757,16 +2110,21 @@ function importarBackup(input){
     const resumo='Backup de '+(dump._gerado_em?new Date(dump._gerado_em).toLocaleString('pt-BR'):'data desconhecida')
       +'\n\n• '+dump.clientes.length+' clientes'
       +'\n• '+(dump.atendimentos||[]).length+' atendimentos'
-      +'\n• '+(dump.lancamentos||[]).length+' lançamentos';
+      +'\n• '+(dump.lancamentos||[]).length+' lançamentos'
+      +'\n• '+(dump.produtos||[]).length+' produtos';
     if(!confirm('⚠️ ATENÇÃO — isto APAGA tudo que está no app agora e coloca o backup no lugar.\n\n'+resumo+'\n\nTem certeza?')){input.value='';return;}
     clientes=dump.clientes||[];
     atendimentos=dump.atendimentos||[];
     lancamentos=dump.lancamentos||[];
-    const ok=DB.set('clientes',clientes)&&DB.set('atend',atendimentos)&&DB.set('lanc',lancamentos);
+    // backup antigo (versão 1) não tem estoque — entra vazio, sem quebrar
+    produtos=dump.produtos||[];
+    movimentacoes=dump.movimentacoes||[];
+    const ok=DB.set('clientes',clientes)&&DB.set('atend',atendimentos)&&DB.set('lanc',lancamentos)
+             &&DB.set('produtos',produtos)&&DB.set('mov',movimentacoes);
     input.value='';
     if(!ok)return; // DB.set já avisou do erro
     migrarClientes();
-    renderDash();renderClientes();renderFin();
+    renderDash();renderClientes();renderFin();renderEstoque();
     alert('✅ Backup restaurado!');
   };
   reader.readAsText(input.files[0]);
