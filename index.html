@@ -779,6 +779,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 <div id="relatorioPrint"></div>
 
 <script src="./racas.js"></script>
+<script src="./foto.js"></script>
 <script>
 // ─── STORAGE ───
 const DB={
@@ -1092,27 +1093,9 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('clic
 document.getElementById('perfilOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('perfilOverlay'))document.getElementById('perfilOverlay').classList.remove('open');});
 
 // ─── FOTO DO PET ───
-// A foto da câmera tem 3-5 MB. Em base64 vira ~6 MB, e o localStorage inteiro
-// só tem ~5 MB. Sem comprimir, o app trava de salvar depois de 2 fotos.
-// Reduz para 400px / JPEG 0.7 → ~40 KB por pet.
-const FOTO_MAX_PX=400, FOTO_QUALIDADE=0.7;
-function comprimirFoto(file,callback){
-  const reader=new FileReader();
-  reader.onload=function(e){
-    const img=new Image();
-    img.onload=function(){
-      let{width:w,height:h}=img;
-      if(w>h&&w>FOTO_MAX_PX){h=Math.round(h*FOTO_MAX_PX/w);w=FOTO_MAX_PX;}
-      else if(h>=w&&h>FOTO_MAX_PX){w=Math.round(w*FOTO_MAX_PX/h);h=FOTO_MAX_PX;}
-      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
-      cv.getContext('2d').drawImage(img,0,0,w,h);
-      callback(cv.toDataURL('image/jpeg',FOTO_QUALIDADE));
-    };
-    img.onerror=function(){alert('Não consegui ler essa imagem. Tente outra foto.');};
-    img.src=e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
+// comprimirFoto() vem do foto.js, COMPARTILHADO com a pagina do cliente:
+// a foto que o cliente manda pelo link sai no mesmo padrao (400px/JPEG 0.7)
+// da que a Ju tira no balcao.
 // mostra a foto na área de upload e guarda no campo escondido
 function aplicarFoto(data,areaId,campoId,btnId){
   document.getElementById(campoId).value=data;

@@ -68,6 +68,12 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 .pacote{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--borda);font-size:14px;}
 .pacote-sub{font-size:11px;color:var(--cinza-claro);font-weight:400;margin-top:2px;line-height:1.45;}
 .pacote-preco{color:var(--roxo);font-weight:500;white-space:nowrap;}
+.foto-area{position:relative;width:100%;height:150px;border:2px dashed var(--lilas-claro);border-radius:14px;background:var(--lilas-palido);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;overflow:hidden;cursor:pointer;}
+.foto-area img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.foto-icone{font-size:30px;z-index:1;}
+.foto-texto{font-size:12.5px;color:var(--lilas);text-align:center;padding:0 20px;z-index:1;}
+.foto-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+.btn-trocar{width:100%;margin-top:8px;padding:10px;background:var(--lilas-palido);color:var(--roxo);border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .explica{border:1.5px solid var(--borda);border-radius:12px;margin-top:4px;background:var(--lilas-palido);}
 .explica summary{padding:13px 14px;font-size:13px;font-weight:500;color:var(--roxo);cursor:pointer;list-style:none;}
 .explica summary::-webkit-details-marker{display:none;}
@@ -119,6 +125,19 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
         <label class="form-label">Porte</label>
         <select class="form-select" id="porte" onchange="aoTrocarPorte()"><option>Pequeno</option><option>Médio</option><option>Grande</option></select>
         <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;" id="porteOrigem">Preenche sozinho ao escolher a raça — mas você pode ajustar.</div>
+      </div>
+
+      <!-- Foto do pet: mesma compressão do cadastro da Ju (foto.js). Vai junto
+           com o pedido pelo compartilhamento nativo do celular. -->
+      <div class="form-group">
+        <label class="form-label">📸 Foto do pet (opcional)</label>
+        <div class="foto-area" id="fotoArea">
+          <span class="foto-icone">🐾</span>
+          <span class="foto-texto">Toque para tirar uma foto ou escolher da galeria</span>
+          <input type="file" accept="image/*" capture="environment" class="foto-input" id="fotoInput" onchange="aoEscolherFoto(this)">
+        </div>
+        <button class="btn-trocar" id="fotoTrocar" style="display:none;" onclick="document.getElementById('fotoInput').click()">Trocar foto</button>
+        <div style="font-size:11px;color:var(--cinza-claro);margin-top:6px;" id="fotoDica">Ajuda a Tia Ju a conhecer seu pet antes da chegada.</div>
       </div>
 
       <!-- Peso: o desempate objetivo para SRD e mistura, onde não há padrão de
@@ -287,6 +306,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 </div>
 
 <script src="./racas.js"></script>
+<script src="./foto.js"></script>
 <script>
 // ─── CONFIGURAÇÃO DA AGENDA ───
 // Horário de funcionamento informado pela Ju (19/07/2026): terça a sábado, 9h às 16h.
@@ -530,18 +550,70 @@ function montarMensagem(){
   l.push('Hora: '+horaSel);
   const obs=document.getElementById('obs').value.trim();
   if(obs)l.push('Obs: '+obs);
+  if(fotoDataUrl)l.push('(foto do pet em anexo)');
   l.push('');
   l.push('✔ Li e aceito os combinados de agendamento.');
   l.push('_Enviado pelo site da Ju Pet_');
   return l.join('\n');
 }
 
-function enviar(){
+// ─── FOTO DO PET ───
+// Mesma compressão do cadastro da Ju (foto.js): 400px / JPEG 0.7.
+let fotoDataUrl='';
+function aoEscolherFoto(input){
+  if(!input.files||!input.files[0])return;
+  document.getElementById('fotoDica').textContent='Preparando a foto...';
+  comprimirFoto(input.files[0],d=>{
+    fotoDataUrl=d;
+    const area=document.getElementById('fotoArea');
+    let img=area.querySelector('img');
+    if(!img){img=document.createElement('img');area.appendChild(img);}
+    img.src=d;
+    area.querySelector('.foto-icone').style.display='none';
+    area.querySelector('.foto-texto').style.display='none';
+    document.getElementById('fotoTrocar').style.display='block';
+    const kb=Math.round(d.length/1024);
+    document.getElementById('fotoDica').innerHTML=
+      `<b style="color:var(--verde);">Foto pronta</b> (${kb} KB) — vai junto com o pedido.`;
+  },()=>{
+    document.getElementById('fotoDica').textContent='Não consegui ler essa imagem. Tente outra foto.';
+  });
+}
+
+function podeCompartilharFoto(){
+  if(!fotoDataUrl||!navigator.canShare)return false;
+  try{return navigator.canShare({files:[dataUrlParaArquivo(fotoDataUrl,'pet.jpg')]});}
+  catch(e){return false;}
+}
+
+// Sem foto → wa.me, que abre DIRETO a conversa da Ju (caminho mais seguro).
+// Com foto → compartilhamento nativo, único jeito de anexar imagem; aí o
+// cliente escolhe o WhatsApp e o contato, por isso o aviso antes.
+async function enviar(){
+  const el=document.getElementById('erro');
+  el.style.display='none';
+  const msg=montarMensagem();
+
+  if(podeCompartilharFoto()){
+    try{
+      await navigator.share({
+        text:msg,
+        files:[dataUrlParaArquivo(fotoDataUrl,(document.getElementById('pet').value||'pet')+'.jpg')]
+      });
+      return;
+    }catch(e){
+      if(e&&e.name==='AbortError')return;   // desistiu do compartilhamento
+      // qualquer outro erro: cai no WhatsApp por texto, abaixo
+    }
+  }
+
+  // texto pelo WhatsApp, direto na conversa da Ju
   try{
-    const msg=montarMensagem();
+    if(fotoDataUrl){
+      alert('📸 Vou abrir o WhatsApp com seu pedido.\n\nSeu celular não deixa enviar a foto junto — depois de mandar a mensagem, é só enviar a foto na mesma conversa. 💜');
+    }
     window.location.href='https://wa.me/'+WHATSAPP+'?text='+encodeURIComponent(msg);
   }catch(e){
-    const el=document.getElementById('erro');
     el.style.display='block';
     el.textContent='Não consegui abrir o WhatsApp. Chame direto no (71) 98769-9236.';
   }
