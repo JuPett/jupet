@@ -17,7 +17,7 @@ function falhar(msg) {
 }
 
 // ── paginas HTML: extrai e valida cada bloco <script> + ids orfaos ────────────
-for (const pagina of ['index.html', 'agendar.html']) {
+for (const pagina of ['index.html', 'agendar.html', 'divulgacao.html']) {
   const html = fs.readFileSync(path.join(raiz, pagina), 'utf8');
   const blocos = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)];
 

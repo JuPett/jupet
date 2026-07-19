@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artes para divulgação — Ju Pet</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<meta name="theme-color" content="#6B3F8C">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --roxo:#6B3F8C; --lilas:#B48DC0; --lilas-palido:#F5EDF9;
+  --cinza:#4A4A4A; --cinza-claro:#8A8A8A; --borda:#EDE8F2; --fundo:#FAF7FB;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:var(--cinza);}
+.wrap{max-width:640px;margin:0 auto;padding-bottom:50px;}
+.topo{background:var(--roxo);color:white;padding:24px 20px;text-align:center;}
+.topo h1{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;}
+.topo p{font-size:13px;opacity:0.8;margin-top:6px;line-height:1.5;}
+.corpo{padding:18px 16px 0;}
+.card{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 16px rgba(107,63,140,0.10);margin-bottom:16px;}
+.card h2{font-size:16px;color:var(--roxo);font-weight:500;}
+.card .sub{font-size:12px;color:var(--cinza-claro);margin:3px 0 12px;line-height:1.5;}
+.preview{width:100%;border-radius:12px;border:1px solid var(--borda);display:block;background:var(--roxo);}
+.btn{width:100%;margin-top:10px;padding:13px;border:none;border-radius:12px;background:var(--roxo);color:white;
+     font-size:15px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn.sec{background:var(--lilas-palido);color:var(--roxo);margin-top:8px;}
+.dica{background:var(--lilas-palido);border-radius:12px;padding:14px;font-size:12.5px;line-height:1.6;margin-bottom:16px;}
+.dica b{color:var(--roxo);}
+.carregando{text-align:center;padding:40px;color:var(--cinza-claro);font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topo">
+    <h1>Artes para divulgação</h1>
+    <p>Baixe e poste no Instagram e no Facebook.<br>Todas já vêm com o link de agendamento.</p>
+  </div>
+
+  <div class="corpo">
+    <div class="dica">
+      📲 <b>Como baixar no celular:</b> toque em "Baixar" — a imagem vai para os seus downloads
+      ou abre para você segurar e salvar. Depois é só postar normalmente.<br><br>
+      🔗 <b>Importante:</b> o Instagram não deixa clicar em link dentro da foto. Coloque
+      <b>jupet.pages.dev/agendar</b> na <b>bio</b> do perfil e use o <b>sticker de link</b> nos stories.
+    </div>
+
+    <div id="artes"><div class="carregando">Preparando as artes...</div></div>
+  </div>
+</div>
+
+<script>
+// Gerador das artes de divulgação. Desenha tudo no canvas, no tamanho real de
+// publicação, sem biblioteca externa e sem depender de designer para cada ajuste.
+// Fonte da verdade do link e dos dados: as constantes abaixo.
+const LINK='jupet.pages.dev/agendar';
+const MARCA='Ju Pet';
+const SUB='BANHO & TOSA PREMIUM';
+const HORARIO='Terça a sábado · 9h às 16h';
+const LOCAL='Acupe de Brotas · Salvador';
+const INSTA='@ju.pett';
+const FONE='(71) 98769-9236';
+
+const ROXO='#6B3F8C', ROXO_ESCURO='#52307A', LILAS='#B48DC0', LILAS_PAL='#F5EDF9';
+
+// patinha — mesma forma do ícone do app
+function patinha(ctx,cx,cy,tam,cor){
+  ctx.fillStyle=cor;
+  const e=(x,y,w,h)=>{ctx.beginPath();ctx.ellipse(cx+x*tam,cy+y*tam,w*tam,h*tam,0,0,Math.PI*2);ctx.fill();};
+  e(0,0.16,0.42,0.34);          // almofada
+  e(-0.42,-0.30,0.16,0.21);     // dedos
+  e(-0.14,-0.44,0.155,0.215);
+  e(0.14,-0.44,0.155,0.215);
+  e(0.42,-0.30,0.16,0.21);
+}
+
+function texto(ctx,txt,x,y,{fonte,cor,alinha='center',espaco=0}){
+  ctx.fillStyle=cor; ctx.font=fonte; ctx.textAlign=espaco?'left':alinha; ctx.textBaseline='middle';
+  if(!espaco){ctx.fillText(txt,x,y);return;}
+  // desenha letra a letra quando precisa de espaçamento entre caracteres
+  const larg=[...txt].reduce((s,c)=>s+ctx.measureText(c).width+espaco,0)-espaco;
+  let cx=alinha==='center'?x-larg/2:x;
+  for(const c of txt){ctx.fillText(c,cx,y);cx+=ctx.measureText(c).width+espaco;}
+}
+
+// pílula branca com o link dentro
+function pilula(ctx,txt,cx,cy,largura,altura,tamFonte){
+  const x=cx-largura/2, r=altura/2;
+  ctx.fillStyle='#FFFFFF';
+  ctx.beginPath();
+  ctx.moveTo(x+r,cy-altura/2);
+  ctx.arcTo(x+largura,cy-altura/2,x+largura,cy+altura/2,r);
+  ctx.arcTo(x+largura,cy+altura/2,x,cy+altura/2,r);
+  ctx.arcTo(x,cy+altura/2,x,cy-altura/2,r);
+  ctx.arcTo(x,cy-altura/2,x+largura,cy-altura/2,r);
+  ctx.closePath(); ctx.fill();
+  texto(ctx,txt,cx,cy+2,{fonte:'500 '+tamFonte+'px "DM Sans"',cor:ROXO});
+}
+
+function fundo(ctx,L,A){
+  const g=ctx.createLinearGradient(0,0,L,A);
+  g.addColorStop(0,ROXO); g.addColorStop(1,ROXO_ESCURO);
+  ctx.fillStyle=g; ctx.fillRect(0,0,L,A);
+  // patinhas decorativas, bem discretas
+  ctx.globalAlpha=0.06;
+  patinha(ctx,L*0.14,A*0.90,L*0.10,'#FFFFFF');
+  patinha(ctx,L*0.87,A*0.12,L*0.08,'#FFFFFF');
+  ctx.globalAlpha=1;
+}
+
+// ─── ARTE 1: FEED 4:5 (o formato que mais ocupa a tela no Instagram) ───
+function arteFeed(ctx,L,A){
+  fundo(ctx,L,A);
+  const cx=L/2;
+  patinha(ctx,cx,A*0.155,L*0.115,'#FFFFFF');
+  texto(ctx,MARCA,cx,A*0.265,{fonte:'600 '+(L*0.125)+'px "Cormorant Garamond"',cor:'#FFFFFF'});
+  texto(ctx,SUB,cx,A*0.315,{fonte:'400 '+(L*0.026)+'px "DM Sans"',cor:'rgba(255,255,255,0.65)',espaco:L*0.012});
+
+  ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(cx-L*0.13,A*0.355); ctx.lineTo(cx+L*0.13,A*0.355); ctx.stroke();
+
+  texto(ctx,'Agende o banho',cx,A*0.435,{fonte:'700 '+(L*0.082)+'px "DM Sans"',cor:'#FFFFFF'});
+  texto(ctx,'do seu pet',cx,A*0.505,{fonte:'700 '+(L*0.082)+'px "DM Sans"',cor:'#FFFFFF'});
+  texto(ctx,'em 1 minuto, sem sair do sofá 🐾',cx,A*0.565,{fonte:'400 '+(L*0.033)+'px "DM Sans"',cor:'rgba(255,255,255,0.8)'});
+
+  pilula(ctx,LINK,cx,A*0.655,L*0.80,A*0.075,L*0.040);
+  texto(ctx,'ou toque no link da bio',cx,A*0.715,{fonte:'400 '+(L*0.028)+'px "DM Sans"',cor:'rgba(255,255,255,0.7)'});
+
+  texto(ctx,'✓ Escolha o serviço e veja o valor',cx,A*0.790,{fonte:'400 '+(L*0.030)+'px "DM Sans"',cor:'rgba(255,255,255,0.9)'});
+  texto(ctx,'✓ Marque o melhor dia e horário',cx,A*0.832,{fonte:'400 '+(L*0.030)+'px "DM Sans"',cor:'rgba(255,255,255,0.9)'});
+  texto(ctx,'✓ A Tia Ju confirma no WhatsApp',cx,A*0.874,{fonte:'400 '+(L*0.030)+'px "DM Sans"',cor:'rgba(255,255,255,0.9)'});
+
+  texto(ctx,HORARIO+'  ·  '+INSTA,cx,A*0.945,{fonte:'400 '+(L*0.026)+'px "DM Sans"',cor:'rgba(255,255,255,0.55)'});
+}
+
+// ─── ARTE 2: STORIES 9:16 ───
+function arteStories(ctx,L,A){
+  fundo(ctx,L,A);
+  const cx=L/2;
+  patinha(ctx,cx,A*0.185,L*0.115,'#FFFFFF');
+  texto(ctx,MARCA,cx,A*0.275,{fonte:'600 '+(L*0.135)+'px "Cormorant Garamond"',cor:'#FFFFFF'});
+  texto(ctx,SUB,cx,A*0.313,{fonte:'400 '+(L*0.026)+'px "DM Sans"',cor:'rgba(255,255,255,0.65)',espaco:L*0.012});
+
+  texto(ctx,'Agende o banho',cx,A*0.415,{fonte:'700 '+(L*0.088)+'px "DM Sans"',cor:'#FFFFFF'});
+  texto(ctx,'do seu pet 🐾',cx,A*0.465,{fonte:'700 '+(L*0.088)+'px "DM Sans"',cor:'#FFFFFF'});
+  texto(ctx,'Escolha o serviço, o dia e o horário.',cx,A*0.525,{fonte:'400 '+(L*0.034)+'px "DM Sans"',cor:'rgba(255,255,255,0.8)'});
+  texto(ctx,'Eu confirmo no WhatsApp. 💜',cx,A*0.560,{fonte:'400 '+(L*0.034)+'px "DM Sans"',cor:'rgba(255,255,255,0.8)'});
+
+  pilula(ctx,LINK,cx,A*0.645,L*0.84,A*0.052,L*0.040);
+
+  // espaço reservado para o sticker de link do Instagram
+  ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=3; ctx.setLineDash([12,10]);
+  const bx=cx-L*0.34, by=A*0.700, bw=L*0.68, bh=A*0.055;
+  ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,bh/2); ctx.stroke(); ctx.setLineDash([]);
+  texto(ctx,'coloque o sticker de LINK aqui ☝️',cx,by+bh/2,{fonte:'400 '+(L*0.028)+'px "DM Sans"',cor:'rgba(255,255,255,0.6)'});
+
+  texto(ctx,HORARIO,cx,A*0.855,{fonte:'400 '+(L*0.030)+'px "DM Sans"',cor:'rgba(255,255,255,0.75)'});
+  texto(ctx,LOCAL,cx,A*0.885,{fonte:'400 '+(L*0.028)+'px "DM Sans"',cor:'rgba(255,255,255,0.6)'});
+  texto(ctx,INSTA+'  ·  '+FONE,cx,A*0.925,{fonte:'400 '+(L*0.028)+'px "DM Sans"',cor:'rgba(255,255,255,0.55)'});
+}
+
+// ─── ARTE 3: QUADRADO com a tabela resumida ───
+function arteValores(ctx,L,A){
+  ctx.fillStyle=LILAS_PAL; ctx.fillRect(0,0,L,A);
+  ctx.fillStyle=ROXO; ctx.fillRect(0,0,L,A*0.30);
+  const cx=L/2;
+  patinha(ctx,cx,A*0.095,L*0.075,'#FFFFFF');
+  texto(ctx,MARCA,cx,A*0.185,{fonte:'600 '+(L*0.090)+'px "Cormorant Garamond"',cor:'#FFFFFF'});
+  texto(ctx,SUB,cx,A*0.230,{fonte:'400 '+(L*0.022)+'px "DM Sans"',cor:'rgba(255,255,255,0.65)',espaco:L*0.010});
+
+  texto(ctx,'Nossos serviços',cx,A*0.365,{fonte:'700 '+(L*0.050)+'px "DM Sans"',cor:ROXO});
+
+  const itens=[
+    ['🛁  Banho','a partir de R$ 65'],
+    ['✨  Banho + hidratação','a partir de R$ 100'],
+    ['💎  Spa Premium','a partir de R$ 130'],
+    ['✂️  Tosa higiênica','a partir de R$ 75'],
+    ['✂️  Tosa modelada','a partir de R$ 120'],
+    ['📦  Pacotes mensais','a partir de R$ 120']
+  ];
+  let y=A*0.455;
+  itens.forEach(([nome,val])=>{
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.font='400 '+(L*0.034)+'px "DM Sans"'; ctx.fillStyle='#4A4A4A';
+    ctx.fillText(nome,L*0.10,y);
+    ctx.textAlign='right'; ctx.font='500 '+(L*0.032)+'px "DM Sans"'; ctx.fillStyle=ROXO;
+    ctx.fillText(val,L*0.90,y);
+    ctx.strokeStyle='#E8D8F0'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(L*0.10,y+A*0.030); ctx.lineTo(L*0.90,y+A*0.030); ctx.stroke();
+    y+=A*0.068;
+  });
+
+  texto(ctx,'O valor exato depende do porte do seu pet',cx,A*0.885,{fonte:'400 '+(L*0.026)+'px "DM Sans"',cor:'#8A8A8A'});
+  pilula(ctx,LINK,cx,A*0.945,L*0.78,A*0.062,L*0.034);
+  ctx.strokeStyle=LILAS; ctx.lineWidth=2;
+  ctx.strokeRect(1,1,L-2,A-2);
+}
+
+const ARTES=[
+  {id:'feed',     nome:'📱 Post do feed (4:5)',  sub:'O formato que mais ocupa a tela no Instagram. Serve também no Facebook.', L:1080,A:1350,desenha:arteFeed},
+  {id:'stories',  nome:'✨ Stories (9:16)',      sub:'Para stories e reels. Tem espaço marcado para você colar o sticker de link.', L:1080,A:1920,desenha:arteStories},
+  {id:'valores',  nome:'💰 Tabela de serviços',  sub:'Post quadrado com os valores. Bom para fixar nos destaques.', L:1080,A:1080,desenha:arteValores}
+];
+
+function montar(){
+  const área=document.getElementById('artes');
+  área.innerHTML='';
+  ARTES.forEach(a=>{
+    const cv=document.createElement('canvas');
+    cv.width=a.L; cv.height=a.A;
+    const ctx=cv.getContext('2d');
+    if(!ctx.roundRect){  // navegador antigo: retângulo comum
+      ctx.roundRect=function(x,y,w,h){this.rect(x,y,w,h);return this;};
+    }
+    a.desenha(ctx,a.L,a.A);
+
+    const card=document.createElement('div');
+    card.className='card';
+    card.innerHTML='<h2>'+a.nome+'</h2><div class="sub">'+a.sub+'</div>';
+    cv.className='preview';
+    card.appendChild(cv);
+
+    const btn=document.createElement('button');
+    btn.className='btn';
+    btn.textContent='⬇️ Baixar imagem';
+    btn.onclick=()=>baixar(cv,'jupet-'+a.id+'.png');
+    card.appendChild(btn);
+
+    const btn2=document.createElement('button');
+    btn2.className='btn sec';
+    btn2.textContent='📤 Compartilhar';
+    btn2.onclick=()=>compartilhar(cv,'jupet-'+a.id+'.png',a.nome);
+    card.appendChild(btn2);
+
+    área.appendChild(card);
+  });
+}
+
+function baixar(cv,nome){
+  cv.toBlob(b=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(b); a.download=nome;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  },'image/png');
+}
+
+function compartilhar(cv,nome,titulo){
+  cv.toBlob(async b=>{
+    const arq=new File([b],nome,{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[arq]})){
+      try{ await navigator.share({files:[arq],title:titulo}); return; }
+      catch(e){ if(e&&e.name==='AbortError')return; }
+    }
+    baixar(cv,nome);
+  },'image/png');
+}
+
+// espera as fontes carregarem, senão o canvas desenha com fonte errada
+if(document.fonts&&document.fonts.ready){
+  document.fonts.load('600 100px "Cormorant Garamond"')
+    .then(()=>document.fonts.load('700 40px "DM Sans"'))
+    .then(()=>document.fonts.ready)
+    .then(montar)
+    .catch(montar);
+}else{
+  window.addEventListener('load',montar);
+}
+</script>
+</body>
+</html>
