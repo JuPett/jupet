@@ -91,9 +91,10 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div class="form-group"><label class="form-label">Seu WhatsApp</label><input class="form-input" id="tel" type="tel" inputmode="numeric" placeholder="(71) 9 0000-0000" oninput="mascaraTel(this);atualizar()"></div>
       <div class="form-group"><label class="form-label">Nome do pet</label><input class="form-input" id="pet" placeholder="Nome do pet" oninput="atualizar()"></div>
       <div class="form-row">
+        <div class="form-group"><label class="form-label">Raça</label><select class="form-select" id="raca" onchange="aoTrocarRaca()"></select></div>
         <div class="form-group"><label class="form-label">Porte</label><select class="form-select" id="porte" onchange="aoTrocarPorte()"><option>Pequeno</option><option>Médio</option><option>Grande</option></select></div>
-        <div class="form-group"><label class="form-label">Raça (opcional)</label><input class="form-input" id="raca" placeholder="Raça" oninput="atualizar()"></div>
       </div>
+      <div class="form-group" id="racaOutraGrupo" style="display:none;"><input class="form-input" id="racaOutra" placeholder="Qual a raça do seu pet?" oninput="atualizar()"></div>
     </div>
 
     <!-- 2. SERVIÇO -->
@@ -215,6 +216,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
   </div>
 </div>
 
+<script src="./racas.js"></script>
 <script>
 // ─── CONFIGURAÇÃO DA AGENDA ───
 // Horário de funcionamento informado pela Ju (19/07/2026): terça a sábado, 9h às 16h.
@@ -248,6 +250,26 @@ const SERVICOS=[
   {nome:'Perfume especial',     fixo:10},
   {nome:'Não sei, quero orientação', consultar:true}
 ];
+// ─── RAÇA → PORTE → PREÇO ───
+// Escolher a raça já acerta o porte, e o porte acerta o preço. O cliente não
+// precisa saber em que "porte" o cachorro dele se encaixa.
+function aoTrocarRaca(){
+  const sel=document.getElementById('raca');
+  const ehOutra=sel.value==='Outra raça (digitar)';
+  document.getElementById('racaOutraGrupo').style.display=ehOutra?'':'none';
+  if(!ehOutra)document.getElementById('racaOutra').value='';
+  const p=porteDaRaca(sel.value);
+  if(p){
+    document.getElementById('porte').value=p;
+    montarServicos();   // preço se ajusta ao porte novo
+  }
+  atualizar();
+}
+function racaFinal(){
+  const v=document.getElementById('raca').value;
+  if(v==='Outra raça (digitar)')return document.getElementById('racaOutra').value.trim();
+  return v||'';
+}
 function porteAtual(){return document.getElementById('porte').value;}
 function precoDe(s,porte){
   if(s.consultar)return 0;
@@ -294,6 +316,7 @@ function selServico(i,el){
 }
 // trocar o porte re-precifica tudo na hora
 function aoTrocarPorte(){montarServicos();atualizar();}
+montarSelectRacas('raca');
 montarServicos();
 
 // ─── DIAS ───
@@ -389,7 +412,7 @@ function montarMensagem(){
   l.push('Telefone: '+document.getElementById('tel').value.trim());
   l.push('Pet: '+document.getElementById('pet').value.trim());
   l.push('Porte: '+document.getElementById('porte').value);
-  const raca=document.getElementById('raca').value.trim();
+  const raca=racaFinal();
   if(raca)l.push('Raça: '+raca);
   l.push('Servico: '+servicoSel.nome);
   // valor JÁ do porte escolhido — é o que o app da Ju vai preencher

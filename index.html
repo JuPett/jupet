@@ -522,9 +522,10 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <div class="sep">Pet</div>
     <div class="form-group"><label class="form-label">Nome do pet</label><input class="form-input" id="cliPet" placeholder="Nome do pet"></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Raça</label><input class="form-input" id="cliRaca" placeholder="Raça"></div>
+      <div class="form-group"><label class="form-label">Raça</label><select class="form-select" id="cliRaca" onchange="aoTrocarRaca('cliRaca','cliRacaOutra','cliPorte')"></select></div>
       <div class="form-group"><label class="form-label">Porte</label><select class="form-select" id="cliPorte"><option>Pequeno</option><option>Médio</option><option>Grande</option></select></div>
     </div>
+    <div class="form-group" id="cliRacaOutraGrupo" style="display:none;"><input class="form-input" id="cliRacaOutra" placeholder="Qual a raça?"></div>
 
     <!-- NASCIMENTO → a idade é CALCULADA a partir daqui.
          Idade digitada envelhece errado: "3 anos" fica 3 anos para sempre. -->
@@ -606,9 +607,10 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <!-- Mesmos campos e mesma ordem do cadastro de cliente, de propósito. -->
     <div class="form-group"><label class="form-label">Nome do pet</label><input class="form-input" id="petNome" placeholder="Nome do pet"></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Raça</label><input class="form-input" id="petRaca" placeholder="Raça"></div>
+      <div class="form-group"><label class="form-label">Raça</label><select class="form-select" id="petRaca" onchange="aoTrocarRaca('petRaca','petRacaOutra','petPorte')"></select></div>
       <div class="form-group"><label class="form-label">Porte</label><select class="form-select" id="petPorte"><option>Pequeno</option><option>Médio</option><option>Grande</option></select></div>
     </div>
+    <div class="form-group" id="petRacaOutraGrupo" style="display:none;"><input class="form-input" id="petRacaOutra" placeholder="Qual a raça?"></div>
     <div class="form-group">
       <label class="form-label">🎂 Nascimento do Pet</label>
       <input class="form-input" id="petAniv" type="date" onchange="mostrarIdade('petAniv','petIdadeTxt')">
@@ -732,6 +734,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 <!-- RELATÓRIO MENSAL (impressão / PDF) -->
 <div id="relatorioPrint"></div>
 
+<script src="./racas.js"></script>
 <script>
 // ─── STORAGE ───
 const DB={
@@ -914,6 +917,38 @@ function idadeAproxParaData(pref){
   const el=document.getElementById(alvo);
   el.textContent='🐾 ~'+anos+' ano'+(anos>1?'s':'')+' (data estimada)';
   el.style.color='var(--roxo)';
+}
+
+// ─── RAÇA (lista de racas.js) ───
+// Escolher a raça já define o porte — e o porte define o preço. Uma escolha só
+// em vez de três campos digitados.
+function aoTrocarRaca(selId,outraId,porteId,aplicarPorte){
+  const sel=document.getElementById(selId);
+  const grupo=document.getElementById(outraId+'Grupo');
+  const ehOutra=sel.value==='Outra raça (digitar)';
+  grupo.style.display=ehOutra?'':'none';
+  if(!ehOutra)document.getElementById(outraId).value='';
+  else document.getElementById(outraId).focus();
+  // SRD e "não sei" não têm porte definido — aí a Ju escolhe na mão
+  if(aplicarPorte!==false){
+    const p=porteDaRaca(sel.value);
+    if(p)document.getElementById(porteId).value=p;
+  }
+}
+// lê a raça final (da lista ou a digitada em "Outra")
+function racaFinal(selId,outraId){
+  const v=document.getElementById(selId).value;
+  if(v==='Outra raça (digitar)')return document.getElementById(outraId).value.trim();
+  return v||'';
+}
+// põe um valor no select; se não estiver na lista, cai em "Outra" com o texto.
+// NÃO mexe no porte: ao reabrir um pet já cadastrado, vale o porte salvo dele.
+function setRaca(selId,outraId,porteId,valor){
+  const sel=document.getElementById(selId);
+  if(!valor)sel.value='';
+  else if(RACAS.some(r=>r.n===valor))sel.value=valor;
+  else{sel.value='Outra raça (digitar)';document.getElementById(outraId).value=valor;}
+  aoTrocarRaca(selId,outraId,porteId,false);
 }
 
 // ─── MÁSCARA DE TELEFONE ───
@@ -1388,7 +1423,7 @@ function lerPedido(){
     alert('👤 '+achado.c.nome+' já é cliente, mas o pet "'+p.pet+'" ainda não está cadastrado.\n\nVou abrir o cadastro do pet.');
     abrirModalPet(achado.c.id);
     document.getElementById('petNome').value=p.pet;
-    if(p.raca)document.getElementById('petRaca').value=p.raca;
+    if(p.raca)setRaca('petRaca','petRacaOutra','petPorte',p.raca);
     if(p.porte)document.getElementById('petPorte').value=p.porte;
     if(p.obs)document.getElementById('petObs').value=p.obs;
     voltarProAgendamento=true;
@@ -1400,7 +1435,7 @@ function lerPedido(){
   document.getElementById('cliNome').value=p.tutor;
   document.getElementById('cliTel').value=p.tel;
   document.getElementById('cliPet').value=p.pet;
-  if(p.raca)document.getElementById('cliRaca').value=p.raca;
+  if(p.raca)setRaca('cliRaca','cliRacaOutra','cliPorte',p.raca);
   if(p.porte)document.getElementById('cliPorte').value=p.porte;
   if(p.obs)document.getElementById('cliObs').value=p.obs;
   voltarProAgendamento=true;
@@ -1993,7 +2028,7 @@ function salvarCliente(){
   if(!nome||!pet){alert('Preencha o nome do tutor e do pet.');return;}
   const id=Date.now();
   const obj={id,nome,tel:document.getElementById('cliTel').value,pets:[{
-    id:id+1,nome:pet,raca:document.getElementById('cliRaca').value,porte:document.getElementById('cliPorte').value,
+    id:id+1,nome:pet,raca:racaFinal('cliRaca','cliRacaOutra'),porte:document.getElementById('cliPorte').value,
     obs:document.getElementById('cliObs').value,pacote:document.getElementById('cliPacote').value,
     fidelidade:parseInt(document.getElementById('cliFidelidade').value)||0,
     aniv:document.getElementById('cliAniv').value,photo:document.getElementById('cliPhoto').value
@@ -2001,7 +2036,8 @@ function salvarCliente(){
   clientes.push(obj);
   if(!DB.set('clientes',clientes)){clientes.pop();return;}
   closeModal('modalCliente');
-  ['cliNome','cliTel','cliPet','cliRaca','cliObs','cliAniv','cliIdadeAnos'].forEach(id=>document.getElementById(id).value='');
+  ['cliNome','cliTel','cliPet','cliObs','cliAniv','cliIdadeAnos'].forEach(id=>document.getElementById(id).value='');
+  setRaca('cliRaca','cliRacaOutra','cliPorte','');
   document.getElementById('cliPacote').value='';document.getElementById('cliFidelidade').value='0';document.getElementById('cliPhoto').value='';
   document.getElementById('cliSemData').checked=false;toggleSemData('cli');
   document.getElementById('cliIdadeTxt').textContent='Calcula a idade sozinho e avisa do aniversário no painel';
@@ -2096,7 +2132,8 @@ function verPerfil(id){
 // ─── ADICIONAR / EXCLUIR PET ───
 function abrirModalPet(tutorId){
   petTutorAlvo=tutorId;
-  ['petNome','petRaca','petObs','petAniv','petIdadeAnos'].forEach(id=>document.getElementById(id).value='');
+  ['petNome','petObs','petAniv','petIdadeAnos'].forEach(id=>document.getElementById(id).value='');
+  setRaca('petRaca','petRacaOutra','petPorte','');
   document.getElementById('petSemData').checked=false;toggleSemData('pet');
   document.getElementById('petIdadeTxt').textContent='Calcula a idade sozinho e avisa do aniversário no painel';
   document.getElementById('petIdadeTxt').style.color='var(--cinza-claro)';
@@ -2120,7 +2157,7 @@ function salvarPet(){
   const nome=document.getElementById('petNome').value.trim();
   if(!nome){alert('Informe o nome do pet.');return;}
   if(!Array.isArray(c.pets))c.pets=[];
-  c.pets.push({id:Date.now(),nome,raca:document.getElementById('petRaca').value,porte:document.getElementById('petPorte').value,obs:document.getElementById('petObs').value,pacote:document.getElementById('petPacote').value,fidelidade:parseInt(document.getElementById('petFidelidade').value)||0,aniv:document.getElementById('petAniv').value,photo:document.getElementById('petPhoto').value});
+  c.pets.push({id:Date.now(),nome,raca:racaFinal('petRaca','petRacaOutra'),porte:document.getElementById('petPorte').value,obs:document.getElementById('petObs').value,pacote:document.getElementById('petPacote').value,fidelidade:parseInt(document.getElementById('petFidelidade').value)||0,aniv:document.getElementById('petAniv').value,photo:document.getElementById('petPhoto').value});
   if(!DB.set('clientes',clientes))return;
   closeModal('modalPet');
   const petNovo=c.pets[c.pets.length-1];
@@ -2417,6 +2454,8 @@ function renderBackupInfo(){
 }
 
 // ─── INIT ───
+montarSelectRacas('cliRaca');
+montarSelectRacas('petRaca');
 montarSelectServicos();
 montarChipsRecibo();
 document.getElementById('atendData').value=hojeISO();

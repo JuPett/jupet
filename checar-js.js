@@ -44,7 +44,7 @@ for (const pagina of ['index.html', 'agendar.html']) {
 }
 
 // ── arquivos soltos ───────────────────────────────────────────────────────────
-for (const arq of ['sw.js']) {
+for (const arq of ['sw.js', 'racas.js']) {
   try {
     new vm.Script(fs.readFileSync(path.join(raiz, arq), 'utf8'), { filename: arq });
     console.log(`  ${arq}: OK`);

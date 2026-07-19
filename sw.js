@@ -11,13 +11,14 @@
 // Isso e o que faz o navegador perceber que ha versao nova: se o sw.js nao muda
 // nenhum byte, o browser nem verifica, e a Ju fica presa no app antigo para sempre.
 // NAO editar a mao: o deploy cuida disso.
-const VERSAO = '2026-07-19-163715';
+const VERSAO = '2026-07-19-164541';
 const CACHE = 'jupet-' + VERSAO;
 const ARQUIVOS = [
   './',
   './index.html',
   './manual.html',
   './agendar.html',
+  './racas.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
