@@ -246,10 +246,37 @@ dos seus dados" (o que é coletado, para quê, onde fica, e como pedir exclusão
 WhatsApp), e o aceite cobre também o uso dos dados. **Ao coletar um campo novo,
 atualizar esse aviso** — é o registro da finalidade.
 
-**Risco que sobra, e é o maior:** os dados vivem no celular da Ju sem tranca própria.
-Quem pegar o aparelho desbloqueado vê tudo, e o arquivo de backup `.json` sai **sem
-criptografia**. Orientação: bloqueio de tela no celular e guardar o backup em lugar
-privado (não em grupo de WhatsApp). Um PIN no app está proposto e **não implementado**.
+### Cofre (`cofre.js`) — criptografia dos dados
+
+**Opcional, ligado pela Ju** no painel ("🔒 Proteção do aparelho"). Dois modos, e o
+resto do app não sabe em qual está:
+
+| | Sem PIN (padrão) | Com PIN (cofre) |
+|---|---|---|
+| Onde ficam os dados | uma chave `jupet_*` por tipo, em texto puro | **um blob cifrado** em `jupet_cofre` |
+| `DB.get`/`DB.set` | lê/escreve o localStorage | lê/escreve `DB._mem` (memória) |
+| Gravação | síncrona | assíncrona, com debounce de 150 ms |
+
+**`DB.get`/`DB.set` continuam SÍNCRONOS** — essa foi a decisão de projeto que evitou
+reescrever as ~80 chamadas espalhadas pelo app. Com o cofre aberto, tudo vive em
+`DB._mem`; `set` atualiza a memória na hora e agenda a cifragem. Use `DB.gravarAgora()`
+quando precisar garantir a gravação antes de seguir.
+
+Cripto: **PBKDF2-SHA256, 210k iterações** (salt novo a cada gravação) → **AES-GCM 256**.
+PIN errado devolve `null` porque o GCM autentica sozinho — **o PIN não é guardado em
+lugar nenhum**. A tela de bloqueio conta as tentativas e impõe espera crescente.
+
+⚠️ **Não existe recuperação.** A chave é o PIN. Por isso `ativarCofre()` **obriga um
+backup antes** e só apaga o texto puro **depois** que o blob cifrado gravou. Não
+inverter essa ordem.
+
+⚠️ **PIN de 4 dígitos são 10 mil combinações** — protege contra quem pega o celular na
+mesa, não contra perícia. `cofreForcaDoPin()` recusa sequências e repetições e
+recomenda 6+. Não vender isso como inviolável.
+
+**Risco que sobra:** o arquivo de backup sai **sem criptografia** (de propósito: um
+backup que ela não consegue abrir não serve para nada). Orientação: guardar em lugar
+privado, nunca em grupo de WhatsApp.
 
 ## Padrão visual
 
