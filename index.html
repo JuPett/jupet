@@ -434,8 +434,13 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div class="form-group"><label class="form-label">Cliente / Tutor</label><input class="form-input" id="reciboCliente" placeholder="Nome do tutor" oninput="atualizarRecibo()"></div>
       <div class="form-group"><label class="form-label">Pet</label><input class="form-input" id="reciboPet" placeholder="Nome do pet" oninput="atualizarRecibo()"></div>
       <div class="form-group">
+        <label class="form-label">Porte do pet</label>
+        <select class="form-select" id="reciboPorte" onchange="aoTrocarPorteRecibo()"><option>Pequeno</option><option>Médio</option><option>Grande</option></select>
+        <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;">Os preços abaixo mudam conforme o porte</div>
+      </div>
+      <div class="form-group">
         <label class="form-label">Serviços realizados</label>
-        <!-- chips gerados de SERVICOS_LISTA (fonte unica de preco) -->
+        <!-- chips gerados de SERVICOS_LISTA (fonte unica de preco, por porte) -->
         <div class="servicos-chips" id="servicosChips"></div>
       </div>
       <div class="form-group"><label class="form-label">Forma de pagamento</label><select class="form-select" id="reciboPagamento" onchange="atualizarRecibo()"><option>Pix</option><option>Cartão de Débito</option><option>Cartão de Crédito</option><option>Dinheiro</option></select></div>
@@ -767,39 +772,63 @@ function valorPacote(nome){return PACOTES[nome]||0;}
 // Nunca transformar faixa em valor único: seria cobrar a menos sem perceber.
 //
 // ⚠️ A mesma tabela existe no agendar.html (página do cliente). Mudou aqui, mude lá.
+// PREÇO POR PORTE. As faixas da tabela original ("R$ 100 a 120") já eram o porte —
+// aqui elas viram três valores explícitos, para parar de cobrar o mesmo de um
+// Yorkshire e de um Golden.
+//
+// ⚠️ ORIGEM DOS NÚMEROS (importante ao mexer):
+//   • Serviços que tinham FAIXA na tabela da Ju → Pequeno=mín, Grande=máx, Médio=meio.
+//     São dados dela, não inventados.
+//   • Serviços que tinham VALOR ÚNICO (banho simples, finalização, higiênica, máquina)
+//     → marcados com `sugerido:true`. Vieram de PROPOSTA (mesma proporção +15%/+30%
+//     que as faixas dela mostram) e AGUARDAM CONFIRMAÇÃO DA JU (19/07/2026).
+//     Enquanto `sugerido` for true, o app avisa na tela que o valor é proposta.
+const PORTES=['Pequeno','Médio','Grande'];
 const SERVICOS_LISTA=[
-  {nome:'Banho simples',            grupo:'Banhos', min:65,             retorno:30},
-  {nome:'Banho + finalização',      grupo:'Banhos', min:80,             retorno:30},
-  {nome:'Banho + hidratação',       grupo:'Banhos', min:100, max:120,   retorno:30},
-  {nome:'Spa Premium',              grupo:'Banhos', min:130, max:150,   retorno:30},
+  {nome:'Banho simples',       grupo:'Banhos', precos:{Pequeno:65, Médio:75,  Grande:85},  sugerido:true, retorno:30},
+  {nome:'Banho + finalização', grupo:'Banhos', precos:{Pequeno:80, Médio:90,  Grande:105}, sugerido:true, retorno:30},
+  {nome:'Banho + hidratação',  grupo:'Banhos', precos:{Pequeno:100,Médio:110, Grande:120}, retorno:30},
+  {nome:'Spa Premium',         grupo:'Banhos', precos:{Pequeno:130,Médio:140, Grande:150}, retorno:30},
 
-  {nome:'Tosa higiênica',           grupo:'Tosas',  min:75,             retorno:45},
-  {nome:'Tosa máquina',             grupo:'Tosas',  min:90,             retorno:45},
-  {nome:'Tosa modelada',            grupo:'Tosas',  min:120, max:150,   retorno:45},
-  {nome:'Outros tipos de tosa',     grupo:'Tosas',  min:0, consultar:true, retorno:45},
+  {nome:'Tosa higiênica',      grupo:'Tosas',  precos:{Pequeno:75, Médio:85,  Grande:95},  sugerido:true, retorno:45},
+  {nome:'Tosa máquina',        grupo:'Tosas',  precos:{Pequeno:90, Médio:105, Grande:120}, sugerido:true, retorno:45},
+  {nome:'Tosa modelada',       grupo:'Tosas',  precos:{Pequeno:120,Médio:135, Grande:150}, retorno:45},
+  {nome:'Outros tipos de tosa',grupo:'Tosas',  consultar:true, retorno:45},
 
-  {nome:'Hidratação',               grupo:'Extras', min:25,  max:60,    retorno:30},
-  {nome:'Mechas coloridas',         grupo:'Extras', min:30,  max:60,    retorno:30},
-  {nome:'Perfume especial',         grupo:'Extras', min:10,             retorno:30},
-  {nome:'Desembolo leve',           grupo:'Extras', min:20,  apartir:true, retorno:30},
-  {nome:'Desembolo médio',          grupo:'Extras', min:50,  apartir:true, retorno:30},
-  {nome:'Desembolo intenso',        grupo:'Extras', min:100, apartir:true, retorno:30},
+  {nome:'Hidratação',          grupo:'Extras', precos:{Pequeno:25, Médio:40,  Grande:60},  retorno:30},
+  {nome:'Mechas coloridas',    grupo:'Extras', precos:{Pequeno:30, Médio:45,  Grande:60},  retorno:30},
+  // não dependem do porte:
+  {nome:'Perfume especial',    grupo:'Extras', fixo:10, retorno:30},
+  {nome:'Desembolo leve',      grupo:'Extras', fixo:20,  apartir:true, retorno:30},
+  {nome:'Desembolo médio',     grupo:'Extras', fixo:50,  apartir:true, retorno:30},
+  {nome:'Desembolo intenso',   grupo:'Extras', fixo:100, apartir:true, retorno:30},
 
-  {nome:'Pacote Essencial',         grupo:'Pacotes mensais', min:120,           pacote:true, retorno:30},
-  {nome:'Pacote Cuidado',           grupo:'Pacotes mensais', min:250,           pacote:true, retorno:30},
-  {nome:'Pacote Spa Pet',           grupo:'Pacotes mensais', min:350,           pacote:true, retorno:30},
-  {nome:'Pacote Família (2 pets)',  grupo:'Pacotes mensais', min:220, max:480,  pacote:true, retorno:30},
-  {nome:'Pacote Manutenção (2 pets)',grupo:'Pacotes mensais',min:360, max:750,  pacote:true, retorno:30}
+  {nome:'Pacote Essencial',          grupo:'Pacotes mensais', fixo:120, pacote:true, retorno:30},
+  {nome:'Pacote Cuidado',            grupo:'Pacotes mensais', fixo:250, pacote:true, retorno:30},
+  {nome:'Pacote Spa Pet',            grupo:'Pacotes mensais', fixo:350, pacote:true, retorno:30},
+  {nome:'Pacote Família (2 pets)',   grupo:'Pacotes mensais', fixo:220, faixaAte:480, pacote:true, retorno:30},
+  {nome:'Pacote Manutenção (2 pets)',grupo:'Pacotes mensais', fixo:360, faixaAte:750, pacote:true, retorno:30}
 ];
 const SERVICOS=Object.fromEntries(SERVICOS_LISTA.map(s=>[s.nome,s]));
 
-// "R$ 65" · "R$ 100 a 120" · "a partir de R$ 20" · "consultar"
-function rotuloPreco(s){
+// Preço de um serviço para um porte. Sem porte conhecido, devolve o de Pequeno
+// (o menor) — nunca chutar para cima em cima do cliente.
+function precoServico(nome,porte){
+  const s=SERVICOS[nome];
+  if(!s||s.consultar)return 0;
+  if(s.fixo!=null)return s.fixo;
+  if(!s.precos)return 0;
+  return s.precos[porte]!=null?s.precos[porte]:s.precos.Pequeno;
+}
+// "R$ 65" (porte definido) · "R$ 65 a 85" (sem porte) · "a partir de R$ 20" · "consultar"
+function rotuloPreco(s,porte){
   if(!s)return'';
   if(s.consultar)return'consultar';
-  if(s.apartir)return'a partir de '+brl(s.min);
-  if(s.max&&s.max>s.min)return brl(s.min)+' a '+brl(s.max);
-  return brl(s.min);
+  if(s.apartir)return'a partir de '+brl(s.fixo);
+  if(s.fixo!=null)return s.faixaAte?brl(s.fixo)+' a '+brl(s.faixaAte):brl(s.fixo);
+  if(porte&&s.precos&&s.precos[porte]!=null)return brl(s.precos[porte]);
+  const vals=PORTES.map(p=>s.precos[p]);
+  return brl(Math.min(...vals))+' a '+brl(Math.max(...vals));
 }
 
 // monta o <select> do agendamento a partir da tabela
@@ -814,11 +843,26 @@ function montarSelectServicos(){
 }
 
 // monta os chips do Recibo (sem pacotes — recibo é de atendimento avulso)
+// Chips do Recibo, com o preço do PORTE escolhido na tela.
 function montarChipsRecibo(){
+  const porte=document.getElementById('reciboPorte')?document.getElementById('reciboPorte').value:'Pequeno';
   document.getElementById('servicosChips').innerHTML=
-    SERVICOS_LISTA.filter(s=>!s.pacote&&!s.consultar).map(s=>
-      `<span class="servico-chip" onclick="toggleServico(this,'${esc(s.nome).replace(/'/g,"\\'")}',${s.min})">${esc(s.nome)} <span style="opacity:0.7;">${rotuloPreco(s)}</span></span>`
-    ).join('');
+    SERVICOS_LISTA.filter(s=>!s.pacote&&!s.consultar).map(s=>{
+      const v=precoServico(s.nome,porte);
+      return `<span class="servico-chip" onclick="toggleServico(this,'${esc(s.nome).replace(/'/g,"\\'")}',${v})">${esc(s.nome)} <span style="opacity:0.7;">${rotuloPreco(s,porte)}</span></span>`;
+    }).join('');
+}
+// trocar o porte re-precifica o que já estava selecionado
+function aoTrocarPorteRecibo(){
+  const porte=document.getElementById('reciboPorte').value;
+  servicosRecibo=servicosRecibo.map(x=>({nome:x.nome,preco:precoServico(x.nome,porte)||x.preco}));
+  const selecionados=servicosRecibo.map(x=>x.nome);
+  montarChipsRecibo();
+  document.querySelectorAll('#servicosChips .servico-chip').forEach(c=>{
+    const nome=c.textContent.replace(/\s+R\$.*$/,'').replace(/\s+consultar$/,'').trim();
+    if(selecionados.some(n=>nome.startsWith(n)))c.classList.add('selected');
+  });
+  atualizarRecibo();
 }
 
 // ─── IDADE DO PET ───
@@ -1180,6 +1224,7 @@ function selecionarClienteAtend(cid,pid){
     <button class="btn-delete" onclick="limparSelecaoAtend()" title="Trocar">✖</button>
   </div>`;
   sugerirRetornoPorPet(p);
+  aoTrocarServico();   // agora que sabemos o porte, o preço se corrige sozinho
 }
 function limparSelecaoAtend(){
   document.getElementById('atendClienteId').value='';
@@ -1200,6 +1245,14 @@ function novoClienteDoAgendamento(){
 let voltarProAgendamento=false;
 
 // ─── SERVIÇO → VALOR E RETORNO ───
+// porte do pet escolhido no agendamento (vazio se ainda não escolheu ninguém)
+function porteDoPetSelecionado(){
+  const cid=parseInt(document.getElementById('atendClienteId').value)||0;
+  const pid=parseInt(document.getElementById('atendPetId').value)||0;
+  const c=tutorPorId(cid);
+  const p=c?petsDe(c).find(x=>x.id===pid):null;
+  return p&&p.porte?p.porte:'';
+}
 function aoTrocarServico(){
   const nome=document.getElementById('atendServico').value;
   const s=SERVICOS[nome];
@@ -1211,11 +1264,16 @@ function aoTrocarServico(){
     return;
   }
   // Sugere o MÍNIMO da faixa. Quem decide o valor final é a Ju, olhando o pet.
-  campoValor.value=s.consultar?'':s.min;
-  if(s.consultar)                  dica.textContent='Preço sob consulta — avalie o pet e informe o valor';
-  else if(s.apartir)               dica.innerHTML='Tabela: <b>a partir de '+brl(s.min)+'</b> — conforme o estado do pelo';
-  else if(s.max&&s.max>s.min)      dica.innerHTML='Tabela: <b>'+brl(s.min)+' a '+brl(s.max)+'</b> — ajuste pelo porte e pelagem';
-  else                             dica.textContent='Preço de tabela — pode alterar';
+  // O porte vem do PET escolhido — o cadastro já sabe, ela não redigita nem escolhe.
+  const porte=porteDoPetSelecionado();
+  campoValor.value=s.consultar?'':precoServico(nome,porte);
+  if(s.consultar)      dica.textContent='Preço sob consulta — avalie o pet e informe o valor';
+  else if(s.apartir)   dica.innerHTML='Tabela: <b>a partir de '+brl(s.fixo)+'</b> — conforme o estado do pelo';
+  else if(s.fixo!=null)dica.textContent='Preço de tabela — pode alterar';
+  else if(porte)       dica.innerHTML='Porte <b>'+porte+'</b>: '+brl(precoServico(nome,porte))
+                                     +(s.sugerido?' <span style="color:#B8930A;">(valor a confirmar)</span>':'')
+                                     +' · <span style="opacity:0.8;">'+rotuloPreco(s)+' conforme o porte</span>';
+  else                 dica.innerHTML='Escolha o cliente para o preço sair pelo porte · <b>'+rotuloPreco(s)+'</b>';
   document.getElementById('atendRetorno').value=s.retorno;
   document.getElementById('atendRetornoDica').textContent=
     'Sugerido para '+nome.toLowerCase()+': '+s.retorno+' dias';
@@ -2228,6 +2286,7 @@ function initRecibo(){
   const d=new Date();
   document.getElementById('reciboData').textContent=d.toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   servicosRecibo=[];
+  montarChipsRecibo();   // repõe os preços do porte selecionado
   document.querySelectorAll('.servico-chip').forEach(c=>c.classList.remove('selected'));
   atualizarRecibo();
 }
