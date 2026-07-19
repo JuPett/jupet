@@ -55,10 +55,12 @@ nenhuma mensagem — daí a checagem ser obrigatória.
 ## Pendências conhecidas
 
 1. Não dá para **editar** cliente, pet ou lançamento já salvo — só criar e apagar.
-2. **Preço não varia por porte** — falta a tabela real da Ju.
-3. Despesas fixas (R$ 5.280) **fixas no código**, repetidas em 5 lugares.
+   (Produto já pode ser editado.)
+2. **Preço de serviço não varia por porte** — falta a tabela real da Ju.
+3. Despesas fixas ainda são **valores fixos no código** (agora num lugar só,
+   `DESPESAS_FIXAS`) — falta uma tela para a Ju editar sozinha.
 4. Apagar cliente deixa os atendimentos dele órfãos no financeiro.
-5. Break-even ignora as despesas variáveis já lançadas — sai otimista.
+5. O Recibo não inclui produto vendido — a venda é lançada pela tela de Estoque.
 
 ## Já corrigido
 
@@ -68,3 +70,6 @@ nenhuma mensagem — daí a checagem ser obrigatória.
 - Concluir atendimento pela agenda, com carimbo de fidelidade automático
 - Receita em dobro barrada; aniversário no dia certo; fuso após as 21h
 - Atualização do app chega ao celular (o `sw.js` é carimbado a cada deploy)
+- Cards do painel viraram atalhos: cada número abre o detalhe por trás dele
+- **Estoque**: cadastro de produto (revenda × uso interno), venda que vira receita,
+  reposição que vira despesa, baixa por uso/perda e alerta de reposição

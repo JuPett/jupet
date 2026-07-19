@@ -58,7 +58,20 @@ desinstalar o app no iPhone **apaga tudo**. Por isso:
 | `.env.deploy.ps1` | Credenciais do Cloudflare — **fora do git** |
 
 Telas (`.screen`, trocadas por `goScreen()`): Início · Agenda · Clientes & Pets ·
-Financeiro · Recibo.
+**Estoque** · Financeiro · Recibo.
+
+## Estoque
+
+Dois tipos de produto, porque se comportam diferente:
+
+- **`revenda`** — coleira, ração, perfume. A saída **vira receita** (`Produto vendido`).
+- **`uso`** — shampoo, lâmina. Consumido no serviço; a baixa **não** mexe no financeiro.
+
+A **compra** de qualquer um dos dois vira despesa (`Produtos consumo`). É essa ligação
+com o financeiro que faz o estoque ser mantido — lista solta ninguém atualiza.
+
+Dados: `produtos` (`jupet_produtos`) e `movimentacoes` (`jupet_mov`, histórico de
+entrada/saída). Alerta de reposição quando `qtd <= minimo`, no painel e na tela.
 
 ## Padrão visual
 
@@ -99,6 +112,11 @@ a Ju — o manual é o treinamento dela e faz parte do "done".
 - **`SERVICOS` é a fonte única de preço e retorno.** Os chips do Recibo usam a mesma
   tabela. Mudou preço, muda num lugar só.
 - **`esc()` antes de jogar texto do usuário em `innerHTML`.**
+- **Criou tipo novo de dado? Inclua no `exportarBackup` E no `importarBackup`.**
+  Dado fora do backup é dado que se perde na troca de celular. O `importarBackup`
+  precisa tolerar backup antigo sem aquele campo (`dump.x || []`).
+- **`DESPESAS_FIXAS` / `TOTAL_FIXO` são a fonte única do custo fixo.** Painel,
+  Financeiro, break-even e relatório leem de lá. Não voltar a digitar `5280`.
 
 ## Pendências conhecidas
 
