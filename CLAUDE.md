@@ -96,6 +96,30 @@ O `lerPedido()` trata três casos: cliente já cadastrado (seleciona direto), tu
 conhecido com pet novo (abre o cadastro do pet) e cliente novo (abre o cadastro
 completo). Nos três, volta ao agendamento com tudo preenchido.
 
+### O ciclo pedido → confirmação
+
+O pedido entra como **`status: 'pendente'`**, não como agendamento confirmado. Essa
+distinção é o que faz as duas telas conversarem:
+
+```
+cliente pede pelo link → WhatsApp → Ju cola em "Pedido do zap"
+   → entra como 'pendente'  →  fila "🔔 Pedidos aguardando você" (tela Agenda)
+   → Confirmar / Outro horário / Recusar  →  WhatsApp abre com a resposta pronta
+```
+
+- **A fila ignora o filtro de data** (`renderPendentes` lê `pedidosPendentes()`
+  direto). Um pedido para a semana que vem sumiria se dependesse do dia selecionado —
+  e sumir aqui significa cliente sem resposta.
+- **`confirmarPedido`** → `agendado` + WhatsApp confirmando (com a regra da retirada
+  em 1h). **`abrirModalRemarcar`/`salvarRemarcacao`** → confirma noutro horário e
+  explica que o pedido original estava ocupado. **`recusarPedido`** → `cancelado` +
+  mensagem pedindo outro dia.
+- **O painel avisa primeiro** (`renderAlertaPendentes`, antes de aniversário e
+  estoque): tem cliente do outro lado esperando.
+- **Pendente não conta como atendimento do dia** nem entra na receita — só o que a
+  Ju confirmou (`renderDash` filtra `agendado`/`concluido`).
+- Pedido com data já vencida aparece marcado **"data já passou!"**.
+
 **Horário de funcionamento** (`DIAS_ABERTOS` e `HORAS` no `agendar.html`): terça a
 sábado, das 9h às 16h, informado pela Ju em 19/07/2026. **O 16h é o último
 agendamento, não o fechamento** — o atendimento pode terminar às 17h. Está certo

@@ -81,5 +81,9 @@ nenhuma mensagem — daí a checagem ser obrigatória.
 - Receita em dobro barrada; aniversário no dia certo; fuso após as 21h
 - Atualização do app chega ao celular (o `sw.js` é carimbado a cada deploy)
 - Cards do painel viraram atalhos: cada número abre o detalhe por trás dele
+- **Link de agendamento para o cliente** (`/agendar`) com tabela por porte, regras da
+  loja e aceite obrigatório
+- **Fila de pedidos na Agenda**: o pedido do link entra como "aguardando você" e ela
+  confirma, remarca ou recusa com a resposta do WhatsApp já pronta
 - **Estoque**: cadastro de produto (revenda × uso interno), venda que vira receita,
   reposição que vira despesa, baixa por uso/perda e alerta de reposição
