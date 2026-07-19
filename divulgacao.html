@@ -58,7 +58,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 const LINK='jupet.pages.dev/agendar';
 const MARCA='Ju Pet';
 const SUB='BANHO & TOSA PREMIUM';
-const HORARIO='Terça a sábado · 9h às 16h';
+const HORARIO='Terça a sábado · 9h-12h30 e 13h30-16h';
 const LOCAL='Acupe de Brotas · Salvador';
 const INSTA='@ju.pett';
 const FONE='(71) 98769-9236';
@@ -172,27 +172,31 @@ function arteValores(ctx,L,A){
 
   texto(ctx,'Nossos serviços',cx,A*0.365,{fonte:'700 '+(L*0.050)+'px "DM Sans"',cor:ROXO});
 
+  // preço "a partir de" (porte pequeno) + tempo médio, que ajuda o cliente a
+  // se programar e reduz atraso na retirada
   const itens=[
-    ['🛁  Banho','a partir de R$ 65'],
-    ['✨  Banho + hidratação','a partir de R$ 100'],
-    ['💎  Spa Premium','a partir de R$ 130'],
-    ['✂️  Tosa higiênica','a partir de R$ 75'],
-    ['✂️  Tosa modelada','a partir de R$ 120'],
-    ['📦  Pacotes mensais','a partir de R$ 120']
+    ['🛁  Banho',              'R$ 65',  '50min'],
+    ['✨  Banho + hidratação', 'R$ 100', '1h10'],
+    ['💎  Spa Premium',        'R$ 130', '1h30'],
+    ['✂️  Tosa higiênica',     'R$ 75',  '1h20'],
+    ['✂️  Tosa máquina',       'R$ 90',  '1h30'],
+    ['✂️  Tosa modelada',      'R$ 120', '2h']
   ];
-  let y=A*0.455;
-  itens.forEach(([nome,val])=>{
+  let y=A*0.450;
+  itens.forEach(([nome,val,tempo])=>{
     ctx.textAlign='left'; ctx.textBaseline='middle';
-    ctx.font='400 '+(L*0.034)+'px "DM Sans"'; ctx.fillStyle='#4A4A4A';
-    ctx.fillText(nome,L*0.10,y);
-    ctx.textAlign='right'; ctx.font='500 '+(L*0.032)+'px "DM Sans"'; ctx.fillStyle=ROXO;
-    ctx.fillText(val,L*0.90,y);
+    ctx.font='400 '+(L*0.032)+'px "DM Sans"'; ctx.fillStyle='#4A4A4A';
+    ctx.fillText(nome,L*0.09,y);
+    ctx.font='400 '+(L*0.022)+'px "DM Sans"'; ctx.fillStyle='#8A8A8A';
+    ctx.fillText('⏱ '+tempo,L*0.09,y+A*0.028);
+    ctx.textAlign='right'; ctx.font='500 '+(L*0.034)+'px "DM Sans"'; ctx.fillStyle=ROXO;
+    ctx.fillText('a partir de '+val,L*0.91,y+A*0.010);
     ctx.strokeStyle='#E8D8F0'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(L*0.10,y+A*0.030); ctx.lineTo(L*0.90,y+A*0.030); ctx.stroke();
-    y+=A*0.068;
+    ctx.beginPath(); ctx.moveTo(L*0.09,y+A*0.046); ctx.lineTo(L*0.91,y+A*0.046); ctx.stroke();
+    y+=A*0.073;
   });
 
-  texto(ctx,'O valor exato depende do porte do seu pet',cx,A*0.885,{fonte:'400 '+(L*0.026)+'px "DM Sans"',cor:'#8A8A8A'});
+  texto(ctx,'O valor exato depende do porte · tempo médio',cx,A*0.885,{fonte:'400 '+(L*0.026)+'px "DM Sans"',cor:'#8A8A8A'});
   pilula(ctx,LINK,cx,A*0.945,L*0.78,A*0.062,L*0.034);
   ctx.strokeStyle=LILAS; ctx.lineWidth=2;
   ctx.strokeRect(1,1,L-2,A-2);

@@ -583,8 +583,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="atendData" type="date"></div>
-      <div class="form-group"><label class="form-label">Hora</label><input class="form-input" id="atendHora" type="time"></div>
+      <div class="form-group"><label class="form-label">Hora</label><input class="form-input" id="atendHora" type="time" onchange="mostrarJanelaAtendimento()"></div>
     </div>
+    <div id="atendJanela"></div>
     <div class="form-group"><label class="form-label">Serviço</label><!-- opcoes GERADAS por montarSelectServicos() a partir de SERVICOS_LISTA. Nao escrever <option> aqui: vira tabela paralela e desatualiza. --><select class="form-select" id="atendServico" onchange="aoTrocarServico()"></select></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="atendValor" type="number" placeholder="0,00"><div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;" id="atendValorDica">Preenche sozinho pelo serviço — pode alterar</div></div>
@@ -913,7 +914,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-190506';
+const VERSAO_APP='2026-07-19-191447';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -1006,31 +1007,46 @@ function valorPacote(nome){return PACOTES[nome]||0;}
 //     que as faixas dela mostram) e AGUARDAM CONFIRMAÇÃO DA JU (19/07/2026).
 //     Enquanto `sugerido` for true, o app avisa na tela que o valor é proposta.
 const PORTES=['Pequeno','Médio','Grande'];
+// `dur` = duração média em MINUTOS. É o que evita choque na agenda: dois
+// atendimentos de 2h não cabem no mesmo intervalo de 1h.
+// ✅ Tempos informados pela Ju (19/07/2026): banho simples, banho+hidratação,
+//    tosa higiênica, tosa máquina, tosa modelada e tintura.
+// ⚠️ `durSugerida:true` = tempo ESTIMADO por mim, aguardando confirmação dela.
 const SERVICOS_LISTA=[
-  {nome:'Banho simples',       grupo:'Banhos', precos:{Pequeno:65, Médio:75,  Grande:85},  sugerido:true, retorno:30},
-  {nome:'Banho + finalização', grupo:'Banhos', precos:{Pequeno:80, Médio:90,  Grande:105}, sugerido:true, retorno:30},
-  {nome:'Banho + hidratação',  grupo:'Banhos', precos:{Pequeno:100,Médio:110, Grande:120}, retorno:30},
-  {nome:'Spa Premium',         grupo:'Banhos', precos:{Pequeno:130,Médio:140, Grande:150}, retorno:30},
+  {nome:'Banho simples',       grupo:'Banhos', precos:{Pequeno:65, Médio:75,  Grande:85},  sugerido:true, dur:50,  retorno:30},
+  {nome:'Banho + finalização', grupo:'Banhos', precos:{Pequeno:80, Médio:90,  Grande:105}, sugerido:true, dur:60,  durSugerida:true, retorno:30},
+  {nome:'Banho + hidratação',  grupo:'Banhos', precos:{Pequeno:100,Médio:110, Grande:120}, dur:70,  retorno:30},
+  {nome:'Spa Premium',         grupo:'Banhos', precos:{Pequeno:130,Médio:140, Grande:150}, dur:90,  durSugerida:true, retorno:30},
 
-  {nome:'Tosa higiênica',      grupo:'Tosas',  precos:{Pequeno:75, Médio:85,  Grande:95},  sugerido:true, retorno:45},
-  {nome:'Tosa máquina',        grupo:'Tosas',  precos:{Pequeno:90, Médio:105, Grande:120}, sugerido:true, retorno:45},
-  {nome:'Tosa modelada',       grupo:'Tosas',  precos:{Pequeno:120,Médio:135, Grande:150}, retorno:45},
-  {nome:'Outros tipos de tosa',grupo:'Tosas',  consultar:true, retorno:45},
+  {nome:'Tosa higiênica',      grupo:'Tosas',  precos:{Pequeno:75, Médio:85,  Grande:95},  sugerido:true, dur:80,  retorno:45},
+  {nome:'Tosa máquina',        grupo:'Tosas',  precos:{Pequeno:90, Médio:105, Grande:120}, sugerido:true, dur:90,  retorno:45},
+  {nome:'Tosa modelada',       grupo:'Tosas',  precos:{Pequeno:120,Médio:135, Grande:150}, dur:120, retorno:45},
+  {nome:'Outros tipos de tosa',grupo:'Tosas',  consultar:true, dur:90, durSugerida:true, retorno:45},
 
-  {nome:'Hidratação',          grupo:'Extras', precos:{Pequeno:25, Médio:40,  Grande:60},  retorno:30},
-  {nome:'Mechas coloridas',    grupo:'Extras', precos:{Pequeno:30, Médio:45,  Grande:60},  retorno:30},
+  {nome:'Tintura',             grupo:'Extras', consultar:true, dur:80, retorno:30},
+  {nome:'Hidratação',          grupo:'Extras', precos:{Pequeno:25, Médio:40,  Grande:60},  dur:20, durSugerida:true, retorno:30},
+  {nome:'Mechas coloridas',    grupo:'Extras', precos:{Pequeno:30, Médio:45,  Grande:60},  dur:60, durSugerida:true, retorno:30},
   // não dependem do porte:
-  {nome:'Perfume especial',    grupo:'Extras', fixo:10, retorno:30},
-  {nome:'Desembolo leve',      grupo:'Extras', fixo:20,  apartir:true, retorno:30},
-  {nome:'Desembolo médio',     grupo:'Extras', fixo:50,  apartir:true, retorno:30},
-  {nome:'Desembolo intenso',   grupo:'Extras', fixo:100, apartir:true, retorno:30},
+  {nome:'Perfume especial',    grupo:'Extras', fixo:10, dur:5,  durSugerida:true, retorno:30},
+  {nome:'Desembolo leve',      grupo:'Extras', fixo:20,  apartir:true, dur:15, durSugerida:true, retorno:30},
+  {nome:'Desembolo médio',     grupo:'Extras', fixo:50,  apartir:true, dur:30, durSugerida:true, retorno:30},
+  {nome:'Desembolo intenso',   grupo:'Extras', fixo:100, apartir:true, dur:60, durSugerida:true, retorno:30},
 
-  {nome:'Pacote Essencial',          grupo:'Pacotes mensais', fixo:120, pacote:true, retorno:30},
-  {nome:'Pacote Cuidado',            grupo:'Pacotes mensais', fixo:250, pacote:true, retorno:30},
-  {nome:'Pacote Spa Pet',            grupo:'Pacotes mensais', fixo:350, pacote:true, retorno:30},
-  {nome:'Pacote Família (2 pets)',   grupo:'Pacotes mensais', fixo:220, faixaAte:480, pacote:true, retorno:30},
-  {nome:'Pacote Manutenção (2 pets)',grupo:'Pacotes mensais', fixo:360, faixaAte:750, pacote:true, retorno:30}
+  {nome:'Pacote Essencial',          grupo:'Pacotes mensais', fixo:120, pacote:true, dur:50, durSugerida:true, retorno:30},
+  {nome:'Pacote Cuidado',            grupo:'Pacotes mensais', fixo:250, pacote:true, dur:70, durSugerida:true, retorno:30},
+  {nome:'Pacote Spa Pet',            grupo:'Pacotes mensais', fixo:350, pacote:true, dur:90, durSugerida:true, retorno:30},
+  {nome:'Pacote Família (2 pets)',   grupo:'Pacotes mensais', fixo:220, faixaAte:480, pacote:true, dur:100, durSugerida:true, retorno:30},
+  {nome:'Pacote Manutenção (2 pets)',grupo:'Pacotes mensais', fixo:360, faixaAte:750, pacote:true, dur:160, durSugerida:true, retorno:30}
 ];
+const DUR_PADRAO=60;
+function duracaoServico(nome){
+  const s=SERVICOS[nome];
+  return (s&&s.dur)?s.dur:DUR_PADRAO;
+}
+function fmtDuracao(min){
+  const h=Math.floor(min/60), m=min%60;
+  return h?(h+'h'+(m?String(m).padStart(2,'0'):'')):(m+'min');
+}
 const SERVICOS=Object.fromEntries(SERVICOS_LISTA.map(s=>[s.nome,s]));
 
 // Preço de um serviço para um porte. Sem porte conhecido, devolve o de Pequeno
@@ -1523,7 +1539,38 @@ function aoTrocarServico(){
   document.getElementById('atendRetorno').value=s.retorno;
   document.getElementById('atendRetornoDica').textContent=
     'Sugerido para '+nome.toLowerCase()+': '+s.retorno+' dias';
+  mostrarJanelaAtendimento();
 }
+// Mostra de que horas a que horas o atendimento vai ocupar, e avisa na hora se
+// bate com outro. Ver o choque ANTES de salvar evita o vexame de dois pets juntos.
+function mostrarJanelaAtendimento(){
+  const el=document.getElementById('atendJanela');
+  if(!el)return;
+  const nome=document.getElementById('atendServico').value;
+  const hora=document.getElementById('atendHora').value;
+  const data=document.getElementById('atendData').value;
+  const dur=duracaoServico(nome);
+  const s=SERVICOS[nome];
+  if(!hora){
+    el.innerHTML='<div class="det-nota" style="margin-top:0;">⏱️ '+esc(nome)+' leva <b>'+fmtDuracao(dur)+'</b>'
+      +(s&&s.durSugerida?' <span style="color:#B8930A;">(tempo a confirmar)</span>':'')+'. Escolha a hora.</div>';
+    return;
+  }
+  const ini=minutosDe(hora);
+  const fim=ini+dur;
+  const conflitos=conflitosDe(data,hora,dur,0);
+  const foraDoExpediente=!dentroDoExpediente(ini,fim);
+  let html='<div class="det-nota" style="margin-top:0;'+(conflitos.length?'background:var(--vermelho-claro);color:var(--vermelho);':'')+'">'
+    +'⏱️ Ocupa das <b>'+hora+'</b> às <b>'+horaDe(fim)+'</b> ('+fmtDuracao(dur)+')';
+  if(conflitos.length){
+    html+='<br>⚠️ <b>Choca com:</b> '+conflitos.map(a=>esc(a.pet)+' ('+a.hora+')').join(', ');
+  }else if(foraDoExpediente){
+    html+='<br><span style="color:#B8930A;">⚠️ Passa do expediente ou cai no almoço (12h30–13h30).</span>';
+  }
+  html+='</div>';
+  el.innerHTML=html;
+}
+
 function sugerirRetornoPorPet(p){
   // se o pet tem pacote mensal, o retorno natural é mensal
   if(p&&p.pacote){
@@ -1572,7 +1619,8 @@ ${LINK_AGENDAMENTO}
 
 Você escolhe o serviço, o dia e o horário. Eu confirmo por aqui mesmo. 😊
 
-🕘 Terça a sábado, das 9h às 16h
+🕘 Terça a sábado
+9h às 12h30 · 13h30 às 16h
 📍 Acupe de Brotas, Salvador`
   },
   {
@@ -1590,7 +1638,8 @@ ${LINK_AGENDAMENTO}
 
 Eu confirmo assim que voltar. 😊
 
-🕘 Terça a sábado, das 9h às 16h`
+🕘 Terça a sábado
+9h às 12h30 · 13h30 às 16h`
   },
   {
     id:'agendar',
@@ -1612,11 +1661,12 @@ Lá você escolhe o serviço, vê o valor pelo porte do seu pet e me diz o melho
     texto:
 `Nossos valores por porte 🐾
 
-🛁 Banho: R$ 65 (pequeno) · R$ 75 (médio) · R$ 85 (grande)
-✨ Banho + hidratação: R$ 100 a R$ 120
-💎 Spa Premium: R$ 130 a R$ 150
-✂️ Tosa higiênica: R$ 75 a R$ 95
-✂️ Tosa modelada: R$ 120 a R$ 150
+🛁 Banho: R$ 65 (pequeno) · R$ 75 (médio) · R$ 85 (grande) — 50min
+✨ Banho + hidratação: R$ 100 a R$ 120 — 1h10
+💎 Spa Premium: R$ 130 a R$ 150 — 1h30
+✂️ Tosa higiênica: R$ 75 a R$ 95 — 1h20
+✂️ Tosa máquina: R$ 90 a R$ 120 — 1h30
+✂️ Tosa modelada: R$ 120 a R$ 150 — 2h
 
 📦 Temos pacotes mensais a partir de R$ 120, com prioridade na agenda!
 
@@ -1650,8 +1700,9 @@ ${LINK_AGENDAMENTO}`
     texto:
 `Estamos no Acupe de Brotas, Salvador 📍
 
-🕘 Terça a sábado, das 9h às 16h
-(16h é o último horário de agendamento)
+🕘 Terça a sábado
+9h às 12h30 · 13h30 às 16h
+(fechamos para o almoço das 12h30 às 13h30)
 
 📱 (71) 98769-9236
 📷 @ju.pett
@@ -2552,6 +2603,55 @@ function salvarRemarcacao(){
 
 function deletarAtend(id){if(!confirm('Excluir agendamento?'))return;atendimentos=atendimentos.filter(a=>a.id!==id);DB.set('atend',atendimentos);renderAgenda();renderDash();}
 
+// ─── EXPEDIENTE ───
+// Terça a sábado, 9h–12h30 e 13h30–16h (almoço no meio). Informado pela Ju em
+// 19/07/2026. ⚠️ A mesma informação existe no agendar.html — mudou aqui, mude lá.
+const EXPEDIENTE=[{de:9*60,ate:12*60+30},{de:13*60+30,ate:16*60}];
+const EXPEDIENTE_TXT='Terça a sábado · 9h às 12h30 e 13h30 às 16h';
+// o atendimento pode terminar depois do último horário; o que não pode é
+// começar fora da janela ou atravessar o almoço
+function dentroDoExpediente(ini,fim){
+  return EXPEDIENTE.some(j=>ini>=j.de&&ini<=j.ate&&fim<=j.ate+60);
+}
+
+// ─── CHOQUE DE HORÁRIO ───
+// Cada serviço tem duração própria (tosa modelada leva 2h). Sem checar isso, dois
+// pets caem no mesmo intervalo e a Ju descobre com os dois na loja.
+function minutosDe(hora){
+  const m=(hora||'').match(/^(\d{1,2}):(\d{2})$/);
+  return m?parseInt(m[1])*60+parseInt(m[2]):null;
+}
+function horaDe(min){
+  return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0');
+}
+// atendimentos que se sobrepõem a um intervalo (ignora cancelado e o próprio)
+function conflitosDe(data,hora,dur,ignorarId){
+  const ini=minutosDe(hora);
+  if(ini===null)return [];
+  const fim=ini+(dur||DUR_PADRAO);
+  return atendimentos.filter(a=>{
+    if(a.id===ignorarId)return false;
+    if(a.data!==data)return false;
+    if(a.status==='cancelado')return false;
+    const aIni=minutosDe(a.hora);
+    if(aIni===null)return false;
+    const aFim=aIni+(a.dur||duracaoServico(a.servico));
+    return ini<aFim&&aIni<fim;      // sobreposição real
+  });
+}
+// devolve true se pode seguir (sem conflito, ou a Ju confirmou mesmo assim)
+function checarConflito(data,hora,dur,ignorarId){
+  const c=conflitosDe(data,hora,dur,ignorarId);
+  if(!c.length)return true;
+  const lista=c.map(a=>{
+    const ini=minutosDe(a.hora);
+    return '• '+a.pet+' — '+a.servico+'\n  '+a.hora+' às '+horaDe(ini+(a.dur||duracaoServico(a.servico)));
+  }).join('\n');
+  const meuFim=horaDe(minutosDe(hora)+dur);
+  return confirm('⚠️ CHOQUE NA AGENDA\n\nEste atendimento vai das '+hora+' às '+meuFim+
+    ', e nesse intervalo já tem:\n\n'+lista+'\n\nMarcar assim mesmo?');
+}
+
 // ─── SALVAR ATENDIMENTO ───
 function salvarAtend(){
   const cid=parseInt(document.getElementById('atendClienteId').value)||0;
@@ -2560,13 +2660,20 @@ function salvarAtend(){
   const p=c?petsDe(c).find(x=>x.id===pid):null;
   if(!c||!p){alert('Escolha o cliente na busca acima.\n\nSe ele ainda não está cadastrado, use "Cadastrar novo cliente".');return;}
 
+  const servicoSel=document.getElementById('atendServico').value;
+  const dataSel=document.getElementById('atendData').value;
+  const horaSel=document.getElementById('atendHora').value;
+  const durSel=duracaoServico(servicoSel);
+  if(horaSel&&!checarConflito(dataSel,horaSel,durSel,0))return;
+
   const obj={
     id:Date.now(),
     clienteId:c.id, petId:p.id,          // vínculo real
     pet:p.nome, tutor:c.nome, tel:c.tel, // cópia p/ leitura e compatibilidade
-    data:document.getElementById('atendData').value,
-    hora:document.getElementById('atendHora').value,
-    servico:document.getElementById('atendServico').value,
+    data:dataSel,
+    hora:horaSel,
+    servico:servicoSel,
+    dur:durSel,                          // congela o tempo usado no cálculo
     valor:parseFloat(document.getElementById('atendValor').value)||0,
     status:document.getElementById('atendStatus').value,
     obs:document.getElementById('atendObs').value,

@@ -188,7 +188,13 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       </div>
       <div class="form-group" style="margin-bottom:0;">
         <label class="form-label">Horário <span class="obr">*</span></label>
+        <div style="font-size:11.5px;color:var(--roxo);background:var(--lilas-palido);border-radius:10px;padding:9px 12px;margin-bottom:10px;" id="horaDica">
+          Escolha o serviço e o dia para ver os horários livres.
+        </div>
         <div class="horas" id="horas"></div>
+        <div style="font-size:11px;color:var(--cinza-claro);margin-top:10px;line-height:1.5;">
+          Fechamos para o almoço das <b>12h30 às 13h30</b>.
+        </div>
       </div>
     </div>
 
@@ -304,7 +310,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
   <div class="rodape">
     <b>Ju Pet · Banho &amp; Tosa Premium</b><br>
     Acupe de Brotas · Salvador-BA<br>
-    Terça a sábado, das 9h às 16h<br>
+    Terça a sábado · 9h às 12h30 e 13h30 às 16h<br>
     📱 (71) 98769-9236 · @ju.pett
   </div>
 </div>
@@ -318,9 +324,14 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // no celular dela). Por isso é um PEDIDO sujeito a confirmação, não uma reserva.
 // Mudou o horário de funcionamento? Altere aqui e rode o deploy.
 const DIAS_ABERTOS=[2,3,4,5,6];        // 0=dom 1=seg ... 6=sáb
-// 16:00 é o ÚLTIMO agendamento e está correto — o atendimento pode terminar às 17h.
-// Confirmado pela Ju em 19/07/2026. Não remover achando que passa do expediente.
-const HORAS=['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00'];
+// Expediente com INTERVALO DE ALMOÇO (informado pela Ju em 19/07/2026):
+// manhã 9h–12h30, tarde 13h30–16h. Os horários oferecidos são gerados a partir
+// daqui e da DURAÇÃO do serviço — uma tosa modelada de 2h não pode começar
+// 11h30, senão atravessa o almoço.
+// ⚠️ O mesmo expediente existe no index.html (EXPEDIENTE). Mudou aqui, mude lá.
+const EXPEDIENTE=[{de:9*60, ate:12*60+30},{de:13*60+30, ate:16*60}];
+const PASSO=30;                        // de meia em meia hora
+const TOLERANCIA_FIM=60;               // pode terminar até 1h após o fim da janela
 const DIAS_A_MOSTRAR=21;               // janela de dias oferecida
 const WHATSAPP='5571987699236';
 
@@ -331,19 +342,26 @@ const WHATSAPP='5571987699236';
 // PREÇO POR PORTE — o cliente escolhe o porte no passo 1 e os preços aqui se
 // ajustam sozinhos. É o que deixa claro, antes de marcar, quanto ele vai pagar.
 // ⚠️ Tem que bater com SERVICOS_LISTA do index.html. Mudou lá, mude aqui.
+// `dur` = duração média em minutos. Define quais horários cabem na agenda.
+// ⚠️ Tem que bater com SERVICOS_LISTA do index.html.
 const SERVICOS=[
-  {nome:'Banho simples',        precos:{Pequeno:65, Médio:75,  Grande:85}},
-  {nome:'Banho + finalização',  precos:{Pequeno:80, Médio:90,  Grande:105}},
-  {nome:'Banho + hidratação',   precos:{Pequeno:100,Médio:110, Grande:120}},
-  {nome:'Spa Premium',          precos:{Pequeno:130,Médio:140, Grande:150}},
-  {nome:'Tosa higiênica',       precos:{Pequeno:75, Médio:85,  Grande:95}},
-  {nome:'Tosa máquina',         precos:{Pequeno:90, Médio:105, Grande:120}},
-  {nome:'Tosa modelada',        precos:{Pequeno:120,Médio:135, Grande:150}},
-  {nome:'Hidratação',           precos:{Pequeno:25, Médio:40,  Grande:60}},
-  {nome:'Mechas coloridas',     precos:{Pequeno:30, Médio:45,  Grande:60}},
-  {nome:'Perfume especial',     fixo:10},
-  {nome:'Não sei, quero orientação', consultar:true}
+  {nome:'Banho simples',        precos:{Pequeno:65, Médio:75,  Grande:85},  dur:50},
+  {nome:'Banho + finalização',  precos:{Pequeno:80, Médio:90,  Grande:105}, dur:60},
+  {nome:'Banho + hidratação',   precos:{Pequeno:100,Médio:110, Grande:120}, dur:70},
+  {nome:'Spa Premium',          precos:{Pequeno:130,Médio:140, Grande:150}, dur:90},
+  {nome:'Tosa higiênica',       precos:{Pequeno:75, Médio:85,  Grande:95},  dur:80},
+  {nome:'Tosa máquina',         precos:{Pequeno:90, Médio:105, Grande:120}, dur:90},
+  {nome:'Tosa modelada',        precos:{Pequeno:120,Médio:135, Grande:150}, dur:120},
+  {nome:'Tintura',              consultar:true, dur:80},
+  {nome:'Hidratação',           precos:{Pequeno:25, Médio:40,  Grande:60},  dur:20},
+  {nome:'Mechas coloridas',     precos:{Pequeno:30, Médio:45,  Grande:60},  dur:60},
+  {nome:'Perfume especial',     fixo:10, dur:5},
+  {nome:'Não sei, quero orientação', consultar:true, dur:60}
 ];
+function fmtDuracao(min){
+  const h=Math.floor(min/60), m=min%60;
+  return h?(h+'h'+(m?String(m).padStart(2,'0'):'')):(m+'min');
+}
 // ─── RAÇA → PORTE → PREÇO ───
 // Escolher a raça já acerta o porte, e o porte acerta o preço. O cliente não
 // precisa saber em que "porte" o cachorro dele se encaixa.
@@ -439,6 +457,7 @@ function selServico(i,el){
   servicoSel=SERVICOS[i];
   document.querySelectorAll('#servicos .chip').forEach(c=>c.classList.remove('sel'));
   el.classList.add('sel');
+  montarHoras();   // trocar o serviço muda quais horários cabem
   atualizar();
 }
 // trocar o porte re-precifica tudo na hora
@@ -474,19 +493,55 @@ function selDia(iso,el){
 montarDias();
 
 // ─── HORAS ───
-// Se o dia escolhido for hoje, esconde horário que já passou.
+// Os horários dependem do SERVIÇO: cada um tem duração e precisa caber na janela
+// da manhã ou da tarde. Assim o cliente não consegue marcar uma tosa de 2h às
+// 11h30, que atravessaria o almoço — é o que evita choque na agenda.
+function horaTxt(min){
+  return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0');
+}
+function horariosPossiveis(dur){
+  const lista=[];
+  EXPEDIENTE.forEach(j=>{
+    for(let t=j.de;t<=j.ate;t+=PASSO){
+      if(t+dur<=j.ate+TOLERANCIA_FIM)lista.push(t);
+    }
+  });
+  return lista;
+}
 function montarHoras(){
-  const agora=new Date();
-  const hojeIso=agora.getFullYear()+'-'+String(agora.getMonth()+1).padStart(2,'0')+'-'+String(agora.getDate()).padStart(2,'0');
-  const ehHoje=diaSel===hojeIso;
-  const disponiveis=HORAS.filter(h=>!ehHoje||parseInt(h)>agora.getHours());
   const cont=document.getElementById('horas');
-  if(!disponiveis.length){
-    cont.innerHTML='<div style="grid-column:1/-1;font-size:13px;color:var(--cinza-claro);padding:6px 0;">Não há mais horários hoje. Escolha outro dia. 🐾</div>';
-    horaSel=null;return;
+  if(!diaSel){
+    cont.innerHTML='<div style="grid-column:1/-1;font-size:13px;color:var(--cinza-claro);padding:6px 0;">Escolha um dia primeiro.</div>';
+    horaSel=null; return;
   }
-  cont.innerHTML=disponiveis.map(h=>`<div class="hora" onclick="selHora('${h}',this)">${h}</div>`).join('');
-  horaSel=null;
+  if(!servicoSel){
+    cont.innerHTML='<div style="grid-column:1/-1;font-size:13px;color:var(--cinza-claro);padding:6px 0;">Escolha o serviço no passo 2 — os horários dependem do tempo dele.</div>';
+    horaSel=null; return;
+  }
+  const dur=servicoSel.dur||60;
+  const agora=new Date();
+  const p2=n=>String(n).padStart(2,'0');
+  const hojeIso=agora.getFullYear()+'-'+p2(agora.getMonth()+1)+'-'+p2(agora.getDate());
+  const minAgora=agora.getHours()*60+agora.getMinutes();
+  const ehHoje=diaSel===hojeIso;
+
+  const possiveis=horariosPossiveis(dur).filter(t=>!ehHoje||t>minAgora+30);
+  if(!possiveis.length){
+    cont.innerHTML='<div style="grid-column:1/-1;font-size:13px;color:var(--cinza-claro);padding:6px 0;">'
+      +(ehHoje?'Não há mais horário hoje para esse serviço. Escolha outro dia. 🐾'
+              :'Esse serviço não cabe nos horários deste dia.')+'</div>';
+    horaSel=null; return;
+  }
+  const jaSel=horaSel;
+  cont.innerHTML=possiveis.map(t=>{
+    const h=horaTxt(t);
+    return `<div class="hora${h===jaSel?' sel':''}" onclick="selHora('${h}',this)">${h}</div>`;
+  }).join('');
+  // se o horário que estava escolhido não cabe mais, solta a seleção
+  if(jaSel&&!possiveis.some(t=>horaTxt(t)===jaSel))horaSel=null;
+  document.getElementById('horaDica').innerHTML=
+    '⏱️ <b>'+esc(servicoSel.nome)+'</b> leva cerca de <b>'+fmtDuracao(dur)+'</b>. '
+    +'Só aparecem horários em que ele cabe.';
 }
 function selHora(h,el){
   horaSel=h;
@@ -494,7 +549,7 @@ function selHora(h,el){
   el.classList.add('sel');
   atualizar();
 }
-document.getElementById('horas').innerHTML='<div style="grid-column:1/-1;font-size:13px;color:var(--cinza-claro);padding:6px 0;">Escolha um dia primeiro.</div>';
+montarHoras();
 
 // ─── RESUMO E VALIDAÇÃO ───
 function fmtData(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
