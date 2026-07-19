@@ -143,15 +143,31 @@ porque duplicar ~150 raças garantiria divergência. Carregado com `<script src>
 A cadeia é **raça → porte → preço**: escolher "Golden Retriever" preenche porte Grande,
 que faz o banho sair R$ 85. Uma escolha em vez de três campos.
 
-- `RACAS_TOPO` (SRD, "não sei") · `RACAS_LISTA` (as raças) · `RACAS_FIM` ("Outra raça").
+- `RACAS_TOPO` (SRD, "não sei") · `RACAS_LISTA` (as raças) · `RACAS_FIM`.
   `RACAS` é montado ordenando só o meio — **não manter ordem à mão**, o código ordena.
+- **Campo de busca, não `<select>`:** 150+ raças num select do celular é ruim. A pessoa
+  digita e `filtrarRacas()` filtra (sem acento — "maltes" acha "Maltês"; prefixo primeiro).
+  Ids por convenção: input = `baseId`, lista = `baseId + 'Lista'`, aviso = `baseId + 'Aviso'`.
+  Cada página registra `RACA_AO_ESCOLHER[baseId]` com o que fazer ao escolher.
+- **Aceita raça fora da lista** — é só deixar digitado, sem opção "outra". `racaFinal()`
+  devolve o texto do campo.
 - **SRD e "não sei" têm porte vazio** e não mexem no porte escolhido: um vira-lata pode
-  ter qualquer tamanho. Mesma coisa para "Outra raça".
-- **"Outra raça (digitar)"** revela um campo de texto; `racaFinal()` devolve o que foi
-  digitado. `setRaca()` faz o caminho de volta: raça fora da lista reabre como "Outra"
-  com o texto preservado.
+  ter qualquer tamanho.
 - O porte da raça é **sugestão editável** — Poodle vai de toy a standard, e filhote não
   tem o porte do adulto. `setRaca()` de propósito **não** sobrescreve o porte salvo.
+
+### Raça não atendida (`naoAtende: true`)
+
+**Chow Chow não é atendida**, por segurança do pet e da equipe (decisão da Ju, 19/07/2026).
+
+Ela **continua na lista de propósito**: se sumisse, o cliente digitaria a raça como texto
+livre e só descobriria na porta da loja. Aparece na busca com a tarja "não atendemos".
+
+Os dois lados tratam diferente, e isso é intencional:
+- **Página do cliente:** mensagem explicando e **botão de envio travado**. Ele não marca.
+- **App da Ju:** apenas avisa. **Não bloqueia** — a decisão de abrir exceção é dela.
+
+Para incluir outra raça na regra, basta `naoAtende: true` no `racas.js`; o resto já funciona.
 
 No `index.html`, `SERVICOS_LISTA` é a **fonte única**: o `<select>` do agendamento e
 os chips do Recibo são **gerados** dela (`montarSelectServicos`, `montarChipsRecibo`).
