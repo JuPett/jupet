@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ju Pet — Manual do App</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --roxo:#6B3F8C;--roxo-dark:#52307A;--lilas:#B48DC0;--lilas-claro:#E8D8F0;--lilas-palido:#F5EDF9;
+  --amarelo:#F5C518;--amarelo-claro:#FEF9E7;--verde:#2E9E75;--verde-claro:#EDFAF3;--rosa:#E879A0;--rosa-claro:#FDEEF4;
+  --creme:#FAF7F2;--cinza:#4A4A4A;--cinza-claro:#8A8A8A;--borda:#EDE8F2;--zap:#25D366;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#EDE7F2;color:var(--cinza);line-height:1.62;padding:20px 14px 60px;}
+.wrap{max-width:680px;margin:0 auto;}
+
+/* CAPA */
+.capa{background:linear-gradient(160deg,#7A4A9E,var(--roxo-dark));color:#fff;border-radius:22px;padding:42px 32px;text-align:center;position:relative;overflow:hidden;margin-bottom:20px;}
+.capa::before{content:'';position:absolute;width:300px;height:300px;border-radius:50%;border:1px solid rgba(255,255,255,0.10);top:-120px;right:-100px;}
+.capa .logo{width:74px;height:74px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 14px;}
+.capa h1{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:400;line-height:1;}
+.capa .sub{font-size:11px;letter-spacing:0.26em;text-transform:uppercase;color:var(--lilas-claro);margin-top:8px;}
+.capa .doc{display:inline-block;margin-top:18px;background:var(--amarelo);color:var(--roxo);font-size:12px;font-weight:600;letter-spacing:0.08em;padding:8px 18px;border-radius:30px;}
+
+/* CARDS */
+.card{background:#fff;border-radius:18px;padding:22px 22px 18px;box-shadow:0 3px 16px rgba(107,63,140,0.08);margin-bottom:16px;}
+.card h2{font-family:'Cormorant Garamond',serif;font-size:25px;color:var(--roxo);font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:10px;}
+.card .lead{font-size:13.5px;color:var(--cinza-claro);margin-bottom:14px;}
+h3{font-size:15px;color:var(--roxo-dark);font-weight:600;margin:16px 0 8px;}
+
+/* PASSOS */
+ol.steps{list-style:none;counter-reset:s;}
+ol.steps li{counter-increment:s;position:relative;padding:8px 0 8px 42px;font-size:14px;border-bottom:1px dashed var(--borda);}
+ol.steps li:last-child{border-bottom:none;}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:8px;width:28px;height:28px;border-radius:50%;background:var(--lilas-palido);color:var(--roxo);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;}
+.os{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#fff;background:var(--roxo);padding:5px 12px;border-radius:20px;margin-bottom:6px;}
+.os.ios{background:#111;}
+
+/* BOTÕES / LEGENDA */
+.func{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--borda);align-items:flex-start;}
+.func:last-child{border-bottom:none;}
+.ic{flex:0 0 38px;height:38px;border-radius:11px;background:var(--lilas-palido);display:flex;align-items:center;justify-content:center;font-size:19px;}
+.func .t{flex:1;}
+.func .t b{color:var(--roxo-dark);font-size:14.5px;}
+.func .t p{font-size:13px;color:var(--cinza);margin-top:1px;}
+.tag{display:inline-block;background:var(--lilas-palido);color:var(--roxo);font-size:11px;font-weight:600;padding:2px 9px;border-radius:14px;margin-left:4px;}
+
+/* ABAS NAV MOCK */
+.navmock{display:flex;background:#fff;border:1px solid var(--borda);border-radius:14px;overflow:hidden;margin:12px 0;}
+.navmock div{flex:1;text-align:center;padding:10px 4px;font-size:10px;color:var(--cinza-claro);border-right:1px solid var(--borda);}
+.navmock div:last-child{border-right:none;}
+.navmock div span{display:block;font-size:18px;margin-bottom:3px;}
+
+/* ZAP */
+.zap-card{background:linear-gradient(160deg,#2Eb85c,#128C3E);color:#fff;border-radius:18px;padding:22px;margin-bottom:16px;}
+.zap-card h2{color:#fff;}
+.zap-card .lead{color:rgba(255,255,255,0.85);}
+.zap-box{background:rgba(255,255,255,0.14);border-radius:12px;padding:12px 14px;font-size:13.5px;margin-top:10px;}
+.zap-num{display:inline-block;background:#fff;color:#128C3E;font-weight:700;padding:6px 14px;border-radius:30px;font-size:15px;margin-top:6px;}
+.callout{background:var(--amarelo-claro);border-left:4px solid var(--amarelo);border-radius:8px;padding:11px 14px;font-size:13px;color:#7a5b00;margin:12px 0;}
+.callout.rosa{background:var(--rosa-claro);border-color:var(--rosa);color:#9c3163;}
+.callout.verde{background:var(--verde-claro);border-color:var(--verde);color:#176b4f;}
+
+.toolbar{text-align:center;margin-bottom:14px;}
+.btn-print{background:var(--roxo);color:#fff;border:none;border-radius:30px;padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.foot{text-align:center;font-size:12px;color:var(--roxo);padding:18px;}
+.foot b{font-weight:600;}
+a{color:var(--roxo);font-weight:600;}
+@media print{body{background:#fff;}.toolbar{display:none;}.card,.zap-card,.capa{box-shadow:none;break-inside:avoid;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="capa">
+    <div class="logo">🐾</div>
+    <h1>Ju Pet</h1>
+    <div class="sub">Banho &amp; Tosa Premium</div>
+    <div class="doc">📖 Manual do App de Gestão</div>
+  </div>
+
+  <div class="toolbar"><button class="btn-print" onclick="window.print()">🖨️ Salvar este manual em PDF</button></div>
+
+  <!-- O QUE É -->
+  <div class="card">
+    <h2>👋 Bem-vinda, Tia Ju!</h2>
+    <p class="lead">Este é o manual do seu app de gestão. Com ele você controla agenda, clientes, pets, dinheiro e recibos — tudo pelo celular, sem mensalidade.</p>
+    <div class="callout verde">✅ <b>Funciona sem internet</b> depois de aberto, e os dados ficam salvos <b>no seu aparelho</b>. Use sempre o <b>mesmo celular</b> para não perder informação.</div>
+    <p style="font-size:13.5px;">🔗 <b>Link do app:</b> <a href="https://freudbritho-dotcom.github.io/jupet/" target="_blank">freudbritho-dotcom.github.io/jupet</a></p>
+  </div>
+
+  <!-- INSTALAR -->
+  <div class="card">
+    <h2>📲 Como colocar na tela do celular</h2>
+    <p class="lead">Assim o app vira um ícone, igual a um aplicativo de verdade — é só tocar para abrir.</p>
+
+    <div class="os">🤖 Android (Chrome)</div>
+    <ol class="steps">
+      <li>Abra o link no <b>Chrome</b>: freudbritho-dotcom.github.io/jupet</li>
+      <li>Toque nos <b>três pontinhos ⋮</b> no canto superior direito.</li>
+      <li>Toque em <b>“Adicionar à tela inicial”</b> (ou “Instalar app”).</li>
+      <li>Confirme em <b>“Adicionar”</b>. Pronto — o ícone 🐾 aparece na tela.</li>
+    </ol>
+
+    <div class="os ios">🍎 iPhone (Safari)</div>
+    <ol class="steps">
+      <li>Abra o link no <b>Safari</b> (precisa ser o Safari).</li>
+      <li>Toque no botão <b>Compartilhar</b> (quadradinho com a setinha ↑) embaixo.</li>
+      <li>Role e toque em <b>“Adicionar à Tela de Início”</b>.</li>
+      <li>Toque em <b>“Adicionar”</b> no canto superior. Pronto! 🎉</li>
+    </ol>
+    <div class="callout">💡 Coloque também na tela do celular da <b>assistente</b>, se ela for usar. Lembre que cada aparelho guarda os seus próprios dados.</div>
+  </div>
+
+  <!-- NAVEGAÇÃO -->
+  <div class="card">
+    <h2>🧭 As 5 abas do app</h2>
+    <p class="lead">Na parte de baixo da tela ficam os 5 botões de navegação:</p>
+    <div class="navmock">
+      <div><span>🏠</span>Início</div>
+      <div><span>📅</span>Agenda</div>
+      <div><span>🐶</span>Clientes</div>
+      <div><span>💰</span>Financeiro</div>
+      <div><span>🧾</span>Recibo</div>
+    </div>
+    <p style="font-size:13px;color:var(--cinza-claro);">Toque em cada uma para trocar de tela. Abaixo, o que cada botão faz.</p>
+  </div>
+
+  <!-- INÍCIO -->
+  <div class="card">
+    <h2>🏠 Início (Painel)</h2>
+    <p class="lead">A primeira tela, com o resumo do dia.</p>
+    <div class="func"><div class="ic">🔢</div><div class="t"><b>Atendimentos hoje / Próximo</b><p>Quantos pets você atende hoje e o horário do próximo agendado.</p></div></div>
+    <div class="func"><div class="ic">🎂</div><div class="t"><b>Aniversários dos Pets</b><p>Avisa os pets que fazem aniversário no mês. O botão <span class="tag">💬</span> abre o WhatsApp do dono com uma mensagem de parabéns pronta.</p></div></div>
+    <div class="func"><div class="ic">🔔</div><div class="t"><b>Hora de voltar</b><p>Mostra os pets que já passaram do tempo de voltar para o banho. O <span class="tag">💬</span> manda o convite de retorno no WhatsApp.</p></div></div>
+    <div class="func"><div class="ic">📊</div><div class="t"><b>Receita / Despesas / Clientes / Break-even</b><p>Os números do mês. <b>Break-even</b> = quanto das contas fixas (R$ 5.280) você já cobriu.</p></div></div>
+    <div class="func"><div class="ic">⚡</div><div class="t"><b>Atalhos rápidos</b><p>4 botões: Novo agendamento · Novo cliente · Registrar entrada · Gerar recibo.</p></div></div>
+    <div class="func"><div class="ic">📦</div><div class="t"><b>Pacotes Mensais &amp; Clubinho fidelidade</b><p>Quantos pets têm pacote ativo (Essencial/Cuidado/Spa Pet) e a receita recorrente. Embaixo, o <b>Clubinho fidelidade</b>: a cada 10 banhos no clube, 1 hidratação simples grátis (o carimbo é dado no perfil do pet, botão “+ carimbo”).</p></div></div>
+  </div>
+
+  <!-- AGENDA -->
+  <div class="card">
+    <h2>📅 Agenda</h2>
+    <div class="func"><div class="ic">🗓️</div><div class="t"><b>Filtrar por data</b><p>Escolha o dia no calendário para ver os agendamentos daquela data.</p></div></div>
+    <div class="func"><div class="ic">➕</div><div class="t"><b>+ Agendar</b><p>Abre a ficha para marcar: pet, tutor, telefone, data, hora, serviço, valor, status e <b>“Retornar em (dias)”</b> (gera o lembrete de volta).</p></div></div>
+    <div class="func"><div class="ic">✅</div><div class="t"><b>Status</b><p>Agendado · Concluído · Cancelado. Ao marcar <b>Concluído</b> com valor, a receita entra sozinha no Financeiro.</p></div></div>
+    <div class="func"><div class="ic">🗑️</div><div class="t"><b>Excluir</b><p>Remove um agendamento.</p></div></div>
+  </div>
+
+  <!-- CLIENTES -->
+  <div class="card">
+    <h2>🐶 Clientes &amp; Pets</h2>
+    <div class="func"><div class="ic">🔍</div><div class="t"><b>Buscar</b><p>Procure por nome do tutor ou do pet.</p></div></div>
+    <div class="func"><div class="ic">➕</div><div class="t"><b>+ Cliente</b><p>Cadastra o tutor + 1º pet, com <b>foto</b> (câmera/galeria) e <b>aniversário</b>.</p></div></div>
+    <div class="func"><div class="ic">👆</div><div class="t"><b>Tocar no cliente</b><p>Abre o perfil com todos os pets, o histórico de cada um e o botão <span class="tag">💬 WhatsApp</span>.</p></div></div>
+    <div class="func"><div class="ic">🐾</div><div class="t"><b>➕ Adicionar outro pet</b><p>Um mesmo dono pode ter <b>vários pets</b> — cada um com foto, raça, porte e aniversário próprios.</p></div></div>
+    <div class="callout rosa">💜 Dica: cadastre sempre o <b>telefone</b> e o <b>aniversário</b> do pet — é o que faz os lembretes e os botões de WhatsApp funcionarem.</div>
+  </div>
+
+  <!-- FINANCEIRO -->
+  <div class="card">
+    <h2>💰 Financeiro</h2>
+    <div class="func"><div class="ic">📆</div><div class="t"><b>Período</b><p>Veja os números por <b>Mês · Trimestre · Semestre · Ano · Tudo</b>.</p></div></div>
+    <div class="func"><div class="ic">📄</div><div class="t"><b>Relatório mensal (PDF)</b><p>Gera um relatório do mês pronto para imprimir ou salvar em PDF.</p></div></div>
+    <div class="func"><div class="ic">➕</div><div class="t"><b>+ Lançar</b><p>Registra uma <b>entrada</b> (receita) ou <b>saída</b> (despesa), com categoria.</p></div></div>
+    <div class="func"><div class="ic">📈</div><div class="t"><b>Saldo &amp; Break-even</b><p>Entradas, saídas, saldo e quanto falta para cobrir as contas fixas.</p></div></div>
+  </div>
+
+  <!-- RECIBO -->
+  <div class="card">
+    <h2>🧾 Recibo</h2>
+    <p class="lead">Monte a comanda do atendimento e envie para o cliente.</p>
+    <div class="func"><div class="ic">✂️</div><div class="t"><b>Serviços</b><p>Toque nos serviços realizados (já com os preços da tabela da Ju Pet). O total é somado automaticamente.</p></div></div>
+    <div class="func"><div class="ic">💳</div><div class="t"><b>Pagamento &amp; Observações</b><p>Forma de pagamento (Pix, cartão, dinheiro) e um recado (ex.: “próximo banho em 30 dias”).</p></div></div>
+    <div class="func"><div class="ic">💾</div><div class="t"><b>Salvar como lançamento</b><p>Lança o valor direto no Financeiro como entrada.</p></div></div>
+    <div class="func"><div class="ic">📋</div><div class="t"><b>Copiar para WhatsApp</b><p>Copia o recibo formatado (com seu número 📱 (71) 98769-9236) para você colar na conversa do cliente.</p></div></div>
+  </div>
+
+  <!-- WHATSAPP -->
+  <div class="zap-card">
+    <h2>💬 Integração com o WhatsApp</h2>
+    <p class="lead">O app não envia sozinho — ele <b>abre o WhatsApp já com a mensagem pronta</b>, você só confere e toca em enviar. 100% no seu controle.</p>
+    <div class="zap-box">🎂 <b>Aniversário</b> — botão 💬 no painel: abre a conversa do dono com a mensagem de parabéns + convite de banho.</div>
+    <div class="zap-box">🔔 <b>Retorno</b> — botão 💬 no aviso “Hora de voltar”: abre a conversa convidando o pet a voltar.</div>
+    <div class="zap-box">🧾 <b>Recibo</b> — “Copiar para WhatsApp”: copia a comanda para colar na conversa do cliente.</div>
+    <div class="zap-box">📇 <b>Perfil do cliente</b> — botão 💬 abre a conversa daquele tutor a qualquer momento.</div>
+    <div style="margin-top:14px;font-size:13.5px;">📱 <b>Seu número da Ju Pet</b> (o que o cliente salva e aparece no recibo):</div>
+    <div class="zap-num">(71) 98769-9236</div>
+    <div style="font-size:12.5px;margin-top:10px;opacity:0.9;">⚠️ Os botões 💬 só aparecem quando o <b>telefone do tutor</b> está cadastrado. Por isso, sempre preencha o telefone ao cadastrar o cliente.</div>
+  </div>
+
+  <!-- ROTINA SUGERIDA -->
+  <div class="card">
+    <h2>☀️ Rotina sugerida do dia</h2>
+    <ol class="steps">
+      <li>De manhã: abra o <b>Início</b> e veja os atendimentos, aniversários e quem precisa voltar.</li>
+      <li>Mandou os 💬 de aniversário e retorno do dia? Ótimo — isso traz cliente de volta.</li>
+      <li>A cada pet atendido: marque <b>Concluído</b> na Agenda ou gere o <b>Recibo</b>.</li>
+      <li>No fim do dia: confira o <b>Financeiro</b> e lance qualquer despesa.</li>
+      <li>Todo fim de mês: gere o <b>Relatório em PDF</b> para ver como foi o mês. 📊</li>
+    </ol>
+  </div>
+
+  <div class="foot">
+    <b>Ju Pet · Banho &amp; Tosa Premium</b><br>
+    📍 Acupe de Brotas · Salvador-BA · 📱 (71) 98769-9236 · 📸 @ju.pett<br>
+    <span style="color:var(--cinza-claro);">Um atendimento calmo, seguro e exclusivo. 🐾</span>
+  </div>
+
+</div>
+</body>
+</html>

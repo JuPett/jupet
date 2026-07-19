@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ju Pet — App de Gestão</title>
+<meta name="description" content="Agenda, clientes, pets e financeiro da Ju Pet.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#6B3F8C">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ju Pet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --roxo:#6B3F8C; --roxo-dark:#52307A; --lilas:#B48DC0;
+  --lilas-claro:#E8D8F0; --lilas-palido:#F5EDF9;
+  --amarelo:#F5C518; --amarelo-claro:#FEF9E7;
+  --verde:#2E9E75; --verde-claro:#EDFAF3;
+  --vermelho:#E05D5D; --vermelho-claro:#FDEAEA;
+  --rosa:#E879A0; --rosa-claro:#FDEEF4;
+  --cinza:#4A4A4A; --cinza-claro:#8A8A8A;
+  --borda:#EDE8F2; --fundo:#FAF7FB; --branco:#FFFFFF;
+  --sombra:0 2px 16px rgba(107,63,140,0.10);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:var(--cinza);display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+/* TOPBAR */
+.topbar{background:var(--roxo);padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 12px rgba(107,63,140,0.25);}
+.topbar-brand{display:flex;align-items:center;gap:10px;}
+.topbar-logo{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.topbar-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:white;}
+.topbar-sub{font-size:10px;color:rgba(255,255,255,0.55);letter-spacing:0.08em;}
+.topbar-date{font-size:12px;color:rgba(255,255,255,0.65);text-align:right;}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 100px;}
+
+/* NAV */
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--branco);border-top:1px solid var(--borda);display:flex;z-index:100;box-shadow:0 -4px 20px rgba(107,63,140,0.08);}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 8px;background:none;border:none;cursor:pointer;color:var(--cinza-claro);font-size:9px;letter-spacing:0.05em;text-transform:uppercase;gap:4px;font-family:'DM Sans',sans-serif;transition:color 0.15s;}
+.nav-btn.active{color:var(--roxo);}
+.nav-icon{font-size:22px;line-height:1;}
+
+/* SCREENS */
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* CARDS */
+.card{background:var(--branco);border-radius:16px;padding:18px;box-shadow:var(--sombra);margin-bottom:12px;}
+.card-sm{padding:14px 16px;}
+
+/* SEC HEADER */
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sec-title{font-size:15px;font-weight:500;color:var(--roxo);}
+.btn-add{background:var(--roxo);color:white;border:none;border-radius:20px;padding:7px 16px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.metric{background:var(--branco);border-radius:14px;padding:14px 16px;box-shadow:var(--sombra);}
+.metric-label{font-size:11px;color:var(--cinza-claro);margin-bottom:4px;}
+.metric-value{font-size:22px;font-weight:500;color:var(--roxo);}
+.metric-sub{font-size:11px;color:var(--lilas);margin-top:2px;}
+.metric.verde .metric-value{color:var(--verde);}
+.metric.vermelho .metric-value{color:var(--vermelho);}
+.metric.amarelo .metric-value{color:#B8930A;}
+.metric.rosa .metric-value{color:var(--rosa);}
+
+/* BADGE */
+.badge{display:inline-block;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;}
+.badge-roxo{background:var(--lilas-palido);color:var(--roxo);}
+.badge-verde{background:var(--verde-claro);color:var(--verde);}
+.badge-amarelo{background:var(--amarelo-claro);color:#854F0B;}
+.badge-vermelho{background:var(--vermelho-claro);color:var(--vermelho);}
+.badge-cinza{background:#F0F0F0;color:var(--cinza-claro);}
+.badge-rosa{background:var(--rosa-claro);color:var(--rosa);}
+
+/* ATEND ITEM */
+.atend-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--borda);}
+.atend-item:last-child{border:none;padding-bottom:0;}
+.atend-avatar{width:40px;height:40px;border-radius:50%;background:var(--lilas-palido);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;overflow:hidden;}
+.atend-avatar img{width:100%;height:100%;object-fit:cover;}
+.atend-info{flex:1;min-width:0;}
+.atend-pet{font-size:14px;font-weight:500;color:var(--cinza);}
+.atend-tutor{font-size:12px;color:var(--cinza-claro);}
+.atend-servico{font-size:11px;color:var(--lilas);}
+.atend-right{text-align:right;flex-shrink:0;}
+.atend-hora{font-size:13px;font-weight:500;color:var(--roxo);}
+.atend-valor{font-size:12px;color:var(--verde);font-weight:500;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(80,40,110,0.35);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--branco);border-radius:24px 24px 0 0;padding:24px 20px 36px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(107,63,140,0.2);}
+.modal-handle{width:40px;height:4px;border-radius:2px;background:var(--lilas-claro);margin:0 auto 20px;}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;color:var(--roxo);margin-bottom:20px;}
+.form-group{margin-bottom:14px;}
+.form-label{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--lilas);margin-bottom:6px;display:block;font-weight:500;}
+.form-input,.form-select{width:100%;padding:11px 14px;border:1.5px solid var(--borda);border-radius:10px;font-size:14px;color:var(--cinza);background:var(--branco);font-family:'DM Sans',sans-serif;transition:border-color 0.15s;outline:none;}
+.form-input:focus,.form-select:focus{border-color:var(--lilas);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-primary{width:100%;padding:14px;background:var(--roxo);color:white;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;}
+.btn-secondary{width:100%;padding:12px;background:var(--lilas-palido);color:var(--roxo);border:none;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;}
+
+/* FOTO PET */
+.foto-upload-area{width:100%;height:160px;border:2px dashed var(--lilas-claro);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--lilas-palido);transition:border-color 0.2s;position:relative;overflow:hidden;}
+.foto-upload-area:hover{border-color:var(--lilas);}
+.foto-upload-area img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+.foto-upload-label{font-size:13px;color:var(--lilas);text-align:center;z-index:1;}
+.foto-upload-icon{font-size:32px;z-index:1;}
+.foto-upload-btn{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.foto-troca{position:absolute;bottom:8px;right:8px;background:var(--roxo);color:white;border:none;border-radius:20px;padding:4px 12px;font-size:11px;cursor:pointer;z-index:2;font-family:'DM Sans',sans-serif;}
+
+/* CLIENTE CARD */
+.cliente-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--borda);cursor:pointer;}
+.cliente-item:last-child{border:none;}
+.cliente-avatar{width:52px;height:52px;border-radius:14px;background:var(--lilas-palido);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;color:var(--roxo);flex-shrink:0;overflow:hidden;}
+.cliente-avatar img{width:100%;height:100%;object-fit:cover;border-radius:14px;}
+.cliente-info{flex:1;}
+.cliente-nome{font-size:14px;font-weight:500;}
+.cliente-pets{font-size:12px;color:var(--cinza-claro);}
+.cliente-tel{font-size:12px;color:var(--lilas);}
+.cliente-aniv{font-size:11px;color:var(--rosa);font-weight:500;}
+
+/* ANIVERSÁRIO BANNER */
+.aniv-banner{background:linear-gradient(135deg,var(--rosa),#C84B83);border-radius:16px;padding:16px 18px;color:white;margin-bottom:12px;}
+.aniv-banner-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;margin-bottom:10px;}
+.aniv-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.15);}
+.aniv-item:last-child{border:none;}
+.aniv-avatar{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;flex-shrink:0;}
+.aniv-avatar img{width:100%;height:100%;object-fit:cover;}
+.aniv-info{flex:1;}
+.aniv-nome{font-size:14px;font-weight:500;}
+.aniv-data{font-size:11px;opacity:0.8;}
+.aniv-dias{font-size:13px;font-weight:500;color:var(--amarelo);}
+
+/* FIN */
+.fin-item{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--borda);}
+.fin-item:last-child{border:none;}
+.fin-desc{font-size:14px;color:var(--cinza);}
+.fin-meta{font-size:11px;color:var(--cinza-claro);margin-top:2px;}
+.fin-valor{font-size:15px;font-weight:500;}
+.fin-valor.entrada{color:var(--verde);}
+.fin-valor.saida{color:var(--vermelho);}
+
+/* RECIBO */
+.servicos-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.servico-chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--borda);background:white;cursor:pointer;font-size:12px;color:var(--cinza-claro);font-family:'DM Sans',sans-serif;transition:all 0.15s;}
+.servico-chip.selected{background:var(--lilas-palido);border-color:var(--lilas);color:var(--roxo);font-weight:500;}
+.recibo-preview{background:white;border:1.5px dashed var(--lilas-claro);border-radius:14px;padding:24px 20px;font-size:13px;}
+.recibo-header{text-align:center;margin-bottom:20px;}
+.recibo-brand{font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--roxo);font-weight:400;}
+.recibo-tagline{font-size:11px;color:var(--lilas);letter-spacing:0.1em;}
+.recibo-linha{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F0EBF5;}
+.recibo-linha:last-child{border:none;}
+.recibo-total{display:flex;justify-content:space-between;font-weight:500;font-size:16px;border-top:2px solid var(--roxo);padding-top:12px;margin-top:8px;color:var(--roxo);}
+.recibo-rodape{text-align:center;margin-top:20px;font-size:11px;color:var(--cinza-claro);}
+
+/* MISC */
+.search-bar{display:flex;align-items:center;background:white;border:1.5px solid var(--borda);border-radius:12px;padding:10px 14px;gap:10px;margin-bottom:14px;}
+.search-bar input{border:none;outline:none;flex:1;font-size:14px;color:var(--cinza);font-family:'DM Sans',sans-serif;background:transparent;}
+.tipo-toggle{display:flex;gap:8px;margin-bottom:14px;}
+.tipo-btn{flex:1;padding:9px;border-radius:10px;border:1.5px solid var(--borda);background:white;cursor:pointer;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--cinza-claro);transition:all 0.15s;}
+.tipo-btn.entrada.active{background:var(--verde-claro);border-color:var(--verde);color:var(--verde);}
+.tipo-btn.saida.active{background:var(--vermelho-claro);border-color:var(--vermelho);color:var(--vermelho);}
+.empty{text-align:center;padding:40px 20px;color:var(--cinza-claro);}
+.empty-icon{font-size:44px;margin-bottom:12px;}
+.empty-text{font-size:14px;}
+.dash-atend-hoje{background:var(--roxo);border-radius:16px;padding:20px;color:white;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.dash-atend-num{font-family:'Cormorant Garamond',serif;font-size:56px;font-weight:400;line-height:1;}
+.dash-atend-label{font-size:12px;opacity:0.7;margin-top:4px;}
+.dash-atend-right{text-align:right;}
+.dash-atend-proximo{font-size:12px;opacity:0.7;}
+.dash-atend-hora{font-size:22px;font-weight:500;}
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.quick-btn{background:white;border-radius:14px;padding:16px;box-shadow:var(--sombra);border:none;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;transition:transform 0.1s;}
+.quick-btn:active{transform:scale(0.97);}
+.quick-btn-icon{font-size:24px;margin-bottom:8px;}
+.quick-btn-label{font-size:13px;font-weight:500;color:var(--roxo);}
+.quick-btn-sub{font-size:11px;color:var(--cinza-claro);margin-top:2px;}
+.progress-bar{background:var(--lilas-claro);border-radius:4px;height:6px;overflow:hidden;margin-top:8px;}
+.progress-fill{height:100%;border-radius:4px;background:var(--roxo);transition:width 0.4s ease;}
+.sep{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--lilas);padding:8px 0 6px;}
+.btn-delete{background:none;border:none;cursor:pointer;color:var(--vermelho);font-size:18px;padding:4px;}
+.clubinho-banner{background:linear-gradient(135deg,var(--roxo),#8B5CA8);border-radius:16px;padding:18px;color:white;margin-bottom:12px;}
+.clubinho-banner-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;margin-bottom:4px;}
+.clubinho-banner-sub{font-size:12px;opacity:0.75;}
+.clubinho-banner-num{font-size:32px;font-weight:500;color:var(--amarelo);}
+
+/* PERFIL CLIENTE */
+.perfil-overlay{position:fixed;inset:0;background:rgba(80,40,110,0.35);z-index:300;display:none;align-items:flex-end;justify-content:center;}
+.perfil-overlay.open{display:flex;}
+.perfil-sheet{background:var(--branco);border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+.perfil-foto{width:90px;height:90px;border-radius:20px;background:var(--lilas-palido);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;margin:0 auto 16px;}
+.perfil-foto img{width:100%;height:100%;object-fit:cover;}
+.perfil-nome{text-align:center;font-size:20px;font-weight:500;color:var(--roxo);}
+.perfil-pet{text-align:center;font-size:14px;color:var(--cinza-claro);margin-bottom:20px;}
+.perfil-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.perfil-info{background:var(--fundo);border-radius:10px;padding:12px;}
+.perfil-info-label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--lilas);margin-bottom:4px;}
+.perfil-info-val{font-size:14px;font-weight:500;color:var(--cinza);}
+
+/* RETORNO BANNER */
+.retorno-banner{background:linear-gradient(135deg,#3B7DBF,#2E9E75);border-radius:16px;padding:16px 18px;color:white;margin-bottom:12px;}
+.retorno-banner-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;margin-bottom:10px;}
+.retorno-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.15);}
+.retorno-item:last-child{border:none;}
+.retorno-avatar{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;flex-shrink:0;}
+.retorno-avatar img{width:100%;height:100%;object-fit:cover;}
+.retorno-info{flex:1;min-width:0;}
+.retorno-nome{font-size:14px;font-weight:500;}
+.retorno-meta{font-size:11px;opacity:0.85;}
+
+/* WHATSAPP BUTTON */
+.wa-btn{background:#25D366;color:white;border:none;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:4px;text-decoration:none;white-space:nowrap;flex-shrink:0;}
+.wa-btn.outline{background:rgba(255,255,255,0.18);}
+
+/* PERÍODO TOGGLE */
+.periodo-toggle{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;}
+.periodo-btn{flex:0 0 auto;padding:7px 14px;border-radius:20px;border:1.5px solid var(--borda);background:white;cursor:pointer;font-size:12px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--cinza-claro);transition:all 0.15s;white-space:nowrap;}
+.periodo-btn.active{background:var(--lilas-palido);border-color:var(--lilas);color:var(--roxo);}
+
+/* PETS (multi) */
+.pet-bloco{background:var(--fundo);border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid var(--borda);}
+.pet-bloco-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.pet-bloco-foto{width:44px;height:44px;border-radius:12px;background:var(--lilas-palido);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;flex-shrink:0;}
+.pet-bloco-foto img{width:100%;height:100%;object-fit:cover;}
+.pet-bloco-nome{font-size:15px;font-weight:500;color:var(--roxo);}
+.pet-bloco-sub{font-size:11px;color:var(--cinza-claro);}
+.btn-add-pet{width:100%;padding:11px;background:var(--lilas-palido);color:var(--roxo);border:1.5px dashed var(--lilas);border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px;}
+
+/* RELATÓRIO */
+.report-actions{display:flex;gap:8px;margin-bottom:14px;}
+.btn-report{flex:1;padding:11px;border:1.5px solid var(--lilas);background:white;color:var(--roxo);border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+#relatorioPrint{display:none;}
+
+@media(min-width:560px){body{max-width:560px;margin:0 auto;border-left:1px solid var(--borda);border-right:1px solid var(--borda);}}
+
+/* PRINT — RELATÓRIO MENSAL */
+@media print{
+  body{height:auto;overflow:visible;max-width:none;border:none;background:white;}
+  .topbar,.nav,.content,.modal-overlay,.perfil-overlay{display:none !important;}
+  #relatorioPrint{display:block !important;padding:0;color:#2C2C2A;}
+  .rp-wrap{max-width:720px;margin:0 auto;padding:24px;}
+  .rp-head{text-align:center;border-bottom:3px solid #6B3F8C;padding-bottom:16px;margin-bottom:24px;}
+  .rp-brand{font-family:'Cormorant Garamond',serif;font-size:34px;color:#6B3F8C;}
+  .rp-tag{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#B48DC0;}
+  .rp-titulo{font-size:16px;margin-top:10px;color:#4A4A4A;}
+  .rp-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
+  .rp-kpi{border:1px solid #E8D8F0;border-radius:10px;padding:12px;text-align:center;}
+  .rp-kpi-label{font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:#8A8A8A;margin-bottom:4px;}
+  .rp-kpi-val{font-size:18px;font-weight:600;color:#6B3F8C;}
+  .rp-sec{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#B48DC0;margin:18px 0 8px;font-weight:600;}
+  .rp-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #EDE8F2;font-size:13px;}
+  .rp-row.total{border-top:2px solid #6B3F8C;border-bottom:none;font-weight:600;color:#6B3F8C;padding-top:10px;}
+  .rp-foot{margin-top:28px;text-align:center;font-size:11px;color:#8A8A8A;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">🐾</div>
+    <div>
+      <div class="topbar-name">Ju Pet</div>
+      <div class="topbar-sub">Banho &amp; Tosa Premium</div>
+    </div>
+  </div>
+  <div class="topbar-date" id="topbarDate"></div>
+</div>
+
+<!-- CONTENT -->
+<div class="content" id="content">
+
+  <!-- DASHBOARD -->
+  <div class="screen active" id="screen-dash">
+    <div class="dash-atend-hoje">
+      <div>
+        <div class="dash-atend-num" id="dashHoje">0</div>
+        <div class="dash-atend-label">atendimentos hoje</div>
+      </div>
+      <div class="dash-atend-right">
+        <div class="dash-atend-proximo">próximo</div>
+        <div class="dash-atend-hora" id="dashProximo">—</div>
+      </div>
+    </div>
+
+    <!-- ANIVERSÁRIOS DO MÊS -->
+    <div id="dashAnivContainer"></div>
+
+    <!-- RETORNOS RECOMENDADOS -->
+    <div id="dashRetornoContainer"></div>
+
+    <div class="metrics">
+      <div class="metric verde"><div class="metric-label">Receita do mês</div><div class="metric-value" id="dashReceita">R$ 0</div><div class="metric-sub">entradas</div></div>
+      <div class="metric vermelho"><div class="metric-label">Despesas fixas</div><div class="metric-value">R$ 5.280</div><div class="metric-sub">meta mensal</div></div>
+      <div class="metric"><div class="metric-label">Clientes</div><div class="metric-value" id="dashClientes">0</div><div class="metric-sub">tutores</div></div>
+      <div class="metric amarelo"><div class="metric-label">Break-even</div><div class="metric-value" id="dashBreak">0%</div><div class="metric-sub">do fixo coberto</div></div>
+    </div>
+    <div class="progress-bar" style="margin-bottom:16px;"><div class="progress-fill" id="dashProgress" style="width:0%"></div></div>
+
+    <div class="quick-actions">
+      <button class="quick-btn" onclick="openModal('modalAtend')"><div class="quick-btn-icon">📅</div><div class="quick-btn-label">Novo agendamento</div><div class="quick-btn-sub">registrar atendimento</div></button>
+      <button class="quick-btn" onclick="openModal('modalCliente')"><div class="quick-btn-icon">🐶</div><div class="quick-btn-label">Novo cliente</div><div class="quick-btn-sub">cadastrar tutor + pet</div></button>
+      <button class="quick-btn" onclick="openModal('modalReceita')"><div class="quick-btn-icon">💰</div><div class="quick-btn-label">Registrar entrada</div><div class="quick-btn-sub">receita do dia</div></button>
+      <button class="quick-btn" onclick="goRecibo()"><div class="quick-btn-icon">🧾</div><div class="quick-btn-label">Gerar recibo</div><div class="quick-btn-sub">emitir comanda</div></button>
+    </div>
+
+    <div class="clubinho-banner">
+      <div class="clubinho-banner-title">📦 Pacotes Mensais</div>
+      <div class="clubinho-banner-sub">Pets com pacote ativo</div>
+      <div class="clubinho-banner-num" id="dashClubinho">0</div>
+      <div class="clubinho-banner-sub" style="margin-top:4px;" id="dashClubinhoVal">R$ 0 em receita recorrente</div>
+      <div class="clubinho-banner-sub" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.2);padding-top:8px;" id="dashFidelidade">⭐ Clubinho fidelidade: —</div>
+    </div>
+
+    <div class="card">
+      <div class="sec-header"><div class="sec-title">Agenda de hoje</div></div>
+      <div id="dashAgendaHoje"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Sem agendamentos para hoje</div></div></div>
+    </div>
+
+    <!-- BACKUP — os dados vivem só neste celular. Sem isso, trocar de aparelho apaga tudo. -->
+    <div class="card">
+      <div class="sec-header"><div class="sec-title">🔐 Backup dos dados</div></div>
+      <div style="font-size:12px;color:var(--cinza-claro);line-height:1.5;margin-bottom:12px;">
+        Seus cadastros ficam <b>guardados só neste celular</b>. Faça um backup toda semana e guarde o arquivo no WhatsApp ou no e-mail — é o que salva tudo se o celular quebrar ou for trocado.
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-report" onclick="exportarBackup()">💾 Fazer backup</button>
+        <button class="btn-report" onclick="document.getElementById('importInput').click()">📂 Restaurar</button>
+      </div>
+      <input type="file" accept="application/json,.json" id="importInput" style="display:none" onchange="importarBackup(this)">
+      <div style="font-size:11px;color:var(--cinza-claro);margin-top:10px;" id="dashUltimoBackup"></div>
+      <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" id="dashStorageBar" style="width:0%"></div></div>
+      <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;" id="dashStorageTxt"></div>
+    </div>
+  </div>
+
+  <!-- AGENDA -->
+  <div class="screen" id="screen-agenda">
+    <div class="sec-header"><div class="sec-title">Agenda</div><button class="btn-add" onclick="openModal('modalAtend')">+ Agendar</button></div>
+    <div class="card" style="margin-bottom:12px;"><input type="date" class="form-input" id="agendaFiltroData" onchange="renderAgenda()"></div>
+    <div id="agendaLista"></div>
+  </div>
+
+  <!-- CLIENTES -->
+  <div class="screen" id="screen-clientes">
+    <div class="sec-header"><div class="sec-title">Clientes &amp; Pets</div><button class="btn-add" onclick="openModal('modalCliente')">+ Cliente</button></div>
+    <div class="search-bar"><span style="font-size:18px;color:var(--lilas);">🔍</span><input type="text" placeholder="Buscar cliente ou pet..." id="clienteSearch" oninput="renderClientes()"></div>
+    <div class="card" id="clientesLista"></div>
+  </div>
+
+  <!-- FINANCEIRO -->
+  <div class="screen" id="screen-fin">
+    <div class="sec-header"><div class="sec-title">Financeiro</div><button class="btn-add" onclick="openModal('modalReceita')">+ Lançar</button></div>
+    <div class="periodo-toggle" id="periodoToggle">
+      <button class="periodo-btn active" data-periodo="mes" onclick="setPeriodo('mes',this)">Mês atual</button>
+      <button class="periodo-btn" data-periodo="trimestre" onclick="setPeriodo('trimestre',this)">Trimestre</button>
+      <button class="periodo-btn" data-periodo="semestre" onclick="setPeriodo('semestre',this)">Semestre</button>
+      <button class="periodo-btn" data-periodo="ano" onclick="setPeriodo('ano',this)">Ano</button>
+      <button class="periodo-btn" data-periodo="tudo" onclick="setPeriodo('tudo',this)">Tudo</button>
+    </div>
+    <div class="report-actions">
+      <button class="btn-report" onclick="gerarRelatorio()">📄 Relatório mensal (PDF)</button>
+    </div>
+    <div class="metrics">
+      <div class="metric verde"><div class="metric-label" id="finEntradasLabel">Entradas do mês</div><div class="metric-value" id="finEntradas">R$ 0</div></div>
+      <div class="metric vermelho"><div class="metric-label" id="finSaidasLabel">Saídas do mês</div><div class="metric-value" id="finSaidas">R$ 0</div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:14px;color:var(--cinza-claro);" id="finSaldoLabel">Saldo do mês</span><span style="font-size:20px;font-weight:500;" id="finSaldo">R$ 0</span></div>
+      <div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" id="finProgress" style="width:0%"></div></div>
+      <div style="font-size:11px;color:var(--cinza-claro);margin-top:6px;" id="finMeta"></div>
+    </div>
+    <div class="sep">Despesas fixas mensais</div>
+    <div class="card card-sm" style="margin-bottom:12px;">
+      <div class="fin-item"><div><div class="fin-desc">Aluguel</div></div><div class="fin-valor saida">R$ 1.200</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Energia elétrica</div></div><div class="fin-valor saida">R$ 500</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Água</div></div><div class="fin-valor saida">R$ 200</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Internet</div></div><div class="fin-valor saida">R$ 100</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Transporte (Tia Ju)</div></div><div class="fin-valor saida">R$ 500</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Bolsa assistente (6h)</div></div><div class="fin-valor saida">R$ 700</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Alimentação — Tia Ju</div></div><div class="fin-valor saida">R$ 600</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Alimentação — Assistente</div></div><div class="fin-valor saida">R$ 500</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Produtos de consumo</div></div><div class="fin-valor saida">R$ 400</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Maquininha</div></div><div class="fin-valor saida">R$ 80</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Contador / DAS</div></div><div class="fin-valor saida">R$ 200</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Manutenção equipamentos</div></div><div class="fin-valor saida">R$ 150</div></div>
+      <div class="fin-item"><div><div class="fin-desc">Marketing digital</div></div><div class="fin-valor saida">R$ 150</div></div>
+    </div>
+    <div class="sep" id="finLancSep">Lançamentos variáveis</div>
+    <div class="card" id="finLancamentos"><div class="empty"><div class="empty-icon">💰</div><div class="empty-text">Nenhum lançamento ainda</div></div></div>
+  </div>
+
+  <!-- RECIBO -->
+  <div class="screen" id="screen-recibo">
+    <div class="sec-header"><div class="sec-title">Gerar Recibo</div></div>
+    <div class="card">
+      <div class="form-group"><label class="form-label">Cliente / Tutor</label><input class="form-input" id="reciboCliente" placeholder="Nome do tutor" oninput="atualizarRecibo()"></div>
+      <div class="form-group"><label class="form-label">Pet</label><input class="form-input" id="reciboPet" placeholder="Nome do pet" oninput="atualizarRecibo()"></div>
+      <div class="form-group">
+        <label class="form-label">Serviços realizados</label>
+        <div class="servicos-chips">
+          <span class="servico-chip" onclick="toggleServico(this,'Banho simples','65')">Banho simples R$65</span>
+          <span class="servico-chip" onclick="toggleServico(this,'Banho + finalização','80')">Banho + finalização R$80</span>
+          <span class="servico-chip" onclick="toggleServico(this,'Banho + hidratação','100')">Banho + hidratação R$100</span>
+          <span class="servico-chip" onclick="toggleServico(this,'Spa Premium','130')">Spa Premium R$130</span>
+          <span class="servico-chip" onclick="toggleServico(this,'Tosa higiênica','75')">Tosa higiênica R$75</span>
+          <span class="servico-chip" onclick="toggleServico(this,'Tosa máquina','90')">Tosa máquina R$90</span>
+          <span class="servico-chip" onclick="toggleServico(this,'Tosa modelada','120')">Tosa modelada R$120</span>
+          <span class="servico-chip" onclick="toggleServico(this,'Hidratação','25')">Hidratação R$25</span>
+          <span class="servico-chip" onclick="toggleServico(this,'Mechas coloridas','30')">Mechas R$30</span>
+          <span class="servico-chip" onclick="toggleServico(this,'Perfume especial','10')">Perfume R$10</span>
+          <span class="servico-chip" onclick="toggleServico(this,'Desembolo','20')">Desembolo R$20</span>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Forma de pagamento</label><select class="form-select" id="reciboPagamento" onchange="atualizarRecibo()"><option>Pix</option><option>Cartão de Débito</option><option>Cartão de Crédito</option><option>Dinheiro</option></select></div>
+      <div class="form-group"><label class="form-label">Observações</label><input class="form-input" id="reciboObs" placeholder="ex: próximo banho em 30 dias" oninput="atualizarRecibo()"></div>
+    </div>
+    <div class="sep">Pré-visualização</div>
+    <div class="recibo-preview" id="reciboPreview">
+      <div class="recibo-header">
+        <div class="recibo-brand">Ju Pet</div>
+        <div class="recibo-tagline">BANHO &amp; TOSA PREMIUM</div>
+        <div style="font-size:11px;color:#8A8A8A;margin-top:4px;" id="reciboData"></div>
+      </div>
+      <div id="reciboLinhas"></div>
+      <div class="recibo-total" id="reciboTotal" style="display:none"><span>Total</span><span id="reciboTotalVal">R$ 0</span></div>
+      <div class="recibo-rodape"><div>Ju Pet · Acupe de Brotas · Salvador-BA</div><div style="margin-top:4px;">📱 (71) 98769-9236 · @ju.pett</div><div style="margin-top:2px;">Obrigada pela preferência! 🐾</div></div>
+    </div>
+    <button class="btn-primary" onclick="salvarRecibo()" style="margin-top:12px;">💾 Salvar como lançamento</button>
+    <button class="btn-secondary" onclick="copiarRecibo()">📋 Copiar para WhatsApp</button>
+  </div>
+
+</div><!-- /content -->
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="goScreen('dash',this)"><span class="nav-icon">🏠</span>Início</button>
+  <button class="nav-btn" onclick="goScreen('agenda',this)"><span class="nav-icon">📅</span>Agenda</button>
+  <button class="nav-btn" onclick="goScreen('clientes',this)"><span class="nav-icon">🐶</span>Clientes</button>
+  <button class="nav-btn" onclick="goScreen('fin',this)"><span class="nav-icon">💰</span>Financeiro</button>
+  <button class="nav-btn" onclick="goRecibo()"><span class="nav-icon">🧾</span>Recibo</button>
+</nav>
+
+<!-- MODAL: AGENDAMENTO -->
+<div class="modal-overlay" id="modalAtend">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Novo Agendamento</div>
+    <div class="form-group"><label class="form-label">Pet</label><input class="form-input" id="atendPet" placeholder="Nome do pet"></div>
+    <div class="form-group"><label class="form-label">Tutor</label><input class="form-input" id="atendTutor" placeholder="Nome do tutor"></div>
+    <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" id="atendTel" placeholder="(71) 9 0000-0000" type="tel"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="atendData" type="date"></div>
+      <div class="form-group"><label class="form-label">Hora</label><input class="form-input" id="atendHora" type="time"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Serviço</label><select class="form-select" id="atendServico"><optgroup label="Banhos"><option>Banho simples</option><option>Banho + finalização</option><option>Banho + hidratação</option><option>Spa Premium</option></optgroup><optgroup label="Tosas"><option>Tosa higiênica</option><option>Tosa máquina</option><option>Tosa modelada</option></optgroup><optgroup label="Pacotes mensais"><option>Pacote Essencial</option><option>Pacote Cuidado</option><option>Pacote Spa Pet</option><option>Pacote Família (2 pets)</option><option>Pacote Manutenção (2 pets)</option></optgroup><optgroup label="Extras"><option>Hidratação</option><option>Mechas coloridas</option><option>Perfume especial</option><option>Desembolo</option></optgroup><option>Outro / personalizado</option></select></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="atendValor" type="number" placeholder="0,00"></div>
+      <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="atendStatus"><option value="agendado">Agendado</option><option value="concluido">Concluído</option><option value="cancelado">Cancelado</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Retornar em (dias)</label><input class="form-input" id="atendRetorno" type="number" placeholder="30" value="30"><div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;">Gera o lembrete de retorno no painel inicial</div></div>
+    <div class="form-group"><label class="form-label">Observação</label><input class="form-input" id="atendObs" placeholder="Raça, comportamento, etc."></div>
+    <button class="btn-primary" onclick="salvarAtend()">✅ Salvar agendamento</button>
+    <button class="btn-secondary" onclick="closeModal('modalAtend')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL: CLIENTE (com foto + aniversário) -->
+<div class="modal-overlay" id="modalCliente">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Novo Cliente</div>
+
+    <!-- FOTO DO PET -->
+    <div class="form-group">
+      <label class="form-label">📸 Foto do Pet</label>
+      <div class="foto-upload-area" id="fotoUploadArea">
+        <span class="foto-upload-icon">🐾</span>
+        <span class="foto-upload-label">Toque para tirar foto ou escolher da galeria</span>
+        <input type="file" accept="image/*" capture="environment" class="foto-upload-btn" id="fotoInput" onchange="previewFoto(this)">
+        <button class="foto-troca" id="fotoBtnTroca" style="display:none" onclick="document.getElementById('fotoInput').click();event.stopPropagation();">Trocar foto</button>
+      </div>
+      <input type="hidden" id="cliPhoto">
+    </div>
+
+    <div class="form-group"><label class="form-label">Nome do tutor</label><input class="form-input" id="cliNome" placeholder="Nome completo"></div>
+    <div class="form-group"><label class="form-label">Telefone / WhatsApp</label><input class="form-input" id="cliTel" placeholder="(71) 9 0000-0000" type="tel"></div>
+    <div class="form-group"><label class="form-label">Nome do pet</label><input class="form-input" id="cliPet" placeholder="Nome do pet"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Raça</label><input class="form-input" id="cliRaca" placeholder="Raça"></div>
+      <div class="form-group"><label class="form-label">Porte</label><select class="form-select" id="cliPorte"><option>Pequeno</option><option>Médio</option><option>Grande</option></select></div>
+    </div>
+
+    <!-- ANIVERSÁRIO DO PET -->
+    <div class="form-group">
+      <label class="form-label">🎂 Aniversário do Pet</label>
+      <input class="form-input" id="cliAniv" type="date" placeholder="Data de nascimento">
+      <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;">Usado para alertas de aniversário no dashboard</div>
+    </div>
+
+    <div class="form-group"><label class="form-label">Observações do pet</label><input class="form-input" id="cliObs" placeholder="Alergias, comportamento, etc."></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">📦 Pacote mensal</label><select class="form-select" id="cliPacote"><option value="">Nenhum (avulso)</option><option>Essencial</option><option>Cuidado</option><option>Spa Pet</option><option>Família</option><option>Manutenção</option></select></div>
+      <div class="form-group"><label class="form-label">⭐ Fidelidade (banhos)</label><input class="form-input" id="cliFidelidade" type="number" min="0" max="10" placeholder="0" value="0"></div>
+    </div>
+    <button class="btn-primary" onclick="salvarCliente()">✅ Salvar cliente</button>
+    <button class="btn-secondary" onclick="closeModal('modalCliente')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL: LANÇAMENTO -->
+<div class="modal-overlay" id="modalReceita">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Lançamento Financeiro</div>
+    <div class="tipo-toggle">
+      <button class="tipo-btn entrada active" id="tipoEntrada" onclick="setTipo('entrada')">💚 Entrada</button>
+      <button class="tipo-btn saida" id="tipoSaida" onclick="setTipo('saida')">🔴 Saída</button>
+    </div>
+    <div class="form-group"><label class="form-label">Descrição</label><input class="form-input" id="recDesc" placeholder="Ex: Banho Golden Retriever"></div>
+    <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="recValor" type="number" placeholder="0,00"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="recData" type="date"></div>
+      <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="recCategoria"><option>Atendimento</option><option>Pacote mensal</option><option>Produto vendido</option><option>Aluguel</option><option>Energia</option><option>Água</option><option>Transporte</option><option>Equipe</option><option>Produtos consumo</option><option>Marketing</option><option>Outros</option></select></div>
+    </div>
+    <button class="btn-primary" onclick="salvarLancamento()">✅ Salvar lançamento</button>
+    <button class="btn-secondary" onclick="closeModal('modalReceita')">Cancelar</button>
+  </div>
+</div>
+
+<!-- PERFIL CLIENTE -->
+<div class="perfil-overlay" id="perfilOverlay">
+  <div class="perfil-sheet">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;margin-bottom:6px;">
+      <div class="perfil-nome" id="perfilNome"></div>
+      <div class="perfil-pet" id="perfilTel" style="margin-bottom:12px;"></div>
+      <a class="wa-btn" id="perfilWa" target="_blank" rel="noopener" style="display:none;">💬 Mensagem no WhatsApp</a>
+    </div>
+    <div class="sep" style="margin-top:14px;">Pets &amp; histórico</div>
+    <div id="perfilPets"></div>
+    <button class="btn-add-pet" id="perfilAddPet" style="margin-top:6px;">➕ Adicionar outro pet</button>
+    <button class="btn-secondary" style="margin-top:8px;" onclick="document.getElementById('perfilOverlay').classList.remove('open')">Fechar</button>
+  </div>
+</div>
+
+<!-- MODAL: ADICIONAR PET (a tutor existente) -->
+<div class="modal-overlay" id="modalPet">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Adicionar pet</div>
+    <div class="form-group">
+      <label class="form-label">📸 Foto do Pet</label>
+      <div class="foto-upload-area" id="fotoUploadAreaPet">
+        <span class="foto-upload-icon">🐾</span>
+        <span class="foto-upload-label">Toque para tirar foto ou escolher da galeria</span>
+        <input type="file" accept="image/*" capture="environment" class="foto-upload-btn" id="fotoInputPet" onchange="previewFotoPet(this)">
+        <button class="foto-troca" id="fotoBtnTrocaPet" style="display:none" onclick="document.getElementById('fotoInputPet').click();event.stopPropagation();">Trocar foto</button>
+      </div>
+      <input type="hidden" id="petPhoto">
+    </div>
+    <div class="form-group"><label class="form-label">Nome do pet</label><input class="form-input" id="petNome" placeholder="Nome do pet"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Raça</label><input class="form-input" id="petRaca" placeholder="Raça"></div>
+      <div class="form-group"><label class="form-label">Porte</label><select class="form-select" id="petPorte"><option>Pequeno</option><option>Médio</option><option>Grande</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">🎂 Aniversário do Pet</label><input class="form-input" id="petAniv" type="date"></div>
+    <div class="form-group"><label class="form-label">Observações do pet</label><input class="form-input" id="petObs" placeholder="Alergias, comportamento, etc."></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">📦 Pacote mensal</label><select class="form-select" id="petPacote"><option value="">Nenhum (avulso)</option><option>Essencial</option><option>Cuidado</option><option>Spa Pet</option><option>Família</option><option>Manutenção</option></select></div>
+      <div class="form-group"><label class="form-label">⭐ Fidelidade (banhos)</label><input class="form-input" id="petFidelidade" type="number" min="0" max="10" placeholder="0" value="0"></div>
+    </div>
+    <button class="btn-primary" onclick="salvarPet()">✅ Salvar pet</button>
+    <button class="btn-secondary" onclick="closeModal('modalPet')">Cancelar</button>
+  </div>
+</div>
+
+<!-- RELATÓRIO MENSAL (impressão / PDF) -->
+<div id="relatorioPrint"></div>
+
+<script>
+// ─── STORAGE ───
+const DB={
+  get(k){try{return JSON.parse(localStorage.getItem('jupet_'+k)||'null');}catch(e){return null;}},
+  set(k,v){
+    try{localStorage.setItem('jupet_'+k,JSON.stringify(v));return true;}
+    catch(e){
+      // NUNCA falhar em silêncio: se não salvou, a Ju precisa saber na hora.
+      alert('⚠️ NÃO FOI POSSÍVEL SALVAR!\n\nA memória do app encheu ou o navegador bloqueou a gravação.\n\nO que fazer AGORA:\n1. Vá na tela Início, desça até "Backup dos dados" e toque em "Fazer backup".\n2. Guarde o arquivo e me avise (Freud).\n\nNão feche o app antes de fazer o backup.');
+      return false;
+    }
+  }
+};
+let atendimentos=DB.get('atend')||[];
+let clientes=DB.get('clientes')||[];
+let lancamentos=DB.get('lanc')||[];
+let tipoAtual='entrada';
+let servicosRecibo=[];
+let periodoFin='mes';
+let petTutorAlvo=null; // id do tutor ao adicionar pet
+const RETORNO_DIAS_PADRAO=30;
+// Pacotes mensais (tabela Ju Pet) + valor de referência por mês
+const PACOTES={'Essencial':120,'Cuidado':250,'Spa Pet':350,'Família':220,'Manutenção':360};
+const FIDELIDADE_META=10; // a cada 10 banhos no clube, 1 hidratação grátis
+function valorPacote(nome){return PACOTES[nome]||0;}
+
+// ─── MIGRAÇÃO: cliente.pet→pets[]; clubinho(sim/nao)→pacote+fidelidade ───
+function migrarClientes(){
+  let mudou=false;
+  clientes.forEach(c=>{
+    if(!Array.isArray(c.pets)){
+      c.pets=[{id:(c.id||Date.now())+1,nome:c.pet||'Pet',raca:c.raca||'',porte:c.porte||'',aniv:c.aniv||'',obs:c.obs||'',photo:c.photo||'',clubinho:c.clubinho||'nao'}];
+      mudou=true;
+    }
+    c.pets.forEach(p=>{
+      if(p.pacote===undefined){p.pacote=(p.clubinho==='sim'?'Cuidado':'');mudou=true;}
+      if(p.fidelidade===undefined){p.fidelidade=0;mudou=true;}
+    });
+  });
+  if(mudou)DB.set('clientes',clientes);
+}
+migrarClientes();
+// pets de um cliente (sempre array)
+function petsDe(c){return Array.isArray(c.pets)?c.pets:[];}
+// só dígitos do telefone, com DDI 55
+function telWhatsapp(tel){if(!tel)return'';let d=(''+tel).replace(/\D/g,'');if(!d)return'';if(d.length<=11)d='55'+d;return d;}
+
+// ─── DATE ───
+function updateDate(){
+  const d=new Date();
+  const dias=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const meses=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  document.getElementById('topbarDate').innerHTML=dias[d.getDay()]+', '+d.getDate()+' '+meses[d.getMonth()]+'<br>'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+updateDate();setInterval(updateDate,30000);
+
+// ─── NAV ───
+function goScreen(name,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+  document.getElementById('content').scrollTop=0;
+  if(name==='dash')renderDash();
+  if(name==='agenda'){initAgendaData();renderAgenda();}
+  if(name==='clientes')renderClientes();
+  if(name==='fin')renderFin();
+  if(name==='recibo')initRecibo();
+}
+function goRecibo(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-recibo').classList.add('active');
+  document.querySelector('.nav-btn:last-child').classList.add('active');
+  initRecibo();
+}
+
+// ─── MODALS ───
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+  if(id==='modalAtend')document.getElementById('atendData').value=new Date().toISOString().split('T')[0];
+  if(id==='modalReceita'){document.getElementById('recData').value=new Date().toISOString().split('T')[0];setTipo('entrada');}
+  if(id==='modalCliente'){document.getElementById('cliPhoto').value='';document.getElementById('fotoUploadArea').querySelector('img')?.remove();document.getElementById('fotoBtnTroca').style.display='none';document.getElementById('fotoUploadArea').querySelector('.foto-upload-icon').style.display='';document.getElementById('fotoUploadArea').querySelector('.foto-upload-label').style.display='';}
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
+document.getElementById('perfilOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('perfilOverlay'))document.getElementById('perfilOverlay').classList.remove('open');});
+
+// ─── FOTO DO PET ───
+// A foto da câmera tem 3-5 MB. Em base64 vira ~6 MB, e o localStorage inteiro
+// só tem ~5 MB. Sem comprimir, o app trava de salvar depois de 2 fotos.
+// Reduz para 400px / JPEG 0.7 → ~40 KB por pet.
+const FOTO_MAX_PX=400, FOTO_QUALIDADE=0.7;
+function comprimirFoto(file,callback){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const img=new Image();
+    img.onload=function(){
+      let{width:w,height:h}=img;
+      if(w>h&&w>FOTO_MAX_PX){h=Math.round(h*FOTO_MAX_PX/w);w=FOTO_MAX_PX;}
+      else if(h>=w&&h>FOTO_MAX_PX){w=Math.round(w*FOTO_MAX_PX/h);h=FOTO_MAX_PX;}
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      callback(cv.toDataURL('image/jpeg',FOTO_QUALIDADE));
+    };
+    img.onerror=function(){alert('Não consegui ler essa imagem. Tente outra foto.');};
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+// mostra a foto na área de upload e guarda no campo escondido
+function aplicarFoto(data,areaId,campoId,btnId){
+  document.getElementById(campoId).value=data;
+  const area=document.getElementById(areaId);
+  let img=area.querySelector('img');
+  if(!img){img=document.createElement('img');area.appendChild(img);}
+  img.src=data;
+  area.querySelector('.foto-upload-icon').style.display='none';
+  area.querySelector('.foto-upload-label').style.display='none';
+  document.getElementById(btnId).style.display='block';
+}
+function previewFoto(input){
+  if(!input.files||!input.files[0])return;
+  comprimirFoto(input.files[0],d=>aplicarFoto(d,'fotoUploadArea','cliPhoto','fotoBtnTroca'));
+}
+
+// ─── ANIVERSÁRIOS ───
+function calcAniversarios(){
+  const hoje=new Date();
+  const mesHoje=hoje.getMonth();
+  const diaHoje=hoje.getDate();
+  const anivsHoje=[];
+  const anivsProximos=[];
+  clientes.forEach(c=>{
+    petsDe(c).forEach(p=>{
+      if(!p.aniv)return;
+      const [ay,am,ad]=p.aniv.split('-').map(Number);
+      const diffDias=getDiasParaAniv(p.aniv);
+      const item={pet:p.nome,nome:c.nome,photo:p.photo,aniv:p.aniv,tel:c.tel,tutorId:c.id};
+      if(am-1===mesHoje&&ad===diaHoje)anivsHoje.push({...item,diffDias:0});
+      else if(diffDias>0&&diffDias<=30)anivsProximos.push({...item,diffDias});
+    });
+  });
+  return{hoje:anivsHoje,proximos:anivsProximos.sort((a,b)=>a.diffDias-b.diffDias)};
+}
+
+function getDiasParaAniv(anivStr){
+  if(!anivStr)return 999;
+  const hoje=new Date();
+  const [ay,am,ad]=anivStr.split('-').map(Number);
+  let prox=new Date(hoje.getFullYear(),am-1,ad);
+  if(prox<hoje){prox=new Date(hoje.getFullYear()+1,am-1,ad);}
+  const diff=Math.ceil((prox-hoje)/(1000*60*60*24));
+  return diff;
+}
+
+function renderAniversarios(){
+  const {hoje,proximos}=calcAniversarios();
+  const container=document.getElementById('dashAnivContainer');
+  if(!hoje.length&&!proximos.length){container.innerHTML='';return;}
+  const todos=[...hoje,...proximos].slice(0,5);
+  const html=`<div class="aniv-banner">
+    <div class="aniv-banner-title">🎂 Aniversários dos Pets</div>
+    ${todos.map(c=>{
+      const foto=c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`:'🐾';
+      const label=c.diffDias===0?'<span style="color:var(--amarelo);font-weight:500;">Hoje! 🎉</span>':`<span class="aniv-dias">em ${c.diffDias} dia${c.diffDias>1?'s':''}</span>`;
+      const d=c.aniv?c.aniv.split('-'):'';
+      const dataFmt=d?`${d[2]}/${d[1]}`:'';
+      const wa=c.tel?`<button class="wa-btn outline" onclick="waAniversario(${c.tutorId},'${(c.pet||'').replace(/'/g,"\\'")}')">💬</button>`:'';
+      return `<div class="aniv-item">
+        <div class="aniv-avatar">${foto}</div>
+        <div class="aniv-info"><div class="aniv-nome">${c.pet} <span style="font-size:11px;opacity:0.7;">de ${c.nome}</span></div><div class="aniv-data">🎂 ${dataFmt}</div></div>
+        <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px;">${label}${wa}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+  container.innerHTML=html;
+}
+
+// ─── RETORNO RECOMENDADO ───
+// Para cada pet, acha o último atendimento concluído e calcula se já passou do intervalo de retorno.
+function calcRetornos(){
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const lista=[];
+  clientes.forEach(c=>{
+    petsDe(c).forEach(p=>{
+      const ats=atendimentos.filter(a=>a.status==='concluido'&&a.pet&&a.pet.toLowerCase()===(p.nome||'').toLowerCase()&&a.data).sort((a,b)=>b.data.localeCompare(a.data));
+      if(!ats.length)return;
+      const ult=ats[0];
+      const intervalo=parseInt(ult.retorno)||RETORNO_DIAS_PADRAO;
+      const [y,m,d]=ult.data.split('-').map(Number);
+      const dataUlt=new Date(y,m-1,d);
+      const diasDesde=Math.floor((hoje-dataUlt)/(1000*60*60*24));
+      const atraso=diasDesde-intervalo; // >=0 → já deveria ter voltado
+      if(atraso>=0){
+        lista.push({pet:p.nome,nome:c.nome,photo:p.photo,tel:c.tel,tutorId:c.id,diasDesde,intervalo,atraso,ultServico:ult.servico});
+      }
+    });
+  });
+  return lista.sort((a,b)=>b.atraso-a.atraso);
+}
+function renderRetornos(){
+  const lista=calcRetornos().slice(0,5);
+  const container=document.getElementById('dashRetornoContainer');
+  if(!lista.length){container.innerHTML='';return;}
+  container.innerHTML=`<div class="retorno-banner">
+    <div class="retorno-banner-title">🔔 Hora de voltar</div>
+    ${lista.map(r=>{
+      const foto=r.photo?`<img src="${r.photo}">`:'🐾';
+      const wa=r.tel?`<button class="wa-btn outline" onclick="waRetorno(${r.tutorId},'${(r.pet||'').replace(/'/g,"\\'")}',${r.diasDesde})">💬</button>`:'';
+      return `<div class="retorno-item">
+        <div class="retorno-avatar">${foto}</div>
+        <div class="retorno-info"><div class="retorno-nome">${r.pet} <span style="font-size:11px;opacity:0.7;">de ${r.nome}</span></div><div class="retorno-meta">último banho há ${r.diasDesde} dias · sugerido a cada ${r.intervalo}</div></div>
+        ${wa}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ─── WHATSAPP (lembretes) ───
+function abrirWhatsapp(tel,msg){
+  const d=telWhatsapp(tel);
+  if(!d){alert('Esse cliente não tem telefone cadastrado.');return;}
+  window.open('https://wa.me/'+d+'?text='+encodeURIComponent(msg),'_blank');
+}
+function tutorPorId(id){return clientes.find(c=>c.id===id);}
+function waAniversario(tutorId,petNome){
+  const c=tutorPorId(tutorId);if(!c)return;
+  const msg=`Oi, ${c.nome}! 🐾💜\n\nPassando para avisar que o aniversário do ${petNome} está chegando! 🎂\n\nQue tal comemorar com um banho caprichado aqui na Ju Pet? Temos um mimo especial de aniversário esperando por ele(a). 🥳\n\nMe chama para agendar!\nJu Pet · Banho & Tosa Premium 🐶`;
+  abrirWhatsapp(c.tel,msg);
+}
+function waRetorno(tutorId,petNome,diasDesde){
+  const c=tutorPorId(tutorId);if(!c)return;
+  const msg=`Oi, ${c.nome}! 🐾\n\nO ${petNome} já está há ${diasDesde} dias sem passar aqui na Ju Pet. 💜\n\nQue tal agendar um banho para deixar ele(a) cheiroso(a) e renovado(a)? Me avisa o melhor dia que já separo um horário. 🛁✨\n\nJu Pet · Banho & Tosa Premium`;
+  abrirWhatsapp(c.tel,msg);
+}
+
+// ─── DASHBOARD ───
+function renderDash(){
+  const hoje=new Date().toISOString().split('T')[0];
+  const atHoje=atendimentos.filter(a=>a.data===hoje);
+  document.getElementById('dashHoje').textContent=atHoje.length;
+  const proximos=atHoje.filter(a=>a.hora&&a.status==='agendado').sort((a,b)=>a.hora.localeCompare(b.hora));
+  document.getElementById('dashProximo').textContent=proximos.length?proximos[0].hora:'—';
+  const mesAtual=hoje.substring(0,7);
+  const entradas=lancamentos.filter(l=>l.tipo==='entrada'&&l.data&&l.data.startsWith(mesAtual));
+  const totalE=entradas.reduce((s,l)=>s+l.valor,0);
+  document.getElementById('dashReceita').textContent='R$ '+totalE.toLocaleString('pt-BR');
+  document.getElementById('dashClientes').textContent=clientes.length;
+  const pct=Math.min(100,Math.round((totalE/5280)*100));
+  document.getElementById('dashBreak').textContent=pct+'%';
+  document.getElementById('dashProgress').style.width=pct+'%';
+  let pacotesAtivos=0, recorrente=0, carimbos=0, quase=0;
+  clientes.forEach(c=>petsDe(c).forEach(p=>{
+    if(p.pacote){pacotesAtivos++;recorrente+=valorPacote(p.pacote);}
+    const f=parseInt(p.fidelidade)||0;
+    if(f>0){carimbos+=f;if(f>=FIDELIDADE_META-2)quase++;}
+  }));
+  document.getElementById('dashClubinho').textContent=pacotesAtivos;
+  document.getElementById('dashClubinhoVal').textContent='R$ '+recorrente.toLocaleString('pt-BR')+' em receita recorrente';
+  document.getElementById('dashFidelidade').textContent='⭐ Clubinho fidelidade: '+carimbos+' carimbos'+(quase?' · '+quase+' perto da hidratação grátis 🎁':'');
+  renderAniversarios();
+  renderRetornos();
+  renderBackupInfo();
+  const cont=document.getElementById('dashAgendaHoje');
+  if(!atHoje.length){cont.innerHTML='<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Sem agendamentos para hoje</div></div>';return;}
+  cont.innerHTML=atHoje.sort((a,b)=>a.hora.localeCompare(b.hora)).map(a=>`
+    <div class="atend-item">
+      <div class="atend-avatar">${petAvatar(a.pet)}</div>
+      <div class="atend-info"><div class="atend-pet">${a.pet}</div><div class="atend-tutor">${a.tutor}</div><div class="atend-servico">${a.servico}</div></div>
+      <div class="atend-right"><div class="atend-hora">${a.hora||'—'}</div><div class="atend-valor">${a.valor?'R$ '+a.valor:''}</div><span class="badge ${statusBadge(a.status)}">${a.status}</span></div>
+    </div>`).join('');
+}
+
+function petAvatar(petNome){
+  if(!petNome)return'🐾';
+  const alvo=petNome.toLowerCase();
+  for(const c of clientes){
+    const p=petsDe(c).find(p=>p.nome&&p.nome.toLowerCase()===alvo);
+    if(p&&p.photo)return`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;">`;
+  }
+  return'🐾';
+}
+
+function statusBadge(s){return s==='concluido'?'badge-verde':s==='cancelado'?'badge-vermelho':'badge-amarelo';}
+
+// ─── AGENDA ───
+function initAgendaData(){const el=document.getElementById('agendaFiltroData');if(!el.value)el.value=new Date().toISOString().split('T')[0];}
+function renderAgenda(){
+  const data=document.getElementById('agendaFiltroData').value;
+  const lista=atendimentos.filter(a=>!data||a.data===data).sort((a,b)=>a.hora.localeCompare(b.hora));
+  const container=document.getElementById('agendaLista');
+  if(!lista.length){container.innerHTML='<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Nenhum agendamento nesta data</div></div>';return;}
+  container.innerHTML=lista.map(a=>`
+    <div class="card card-sm">
+      <div class="atend-item" style="padding:0;border:none;">
+        <div class="atend-avatar">${petAvatar(a.pet)}</div>
+        <div class="atend-info">
+          <div class="atend-pet">${a.pet}</div>
+          <div class="atend-tutor">${a.tutor}${a.tel?' · '+a.tel:''}</div>
+          <div class="atend-servico">${a.servico}</div>
+          ${a.obs?`<div style="font-size:11px;color:var(--cinza-claro);margin-top:2px;">📝 ${a.obs}</div>`:''}
+        </div>
+        <div class="atend-right">
+          <div class="atend-hora">${a.hora||'—'}</div>
+          ${a.valor?`<div class="atend-valor">R$ ${a.valor}</div>`:''}
+          <span class="badge ${statusBadge(a.status)}">${a.status}</span><br>
+          <button class="btn-delete" onclick="deletarAtend(${a.id})">🗑</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function deletarAtend(id){if(!confirm('Excluir agendamento?'))return;atendimentos=atendimentos.filter(a=>a.id!==id);DB.set('atend',atendimentos);renderAgenda();renderDash();}
+
+// ─── SALVAR ATENDIMENTO ───
+function salvarAtend(){
+  const pet=document.getElementById('atendPet').value.trim();
+  const tutor=document.getElementById('atendTutor').value.trim();
+  if(!pet||!tutor){alert('Preencha o nome do pet e do tutor.');return;}
+  const obj={id:Date.now(),pet,tutor,tel:document.getElementById('atendTel').value,data:document.getElementById('atendData').value,hora:document.getElementById('atendHora').value,servico:document.getElementById('atendServico').value,valor:parseFloat(document.getElementById('atendValor').value)||0,status:document.getElementById('atendStatus').value,obs:document.getElementById('atendObs').value,retorno:parseInt(document.getElementById('atendRetorno').value)||RETORNO_DIAS_PADRAO};
+  atendimentos.push(obj);DB.set('atend',atendimentos);
+  closeModal('modalAtend');
+  ['atendPet','atendTutor','atendTel','atendHora','atendValor','atendObs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('atendRetorno').value='30';
+  if(obj.status==='concluido'&&obj.valor>0){lancamentos.push({id:Date.now()+1,tipo:'entrada',desc:obj.servico+' — '+obj.pet,valor:obj.valor,data:obj.data,cat:'Atendimento'});DB.set('lanc',lancamentos);}
+  renderDash();renderAgenda();
+}
+
+// ─── SALVAR CLIENTE ───
+function salvarCliente(){
+  const nome=document.getElementById('cliNome').value.trim();
+  const pet=document.getElementById('cliPet').value.trim();
+  if(!nome||!pet){alert('Preencha o nome do tutor e do pet.');return;}
+  const id=Date.now();
+  const obj={id,nome,tel:document.getElementById('cliTel').value,pets:[{
+    id:id+1,nome:pet,raca:document.getElementById('cliRaca').value,porte:document.getElementById('cliPorte').value,
+    obs:document.getElementById('cliObs').value,pacote:document.getElementById('cliPacote').value,
+    fidelidade:parseInt(document.getElementById('cliFidelidade').value)||0,
+    aniv:document.getElementById('cliAniv').value,photo:document.getElementById('cliPhoto').value
+  }]};
+  clientes.push(obj);DB.set('clientes',clientes);
+  closeModal('modalCliente');
+  ['cliNome','cliTel','cliPet','cliRaca','cliObs','cliAniv'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cliPacote').value='';document.getElementById('cliFidelidade').value='0';document.getElementById('cliPhoto').value='';
+  renderClientes();renderDash();
+}
+
+// ─── RENDER CLIENTES ───
+function renderClientes(){
+  const q=(document.getElementById('clienteSearch').value||'').toLowerCase();
+  const lista=clientes.filter(c=>!q||c.nome.toLowerCase().includes(q)||petsDe(c).some(p=>(p.nome||'').toLowerCase().includes(q)));
+  const container=document.getElementById('clientesLista');
+  if(!lista.length){container.innerHTML='<div class="empty"><div class="empty-icon">🐶</div><div class="empty-text">Nenhum cliente cadastrado</div></div>';return;}
+  container.innerHTML=lista.map(c=>{
+    const pets=petsDe(c);
+    const temPacote=pets.some(p=>p.pacote);
+    const fotoPet=pets.find(p=>p.photo);
+    const avatarInner=fotoPet?`<img src="${fotoPet.photo}">`:(c.nome.charAt(0).toUpperCase());
+    // aniversário mais próximo entre os pets
+    let menorDiff=999,anivTag='';
+    pets.forEach(p=>{if(p.aniv){const d=getDiasParaAniv(p.aniv);if(d<menorDiff)menorDiff=d;}});
+    if(menorDiff<=7)anivTag=`<div class="cliente-aniv">🎂 ${menorDiff===0?'Aniversário hoje!':'Aniversário em '+menorDiff+' dia'+(menorDiff>1?'s':'')}</div>`;
+    const petsLabel=pets.map(p=>p.nome).filter(Boolean).join(', ')||'—';
+    const petsCount=pets.length>1?` <span class="badge badge-roxo" style="font-size:10px;">${pets.length} pets</span>`:'';
+    return `<div class="cliente-item" onclick="verPerfil(${c.id})">
+      <div class="cliente-avatar">${avatarInner}</div>
+      <div class="cliente-info">
+        <div class="cliente-nome">${c.nome} ${temPacote?'📦':''}</div>
+        <div class="cliente-pets">🐾 ${petsLabel}${petsCount}</div>
+        <div class="cliente-tel">${c.tel||''}</div>
+        ${anivTag}
+      </div>
+      <button class="btn-delete" onclick="event.stopPropagation();deletarCliente(${c.id})">🗑</button>
+    </div>`;
+  }).join('');
+}
+function deletarCliente(id){if(!confirm('Excluir cliente?'))return;clientes=clientes.filter(c=>c.id!==id);DB.set('clientes',clientes);renderClientes();renderDash();}
+
+// ─── PERFIL CLIENTE ───
+function verPerfil(id){
+  const c=clientes.find(x=>x.id===id);if(!c)return;
+  petTutorAlvo=c.id;
+  const pets=petsDe(c);
+  const temPacote=pets.some(p=>p.pacote);
+  document.getElementById('perfilNome').textContent=c.nome+(temPacote?' 📦':'');
+  document.getElementById('perfilTel').textContent=c.tel?'📞 '+c.tel:'sem telefone';
+  const wa=document.getElementById('perfilWa');
+  if(c.tel){wa.style.display='inline-flex';wa.onclick=()=>abrirWhatsapp(c.tel,`Oi, ${c.nome}! 🐾💜 Aqui é da Ju Pet. `);}
+  else{wa.style.display='none';}
+  document.getElementById('perfilAddPet').onclick=()=>abrirModalPet(c.id);
+  const cont=document.getElementById('perfilPets');
+  cont.innerHTML=pets.map(p=>{
+    const foto=p.photo?`<img src="${p.photo}">`:'🐾';
+    const diffDias=getDiasParaAniv(p.aniv);
+    const anivTexto=p.aniv?(diffDias===0?'🎉 hoje!':'em '+diffDias+'d'):'';
+    const anivFmt=p.aniv?p.aniv.split('-').reverse().slice(0,2).join('/'):'—';
+    const hist=atendimentos.filter(a=>a.pet&&a.pet.toLowerCase()===(p.nome||'').toLowerCase()&&a.data).sort((a,b)=>b.data.localeCompare(a.data)).slice(0,5);
+    const histHtml=hist.length?hist.map(a=>`
+      <div class="fin-item"><div><div class="fin-desc">${a.servico}</div><div class="fin-meta">${formatData(a.data)}${a.hora?' · '+a.hora:''}</div></div>
+      <div style="text-align:right;"><span class="badge ${statusBadge(a.status)}">${a.status}</span>${a.valor?`<div class="fin-valor entrada" style="margin-top:4px;">R$ ${a.valor}</div>`:''}</div>
+      </div>`).join(''):'<div style="font-size:12px;color:var(--cinza-claro);padding:6px 0;">Nenhum atendimento registrado</div>';
+    const fid=parseInt(p.fidelidade)||0;
+    const dots=Array.from({length:FIDELIDADE_META},(x,i)=>`<span style="display:inline-block;width:14px;height:14px;border-radius:50%;margin:0 2px 0 0;${i<fid?'background:var(--amarelo);':'background:#fff;border:1px solid var(--lilas-claro);'}"></span>`).join('');
+    const pacoteBadge=p.pacote?`<span class="badge badge-roxo" style="font-size:10px;">📦 ${p.pacote}</span>`:'';
+    return `<div class="pet-bloco">
+      <div class="pet-bloco-head">
+        <div class="pet-bloco-foto">${foto}</div>
+        <div style="flex:1;">
+          <div class="pet-bloco-nome">${p.nome||'Pet'} ${pacoteBadge}</div>
+          <div class="pet-bloco-sub">${[p.raca,p.porte].filter(Boolean).join(' · ')||'—'}${p.aniv?' · 🎂 '+anivFmt+(anivTexto?' ('+anivTexto+')':''):''}</div>
+        </div>
+        <button class="btn-delete" onclick="deletarPet(${c.id},${p.id})">🗑</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;background:var(--lilas-palido);border-radius:10px;padding:8px 10px;margin-bottom:8px;">
+        <div style="flex:1;"><div style="font-size:11px;color:var(--roxo);font-weight:600;">⭐ Clubinho fidelidade</div><div style="margin-top:4px;">${dots}</div><div style="font-size:10px;color:var(--cinza-claro);margin-top:3px;">${fid}/${FIDELIDADE_META} banhos · faltam ${Math.max(0,FIDELIDADE_META-fid)} p/ hidratação grátis</div></div>
+        <button class="btn-add-pet" style="width:auto;margin:0;padding:8px 12px;font-size:12px;" onclick="carimbar(${c.id},${p.id})">+ carimbo</button>
+      </div>
+      ${p.obs?`<div style="font-size:12px;color:var(--cinza-claro);margin-bottom:8px;">📝 ${p.obs}</div>`:''}
+      ${histHtml}
+    </div>`;
+  }).join('');
+  document.getElementById('perfilOverlay').classList.add('open');
+}
+
+// ─── ADICIONAR / EXCLUIR PET ───
+function abrirModalPet(tutorId){
+  petTutorAlvo=tutorId;
+  ['petNome','petRaca','petObs','petAniv'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('petPorte').value='Pequeno';
+  document.getElementById('petPacote').value='';
+  document.getElementById('petFidelidade').value='0';
+  document.getElementById('petPhoto').value='';
+  const area=document.getElementById('fotoUploadAreaPet');
+  area.querySelector('img')?.remove();
+  document.getElementById('fotoBtnTrocaPet').style.display='none';
+  area.querySelector('.foto-upload-icon').style.display='';
+  area.querySelector('.foto-upload-label').style.display='';
+  openModal('modalPet');
+}
+function previewFotoPet(input){
+  if(!input.files||!input.files[0])return;
+  comprimirFoto(input.files[0],d=>aplicarFoto(d,'fotoUploadAreaPet','petPhoto','fotoBtnTrocaPet'));
+}
+function salvarPet(){
+  const c=tutorPorId(petTutorAlvo);if(!c){alert('Tutor não encontrado.');return;}
+  const nome=document.getElementById('petNome').value.trim();
+  if(!nome){alert('Informe o nome do pet.');return;}
+  if(!Array.isArray(c.pets))c.pets=[];
+  c.pets.push({id:Date.now(),nome,raca:document.getElementById('petRaca').value,porte:document.getElementById('petPorte').value,obs:document.getElementById('petObs').value,pacote:document.getElementById('petPacote').value,fidelidade:parseInt(document.getElementById('petFidelidade').value)||0,aniv:document.getElementById('petAniv').value,photo:document.getElementById('petPhoto').value});
+  DB.set('clientes',clientes);
+  closeModal('modalPet');
+  verPerfil(c.id);renderClientes();renderDash();
+}
+// ─── FIDELIDADE: +1 carimbo (a cada 10 banhos, 1 hidratação grátis) ───
+function carimbar(tutorId,petId){
+  const c=tutorPorId(tutorId);if(!c)return;
+  const p=petsDe(c).find(p=>p.id===petId);if(!p)return;
+  let f=(parseInt(p.fidelidade)||0)+1;
+  if(f>=FIDELIDADE_META){
+    alert('🎁 '+(p.nome||'O pet')+' completou '+FIDELIDADE_META+' banhos no Clubinho! Hidratação simples GRÁTIS liberada. O cartão foi zerado.');
+    f=0;
+  }
+  p.fidelidade=f;
+  DB.set('clientes',clientes);
+  verPerfil(c.id);renderClientes();renderDash();
+}
+function deletarPet(tutorId,petId){
+  const c=tutorPorId(tutorId);if(!c)return;
+  const pets=petsDe(c);
+  if(pets.length<=1){alert('O tutor precisa ter pelo menos um pet. Para remover tudo, exclua o cliente.');return;}
+  if(!confirm('Excluir este pet?'))return;
+  c.pets=pets.filter(p=>p.id!==petId);
+  DB.set('clientes',clientes);
+  verPerfil(c.id);renderClientes();renderDash();
+}
+
+// ─── FINANCEIRO ───
+function salvarLancamento(){
+  const desc=document.getElementById('recDesc').value.trim();
+  const valor=parseFloat(document.getElementById('recValor').value)||0;
+  if(!desc||!valor){alert('Preencha descrição e valor.');return;}
+  lancamentos.push({id:Date.now(),tipo:tipoAtual,desc,valor,data:document.getElementById('recData').value,cat:document.getElementById('recCategoria').value});
+  DB.set('lanc',lancamentos);
+  closeModal('modalReceita');
+  ['recDesc','recValor'].forEach(id=>document.getElementById(id).value='');
+  renderFin();renderDash();
+}
+function setTipo(t){tipoAtual=t;document.getElementById('tipoEntrada').classList.toggle('active',t==='entrada');document.getElementById('tipoSaida').classList.toggle('active',t==='saida');}
+
+// ─── PERÍODO ───
+const PERIODO_LABEL={mes:'do mês',trimestre:'do trimestre',semestre:'do semestre',ano:'do ano',tudo:'(tudo)'};
+// retorna array de prefixos 'YYYY-MM' do período, ou null = sem limite (tudo)
+function mesesDoPeriodo(){
+  const hoje=new Date();const y=hoje.getFullYear(),m=hoje.getMonth();
+  let n;
+  if(periodoFin==='mes')n=1;
+  else if(periodoFin==='trimestre')n=3;
+  else if(periodoFin==='semestre')n=6;
+  else if(periodoFin==='ano')n=m+1;
+  else return null;
+  const arr=[];
+  for(let i=0;i<n;i++){const d=new Date(y,m-i,1);arr.push(d.toISOString().substring(0,7));}
+  return arr;
+}
+function noPeriodo(l){if(!l.data)return false;const ms=mesesDoPeriodo();return ms===null||ms.includes(l.data.substring(0,7));}
+function setPeriodo(p,btn){
+  periodoFin=p;
+  document.querySelectorAll('#periodoToggle .periodo-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderFin();
+}
+function renderFin(){
+  const lista=lancamentos.filter(noPeriodo);
+  const eList=lista.filter(l=>l.tipo==='entrada');
+  const sList=lista.filter(l=>l.tipo==='saida');
+  const totalE=eList.reduce((s,l)=>s+l.valor,0);
+  const totalS=sList.reduce((s,l)=>s+l.valor,0);
+  const saldo=totalE-totalS;
+  const lbl=PERIODO_LABEL[periodoFin];
+  document.getElementById('finEntradasLabel').textContent='Entradas '+lbl;
+  document.getElementById('finSaidasLabel').textContent='Saídas '+lbl;
+  document.getElementById('finSaldoLabel').textContent='Saldo '+lbl;
+  document.getElementById('finLancSep').textContent='Lançamentos '+lbl;
+  document.getElementById('finEntradas').textContent='R$ '+totalE.toLocaleString('pt-BR');
+  document.getElementById('finSaidas').textContent='R$ '+totalS.toLocaleString('pt-BR');
+  const sel=document.getElementById('finSaldo');
+  sel.textContent=(saldo<0?'- ':'')+'R$ '+Math.abs(saldo).toLocaleString('pt-BR');
+  sel.style.color=saldo>=0?'var(--verde)':'var(--vermelho)';
+  // break-even: meta = R$5.280 por mês do período
+  const ms=mesesDoPeriodo();
+  let nMeses=ms?ms.length:(new Set(lancamentos.filter(l=>l.data).map(l=>l.data.substring(0,7))).size||1);
+  const metaFixa=5280*nMeses;
+  const pct=Math.min(100,Math.round((totalE/metaFixa)*100));
+  document.getElementById('finProgress').style.width=pct+'%';
+  document.getElementById('finMeta').textContent=pct+'% da meta de despesas fixas (R$ '+metaFixa.toLocaleString('pt-BR')+(nMeses>1?' · '+nMeses+' meses':'')+') coberto';
+  const todos=lista.slice().sort((a,b)=>b.data.localeCompare(a.data));
+  const cont=document.getElementById('finLancamentos');
+  if(!todos.length){cont.innerHTML='<div class="empty"><div class="empty-icon">💰</div><div class="empty-text">Nenhum lançamento neste período</div></div>';return;}
+  cont.innerHTML=todos.map(l=>`
+    <div class="fin-item">
+      <div><div class="fin-desc">${l.desc}</div><div class="fin-meta">${l.cat} · ${formatData(l.data)}</div></div>
+      <div style="display:flex;align-items:center;gap:8px;"><div class="fin-valor ${l.tipo}">${l.tipo==='entrada'?'+':'-'}R$ ${l.valor.toLocaleString('pt-BR')}</div><button class="btn-delete" onclick="deletarLanc(${l.id})">🗑</button></div>
+    </div>`).join('');
+}
+function deletarLanc(id){if(!confirm('Excluir?'))return;lancamentos=lancamentos.filter(l=>l.id!==id);DB.set('lanc',lancamentos);renderFin();renderDash();}
+function formatData(d){if(!d)return'';const[y,m,day]=d.split('-');return day+'/'+m+'/'+y;}
+
+// ─── RELATÓRIO MENSAL (PDF via impressão) ───
+function gerarRelatorio(){
+  const hoje=new Date();
+  const mes=hoje.toISOString().substring(0,7);
+  const nomesMes=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesNome=nomesMes[hoje.getMonth()]+' de '+hoje.getFullYear();
+  const doMes=lancamentos.filter(l=>l.data&&l.data.startsWith(mes));
+  const entradas=doMes.filter(l=>l.tipo==='entrada');
+  const saidas=doMes.filter(l=>l.tipo==='saida');
+  const totalE=entradas.reduce((s,l)=>s+l.valor,0);
+  const totalS=saidas.reduce((s,l)=>s+l.valor,0);
+  const saldo=totalE-totalS;
+  const atendMes=atendimentos.filter(a=>a.data&&a.data.startsWith(mes)&&a.status==='concluido');
+  let pacotesAtivos=0, recorrente=0;
+  clientes.forEach(c=>petsDe(c).forEach(p=>{if(p.pacote){pacotesAtivos++;recorrente+=valorPacote(p.pacote);}}));
+  const pct=Math.min(100,Math.round((totalE/5280)*100));
+  const brl=v=>'R$ '+v.toLocaleString('pt-BR');
+  // agrupa por categoria
+  const porCat=arr=>{const m={};arr.forEach(l=>{m[l.cat||'Outros']=(m[l.cat||'Outros']||0)+l.valor;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
+  const linhasCat=pares=>pares.length?pares.map(([c,v])=>`<div class="rp-row"><span>${c}</span><span>${brl(v)}</span></div>`).join(''):'<div class="rp-row"><span style="color:#8A8A8A;">Nenhum lançamento</span><span></span></div>';
+  document.getElementById('relatorioPrint').innerHTML=`<div class="rp-wrap">
+    <div class="rp-head">
+      <div class="rp-brand">Ju Pet</div>
+      <div class="rp-tag">Banho &amp; Tosa Premium · Acupe de Brotas · Salvador-BA</div>
+      <div class="rp-titulo">Relatório Mensal — ${mesNome}</div>
+    </div>
+    <div class="rp-kpis">
+      <div class="rp-kpi"><div class="rp-kpi-label">Receita</div><div class="rp-kpi-val">${brl(totalE)}</div></div>
+      <div class="rp-kpi"><div class="rp-kpi-label">Despesas</div><div class="rp-kpi-val">${brl(totalS)}</div></div>
+      <div class="rp-kpi"><div class="rp-kpi-label">Saldo</div><div class="rp-kpi-val" style="color:${saldo>=0?'#2E9E75':'#E05D5D'}">${(saldo<0?'- ':'')+brl(Math.abs(saldo))}</div></div>
+      <div class="rp-kpi"><div class="rp-kpi-label">Break-even</div><div class="rp-kpi-val">${pct}%</div></div>
+    </div>
+    <div class="rp-sec">Resumo operacional</div>
+    <div class="rp-row"><span>Atendimentos concluídos no mês</span><span>${atendMes.length}</span></div>
+    <div class="rp-row"><span>Pets com pacote mensal ativo</span><span>${pacotesAtivos} · ${brl(recorrente)}/mês recorrente</span></div>
+    <div class="rp-row"><span>Clientes (tutores) cadastrados</span><span>${clientes.length}</span></div>
+    <div class="rp-sec">Receitas por categoria</div>
+    ${linhasCat(porCat(entradas))}
+    <div class="rp-row total"><span>Total de receitas</span><span>${brl(totalE)}</span></div>
+    <div class="rp-sec">Despesas variáveis por categoria</div>
+    ${linhasCat(porCat(saidas))}
+    <div class="rp-row"><span style="color:#8A8A8A;">+ Despesas fixas mensais estimadas</span><span style="color:#8A8A8A;">R$ 5.280</span></div>
+    <div class="rp-row total"><span>Total de despesas variáveis</span><span>${brl(totalS)}</span></div>
+    <div class="rp-foot">Gerado em ${hoje.toLocaleDateString('pt-BR')} · Ju Pet · @ju.pett 🐾</div>
+  </div>`;
+  setTimeout(()=>window.print(),100);
+}
+
+// ─── RECIBO ───
+function initRecibo(){
+  const d=new Date();
+  document.getElementById('reciboData').textContent=d.toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  servicosRecibo=[];
+  document.querySelectorAll('.servico-chip').forEach(c=>c.classList.remove('selected'));
+  atualizarRecibo();
+}
+function toggleServico(el,nome,preco){
+  const idx=servicosRecibo.findIndex(s=>s.nome===nome);
+  if(idx>=0){servicosRecibo.splice(idx,1);el.classList.remove('selected');}
+  else{servicosRecibo.push({nome,preco:parseFloat(preco)});el.classList.add('selected');}
+  atualizarRecibo();
+}
+function atualizarRecibo(){
+  const cliente=document.getElementById('reciboCliente').value||'—';
+  const pet=document.getElementById('reciboPet').value||'—';
+  const pgto=document.getElementById('reciboPagamento').value;
+  const obs=document.getElementById('reciboObs').value;
+  const total=servicosRecibo.reduce((s,v)=>s+v.preco,0);
+  let html=`<div class="recibo-linha"><span>Tutor</span><span>${cliente}</span></div><div class="recibo-linha"><span>Pet</span><span>${pet}</span></div><div class="recibo-linha"><span>Pagamento</span><span>${pgto}</span></div>`;
+  if(servicosRecibo.length){html+='<div style="margin:10px 0 4px;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#B48DC0;">Serviços</div>';servicosRecibo.forEach(s=>{html+=`<div class="recibo-linha"><span>${s.nome}</span><span>R$ ${s.preco.toFixed(2)}</span></div>`;});}
+  if(obs)html+=`<div class="recibo-linha"><span>Obs</span><span>${obs}</span></div>`;
+  document.getElementById('reciboLinhas').innerHTML=html;
+  const tot=document.getElementById('reciboTotal');
+  if(total>0){tot.style.display='flex';document.getElementById('reciboTotalVal').textContent='R$ '+total.toFixed(2);}else{tot.style.display='none';}
+}
+function salvarRecibo(){
+  const total=servicosRecibo.reduce((s,v)=>s+v.preco,0);
+  if(!total){alert('Selecione pelo menos um serviço.');return;}
+  const pet=document.getElementById('reciboPet').value||'Pet';
+  lancamentos.push({id:Date.now(),tipo:'entrada',desc:servicosRecibo.map(s=>s.nome).join(' + ')+' — '+pet,valor:total,data:new Date().toISOString().split('T')[0],cat:'Atendimento'});
+  DB.set('lanc',lancamentos);alert('✅ Salvo no financeiro!');renderDash();
+}
+function copiarRecibo(){
+  const cliente=document.getElementById('reciboCliente').value||'—';
+  const pet=document.getElementById('reciboPet').value||'—';
+  const pgto=document.getElementById('reciboPagamento').value;
+  const obs=document.getElementById('reciboObs').value;
+  const total=servicosRecibo.reduce((s,v)=>s+v.preco,0);
+  const d=new Date().toLocaleDateString('pt-BR');
+  let txt=`🐾 *Ju Pet — Banho & Tosa Premium*\n━━━━━━━━━━━━━━━━━━\n📅 ${d}\n👤 Tutor: ${cliente}\n🐶 Pet: ${pet}\n`;
+  if(servicosRecibo.length){txt+=`\n✂️ *Serviços:*\n`;servicosRecibo.forEach(s=>{txt+=`• ${s.nome} — R$ ${s.preco.toFixed(2)}\n`;});}
+  txt+=`\n💳 Pagamento: ${pgto}\n`;
+  if(obs)txt+=`📝 ${obs}\n`;
+  if(total>0)txt+=`\n💰 *Total: R$ ${total.toFixed(2)}*\n`;
+  txt+=`━━━━━━━━━━━━━━━━━━\nObrigada pela preferência! 💜\n📱 (71) 98769-9236 · @ju.pett`;
+  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(()=>alert('✅ Copiado! Cole no WhatsApp.'));}
+  else{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('✅ Copiado! Cole no WhatsApp.');}
+}
+
+// ─── BACKUP / RESTAURAÇÃO ───
+// Os dados vivem no localStorage deste navegador. Trocar de celular, limpar o
+// navegador ou (no iPhone) 7 dias sem abrir o app apagam tudo. Isto é a saída.
+function exportarBackup(){
+  const dump={
+    _app:'Ju Pet', _versao:1,
+    _gerado_em:new Date().toISOString(),
+    clientes, atendimentos, lancamentos
+  };
+  const blob=new Blob([JSON.stringify(dump)],{type:'application/json'});
+  const d=new Date();
+  const nome='jupet-backup-'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'.json';
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=nome;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  DB.set('ultimo_backup',new Date().toISOString());
+  renderBackupInfo();
+  alert('✅ Backup gerado!\n\nArquivo: '+nome+'\n\nAgora envie esse arquivo para você mesma no WhatsApp ou no e-mail. Se o celular quebrar, é com ele que a gente traz tudo de volta.');
+}
+
+function importarBackup(input){
+  if(!input.files||!input.files[0])return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    let dump;
+    try{dump=JSON.parse(e.target.result);}
+    catch(err){alert('❌ Esse arquivo não é um backup válido do Ju Pet.');input.value='';return;}
+    if(!dump||dump._app!=='Ju Pet'||!Array.isArray(dump.clientes)){
+      alert('❌ Esse arquivo não parece um backup do Ju Pet.');input.value='';return;
+    }
+    const resumo='Backup de '+(dump._gerado_em?new Date(dump._gerado_em).toLocaleString('pt-BR'):'data desconhecida')
+      +'\n\n• '+dump.clientes.length+' clientes'
+      +'\n• '+(dump.atendimentos||[]).length+' atendimentos'
+      +'\n• '+(dump.lancamentos||[]).length+' lançamentos';
+    if(!confirm('⚠️ ATENÇÃO — isto APAGA tudo que está no app agora e coloca o backup no lugar.\n\n'+resumo+'\n\nTem certeza?')){input.value='';return;}
+    clientes=dump.clientes||[];
+    atendimentos=dump.atendimentos||[];
+    lancamentos=dump.lancamentos||[];
+    const ok=DB.set('clientes',clientes)&&DB.set('atend',atendimentos)&&DB.set('lanc',lancamentos);
+    input.value='';
+    if(!ok)return; // DB.set já avisou do erro
+    migrarClientes();
+    renderDash();renderClientes();renderFin();
+    alert('✅ Backup restaurado!');
+  };
+  reader.readAsText(input.files[0]);
+}
+
+// Quanto do localStorage já foi usado + há quanto tempo não faz backup
+function renderBackupInfo(){
+  let bytes=0;
+  for(const k in localStorage){
+    if(Object.prototype.hasOwnProperty.call(localStorage,k)&&k.indexOf('jupet_')===0){
+      bytes+=(localStorage[k]||'').length;
+    }
+  }
+  const LIMITE=5*1024*1024; // ~5 MB é o teto típico do localStorage
+  const pct=Math.min(100,Math.round(bytes/LIMITE*100));
+  const bar=document.getElementById('dashStorageBar');
+  bar.style.width=pct+'%';
+  bar.style.background=pct>=80?'var(--vermelho)':pct>=60?'var(--amarelo)':'var(--roxo)';
+  document.getElementById('dashStorageTxt').textContent=
+    'Memória usada: '+(bytes/1024).toFixed(0)+' KB de ~5.000 KB ('+pct+'%)'+(pct>=80?' — está enchendo!':'');
+
+  const ult=DB.get('ultimo_backup');
+  const el=document.getElementById('dashUltimoBackup');
+  if(!ult){
+    el.innerHTML='<span style="color:var(--vermelho);font-weight:500;">⚠️ Você ainda não fez nenhum backup.</span>';
+  }else{
+    const dias=Math.floor((Date.now()-new Date(ult))/86400000);
+    const txt='Último backup: '+new Date(ult).toLocaleDateString('pt-BR')+(dias>0?' ('+dias+' dia'+(dias>1?'s':'')+' atrás)':' (hoje)');
+    el.innerHTML=dias>=7?'<span style="color:var(--vermelho);font-weight:500;">⚠️ '+txt+'</span>':txt;
+  }
+}
+
+// ─── INIT ───
+document.getElementById('atendData').value=new Date().toISOString().split('T')[0];
+document.getElementById('recData').value=new Date().toISOString().split('T')[0];
+renderDash();
+
+// ─── PWA: registra o service worker (faz o app abrir sem internet) ───
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
