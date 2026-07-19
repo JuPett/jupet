@@ -2,7 +2,8 @@
 
 App de banho & tosa da Ju Pet (Acupe de Brotas, Salvador-BA). PWA instalável.
 
-- **No ar:** https://jupet.pages.dev
+- **No ar (app da Ju):** https://jupet.pages.dev
+- **Agendamento (link do cliente):** https://jupet.pages.dev/agendar
 - **Manual:** https://jupet.pages.dev/manual.html
 
 ## O que é
@@ -61,6 +62,10 @@ nenhuma mensagem — daí a checagem ser obrigatória.
    `DESPESAS_FIXAS`) — falta uma tela para a Ju editar sozinha.
 4. Apagar cliente deixa os atendimentos dele órfãos no financeiro.
 5. O Recibo não inclui produto vendido — a venda é lançada pela tela de Estoque.
+6. A página de agendamento **não mostra os horários já ocupados** (a agenda vive só
+   no celular da Ju). É pedido sujeito a confirmação, por escolha de arquitetura.
+   Resolver isso exige backend — decisão adiada de propósito até o uso justificar.
+7. Horário de funcionamento está fixo no `agendar.html` — falta tela de configuração.
 
 ## Já corrigido
 

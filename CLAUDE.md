@@ -50,7 +50,8 @@ desinstalar o app no iPhone **apaga tudo**. Por isso:
 
 | Arquivo | O que é |
 |---|---|
-| `index.html` | O app inteiro |
+| `index.html` | O app inteiro (uso da Ju) |
+| `agendar.html` | **Página pública** de pedido de horário (uso do cliente) |
 | `manual.html` | Manual de uso, escrito para a Ju |
 | `manifest.json` · `sw.js` | Instalável + abre offline |
 | `icon-192/512.png`, `apple-touch-icon.png` | Ícones (patinha branca no roxo) |
@@ -72,6 +73,31 @@ com o financeiro que faz o estoque ser mantido — lista solta ninguém atualiza
 
 Dados: `produtos` (`jupet_produtos`) e `movimentacoes` (`jupet_mov`, histórico de
 entrada/saída). Alerta de reposição quando `qtd <= minimo`, no painel e na tela.
+
+## Agendamento pelo cliente (`agendar.html`)
+
+**https://jupet.pages.dev/agendar** — página pública, sem login, para o cliente.
+
+A página **não enxerga a agenda real** e isso é proposital: os dados da Ju vivem no
+`localStorage` do celular dela, e o celular do cliente não tem como ler aquilo. Por
+isso o fluxo é **pedido → confirmação**, nunca reserva automática. A página diz isso
+com todas as letras.
+
+O cliente escolhe serviço, dia e hora, e o botão abre o WhatsApp da Ju com a mensagem
+formatada. A Ju copia essa mensagem, toca em **📥 Pedido do zap** na Agenda, cola, e o
+agendamento vem preenchido — inclusive casando com o cadastro que já existe.
+
+⚠️ **Os rótulos da mensagem são um contrato entre os dois arquivos.** `montarMensagem()`
+no `agendar.html` escreve `Tutor:`, `Pet:`, `Servico:`, `Dia:`, `Hora:`…; `lerPedido()`
+no `index.html` lê exatamente esses rótulos. Mudou um lado, mude o outro.
+
+O `lerPedido()` trata três casos: cliente já cadastrado (seleciona direto), tutor
+conhecido com pet novo (abre o cadastro do pet) e cliente novo (abre o cadastro
+completo). Nos três, volta ao agendamento com tudo preenchido.
+
+**Horário de funcionamento** (`DIAS_ABERTOS` e `HORAS` no `agendar.html`): terça a
+sábado, 9h às 16h, informado pela Ju em 19/07/2026. Mudou? Altere lá e faça deploy —
+não há tela de configuração ainda.
 
 ## Padrão visual
 
