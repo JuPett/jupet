@@ -96,6 +96,11 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 .obr{color:#D64545;font-weight:600;}
 .legenda-obr{font-size:11.5px;color:var(--cinza-claro);margin-bottom:14px;}
 .falta{border-color:#E9A0A0 !important;background:#FFF7F7;}
+.enviado-caixa{background:var(--lilas-palido);border:2px solid var(--lilas);border-radius:14px;padding:20px 16px;margin-top:14px;text-align:center;}
+.enviado-tit{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--roxo);font-weight:600;margin:6px 0 8px;}
+.enviado-caixa p{font-size:13.5px;line-height:1.6;color:var(--cinza);margin-bottom:12px;}
+.enviado-passos{background:white;border-radius:12px;padding:14px;text-align:left;font-size:13px;line-height:2;margin-bottom:12px;}
+.enviado-passos b{color:var(--roxo);}
 .erro{color:#A32D2D;font-size:12px;margin-top:8px;display:none;}
 </style>
 </head>
@@ -253,6 +258,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div class="aviso">
         ⚠️ Este é um <b>pedido de horário</b>, não uma reserva confirmada. A Tia Ju vai responder pelo WhatsApp confirmando ou sugerindo outro horário.
       </div>
+      <div id="enviado" style="display:none;"></div>
 
       <!-- LGPD (Lei 13.709/2018): o titular precisa saber o que é coletado, para
            quê, quem recebe e como pedir exclusão. Aqui é simples porque a página
@@ -686,11 +692,38 @@ async function enviar(){
     if(fotoDataUrl){
       alert('📸 Vou abrir o WhatsApp com seu pedido.\n\nSeu celular não deixa enviar a foto junto — depois de mandar a mensagem, é só enviar a foto na mesma conversa. 💜');
     }
+    mostrarEnviado();
     window.location.href='https://wa.me/'+WHATSAPP+'?text='+encodeURIComponent(msg);
   }catch(e){
     el.style.display='block';
     el.textContent='Não consegui abrir o WhatsApp. Chame direto no (71) 98769-9236.';
   }
+}
+
+// Fecha o ciclo para o cliente: ele volta do WhatsApp e vê o que acontece agora.
+// Sem isso a página fica no mesmo estado e ele não sabe se deu certo.
+function mostrarEnviado(){
+  const c=document.getElementById('enviado');
+  if(!c)return;
+  c.innerHTML=`
+    <div class="enviado-caixa">
+      <div style="font-size:44px;">💬</div>
+      <div class="enviado-tit">Só falta enviar!</div>
+      <p>Seu pedido já foi escrito na conversa da Tia Ju.
+         <b>Toque no botão verde de enviar</b> no WhatsApp para ele chegar. 💜</p>
+      <div class="enviado-passos">
+        <div><b>1.</b> Envie a mensagem no WhatsApp</div>
+        <div><b>2.</b> A Tia Ju confere a agenda</div>
+        <div><b>3.</b> Ela responde <b>confirmando o horário</b></div>
+      </div>
+      <p style="font-size:12px;color:var(--cinza-claro);">
+        ⚠️ Seu horário só está garantido depois que ela confirmar.
+        Se não abrir o WhatsApp, chame no <b>(71) 98769-9236</b>.
+      </p>
+      <button class="btn-zap" style="background:var(--roxo);" onclick="location.reload()">Fazer outro pedido</button>
+    </div>`;
+  c.style.display='block';
+  c.scrollIntoView({block:'center',behavior:'smooth'});
 }
 </script>
 </body>

@@ -40,11 +40,20 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
   </div>
 
   <div class="corpo">
+    <div class="card" style="background:var(--roxo);color:white;">
+      <div style="font-size:15px;font-weight:500;">🔗 Seu link de agendamento</div>
+      <div style="font-size:13px;opacity:0.85;margin:4px 0 12px;">É este endereço que vai na bio e nos stories.</div>
+      <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:12px;text-align:center;
+                  font-size:14px;word-break:break-all;margin-bottom:10px;" id="linkTxt">jupet.pages.dev/agendar</div>
+      <button class="btn" style="background:white;color:var(--roxo);" onclick="abrirAgendamento()">👀 Abrir e testar a página</button>
+      <button class="btn" style="background:rgba(255,255,255,0.18);color:white;margin-top:8px;" onclick="copiarLink()">📋 Copiar o link</button>
+    </div>
+
     <div class="dica">
       📲 <b>Como baixar no celular:</b> toque em "Baixar" — a imagem vai para os seus downloads
       ou abre para você segurar e salvar. Depois é só postar normalmente.<br><br>
       🔗 <b>Importante:</b> o Instagram não deixa clicar em link dentro da foto. Coloque
-      <b>jupet.pages.dev/agendar</b> na <b>bio</b> do perfil e use o <b>sticker de link</b> nos stories.
+      o link acima na <b>bio</b> do perfil e use o <b>sticker de link</b> nos stories.
     </div>
 
     <div id="artes"><div class="carregando">Preparando as artes...</div></div>
@@ -56,6 +65,20 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // publicação, sem biblioteca externa e sem depender de designer para cada ajuste.
 // Fonte da verdade do link e dos dados: as constantes abaixo.
 const LINK='jupet.pages.dev/agendar';
+const LINK_COMPLETO='https://jupet.pages.dev/agendar';
+
+// O link dentro da ARTE é imagem — não dá para clicar. Estes botões existem para
+// a Ju testar a página e copiar o endereço de verdade.
+function abrirAgendamento(){ window.open(LINK_COMPLETO,'_blank'); }
+function copiarLink(){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(LINK_COMPLETO)
+      .then(()=>alert('✅ Link copiado!\n\nCole na bio do Instagram, no sticker de link dos stories ou no WhatsApp.'))
+      .catch(()=>alert(LINK_COMPLETO));
+  }else{
+    alert(LINK_COMPLETO);
+  }
+}
 const MARCA='Ju Pet';
 const SUB='BANHO & TOSA PREMIUM';
 const HORARIO='Terça a sábado · 9h-12h30 e 13h30-16h';
