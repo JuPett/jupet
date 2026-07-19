@@ -899,7 +899,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-183832';
+const VERSAO_APP='2026-07-19-184226';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -2896,15 +2896,82 @@ async function inflar(dados){
   return null;
 }
 
+// ─── TABELA DE TRADUÇÃO DA FONTE (/ToUnicode) ───
+// O extrato do Bradesco embute fontes com codificação PRÓPRIA: o texto guardado
+// não é "OPERACAO", é "23(5$&$2". Cada PDF define sua própria correspondência
+// num objeto /ToUnicode. Sem ler essa tabela, o texto extraído é ilegível —
+// foi o que travou a leitura do extrato real de 19/07/2026.
+let mapaFonte={};
+
+function parseToUnicode(cmap){
+  const mapa={};
+  const hexParaTexto=(h)=>{
+    let s='';
+    for(let i=0;i+3<h.length+1;i+=4){
+      const c=parseInt(h.substr(i,4),16);
+      if(!isNaN(c))s+=String.fromCharCode(c);
+    }
+    return s;
+  };
+  // <origem> <destino>  (um a um)
+  for(const bloco of cmap.matchAll(/beginbfchar([\s\S]*?)endbfchar/g)){
+    for(const par of bloco[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g)){
+      mapa[parseInt(par[1],16)]=hexParaTexto(par[2]);
+    }
+  }
+  // <início> <fim> <destino>  (faixas)
+  for(const bloco of cmap.matchAll(/beginbfrange([\s\S]*?)endbfrange/g)){
+    for(const f of bloco[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g)){
+      const ini=parseInt(f[1],16), fim=parseInt(f[2],16), destino=parseInt(f[3],16);
+      for(let c=ini;c<=fim&&c-ini<65535;c++)mapa[c]=String.fromCharCode(destino+(c-ini));
+    }
+    // faixa com lista: <ini> <fim> [<a><b><c>]
+    for(const f of bloco[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*\[([\s\S]*?)\]/g)){
+      const ini=parseInt(f[1],16);
+      let i=0;
+      for(const d of f[3].matchAll(/<([0-9A-Fa-f]+)>/g))mapa[ini+(i++)]=hexParaTexto(d[1]);
+    }
+  }
+  return mapa;
+}
+
+// Monta a tabela juntando o /ToUnicode de todas as fontes do arquivo.
+async function montarMapaFonte(cru,bytes){
+  const mapa={};
+  // objetos referenciados por /ToUnicode N 0 R
+  const alvos=new Set([...cru.matchAll(/\/ToUnicode\s+(\d+)\s+\d+\s+R/g)].map(m=>m[1]));
+  for(const num of alvos){
+    const re=new RegExp('(?:^|[^0-9])'+num+'\\s+0\\s+obj','g');
+    const m=re.exec(cru);
+    if(!m)continue;
+    const ini=cru.indexOf('stream',m.index);
+    if(ini<0)continue;
+    let d=ini+6;
+    if(cru[d]==='\r')d++;
+    if(cru[d]==='\n')d++;
+    let fim=cru.indexOf('endstream',d);
+    if(fim<0)continue;
+    while(fim>d&&(bytes[fim-1]===0x0A||bytes[fim-1]===0x0D))fim--;
+    const r=await inflar(bytes.subarray(d,fim));
+    const conteudo=r?r.txt:cru.substring(d,fim);
+    Object.assign(mapa,parseToUnicode(conteudo));
+  }
+  return mapa;
+}
+
 async function extrairTextoPDF(buffer){
   const bytes=new Uint8Array(buffer);
-  diagPDF={streams:0,inflados:0,comTexto:0,caracteres:0,linhas:0,metodos:{}};
+  diagPDF={streams:0,inflados:0,comTexto:0,caracteres:0,linhas:0,metodos:{},fonte:0};
 
   // lê como latin1 para preservar os offsets de byte
   let cru=''; const pedaco=8192;
   for(let i=0;i<bytes.length;i+=pedaco){
     cru+=String.fromCharCode.apply(null,bytes.subarray(i,i+pedaco));
   }
+
+  // primeiro a tabela de tradução das fontes; sem ela o texto sai ilegível
+  mapaFonte=await montarMapaFonte(cru,bytes);
+  diagPDF.fonte=Object.keys(mapaFonte).length;
 
   const partes=[];
   // acha cada "stream" e o "endstream" correspondente por posição, em vez de
@@ -2960,16 +3027,28 @@ async function extrairTextoPDF(buffer){
 // A correção é ler a COORDENADA Y de cada fragmento e juntar na mesma linha tudo
 // que estiver na mesma altura da página, ordenando pela coordenada X.
 function conteudoParaTexto(conteudo){
-  const strLiteral=(s)=>s.slice(1,-1)
-    .replace(/\\n|\\r/g,' ')
-    .replace(/\\([()\\])/g,'$1')
-    .replace(/\\(\d{1,3})/g,(m,o)=>String.fromCharCode(parseInt(o,8)));
+  // traduz cada código pela tabela da fonte; sem tabela, usa o código como está
+  const temMapa=Object.keys(mapaFonte).length>0;
+  const trad=(codigo)=>{
+    if(temMapa&&mapaFonte[codigo]!==undefined)return mapaFonte[codigo];
+    return codigo>=32?String.fromCharCode(codigo):'';
+  };
+  const strLiteral=(s)=>{
+    const cru=s.slice(1,-1)
+      .replace(/\\n|\\r/g,' ')
+      .replace(/\\([()\\])/g,'$1')
+      .replace(/\\(\d{1,3})/g,(m,o)=>String.fromCharCode(parseInt(o,8)));
+    let out='';
+    for(let i=0;i<cru.length;i++)out+=trad(cru.charCodeAt(i));
+    return out;
+  };
   const strHex=(s)=>{
     const hex=s.slice(1,-1).replace(/\s/g,'');
     let out='';
-    for(let i=0;i+1<hex.length;i+=2){
-      const c=parseInt(hex.substr(i,2),16);
-      if(c>=32)out+=String.fromCharCode(c);
+    // com tabela de fonte os códigos costumam ser de 2 bytes
+    const passo=temMapa?4:2;
+    for(let i=0;i+passo-1<hex.length;i+=passo){
+      out+=trad(parseInt(hex.substr(i,passo),16));
     }
     return out;
   };
