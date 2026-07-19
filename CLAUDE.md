@@ -229,6 +229,28 @@ extras, dermatite) estão na página do cliente, no passo 4, e o **aceite é obr
 para liberar o envio. A mensagem que chega para a Ju registra "✔ Li e aceito os
 combinados". Vieram do mesmo PDF — se a Ju mudar uma regra, mudar lá.
 
+## Segurança e LGPD
+
+**Escape obrigatório (`esc()`).** Todo campo preenchido por gente que vai para
+`innerHTML` passa por `esc()`. Não é preciosismo: o dado entra **de fora**, pelo pedido
+que o cliente monta no link e a Ju cola no app — um nome com `<img src=x onerror=...>`
+executaria script na tela dela. A auditoria de 19/07/2026 achou **15 pontos** assim e
+todos foram corrigidos. O `checar-js.js` agora **barra o deploy** se um campo conhecido
+voltar a aparecer cru numa linha que monta HTML. Mensagens de WhatsApp são texto puro e
+não precisam de escape.
+
+**LGPD (Lei 13.709/2018).** O que joga a favor: a página do cliente **não tem servidor
+nem grava nada** — os dados viajam só na mensagem que o próprio cliente envia. Não há
+CPF, dado bancário nem dado de saúde humana. A página traz o aviso "🔒 Como cuidamos
+dos seus dados" (o que é coletado, para quê, onde fica, e como pedir exclusão pelo
+WhatsApp), e o aceite cobre também o uso dos dados. **Ao coletar um campo novo,
+atualizar esse aviso** — é o registro da finalidade.
+
+**Risco que sobra, e é o maior:** os dados vivem no celular da Ju sem tranca própria.
+Quem pegar o aparelho desbloqueado vê tudo, e o arquivo de backup `.json` sai **sem
+criptografia**. Orientação: bloqueio de tela no celular e guardar o backup em lugar
+privado (não em grupo de WhatsApp). Um PIN no app está proposto e **não implementado**.
+
 ## Padrão visual
 
 - Roxo `#6B3F8C` (marca) · lilás `#B48DC0` · lilás pálido `#F5EDF9`
