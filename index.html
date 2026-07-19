@@ -463,7 +463,10 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <div style="font-size:11px;color:var(--cinza-claro);margin:-6px 0 12px;line-height:1.5;">
       No Bradesco Net Empresa, exporte o extrato em <b>CSV</b> (leitura exata). PDF também funciona, mas pode errar.
     </div>
-    <input type="file" accept=".csv,.txt,.pdf,.ofx,text/csv,application/pdf" id="extratoInput" style="display:none" onchange="importarExtrato(this)">
+    <!-- SEM `accept` de propósito: no iPhone, uma extensão que o iOS não conhece
+         (.ofx) faz o seletor DESABILITAR todos os arquivos, inclusive o PDF.
+         A validação do tipo é feita no JS, em importarExtrato(). Não recolocar. -->
+    <input type="file" id="extratoInput" style="display:none" onchange="importarExtrato(this)">
     <div id="conciliaLista"></div>
     <div class="metrics">
       <div class="metric verde"><div class="metric-label" id="finEntradasLabel">Entradas do mês</div><div class="metric-value" id="finEntradas">R$ 0</div></div>
@@ -2875,6 +2878,13 @@ function importarExtrato(input){
   if(!input.files||!input.files[0])return;
   const arq=input.files[0];
   const ehPDF=/\.pdf$/i.test(arq.name)||arq.type==='application/pdf';
+  // Como o seletor aceita qualquer arquivo (por causa do iPhone), barra aqui o
+  // que claramente não é extrato — melhor avisar do que tentar ler e falhar feio.
+  if(!ehPDF&&/\.(jpe?g|png|heic|gif|webp|zip|docx?|xlsx?|mp4|mov)$/i.test(arq.name)){
+    input.value='';
+    alert('Esse arquivo não é um extrato.\n\nNo Bradesco Net Empresa, exporte em CSV (melhor) ou PDF e escolha esse arquivo.');
+    return;
+  }
   const leitor=new FileReader();
   leitor.onload=async e=>{
     input.value='';
