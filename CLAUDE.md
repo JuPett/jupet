@@ -259,11 +259,33 @@ cliente pede pelo link → WhatsApp → Ju cola em "Pedido do zap"
   Ju confirmou (`renderDash` filtra `agendado`/`concluido`).
 - Pedido com data já vencida aparece marcado **"data já passou!"**.
 
-**Horário de funcionamento** (`DIAS_ABERTOS` e `HORAS` no `agendar.html`): terça a
-sábado, das 9h às 16h, informado pela Ju em 19/07/2026. **O 16h é o último
-agendamento, não o fechamento** — o atendimento pode terminar às 17h. Está certo
-oferecer 16:00 na grade; não remover. Mudou? Altere lá e faça deploy — não há tela
-de configuração ainda.
+### Expediente e duração dos serviços
+
+**Terça a sábado, 9h–12h30 e 13h30–16h** (almoço no meio). Informado pela Ju em
+19/07/2026. Definido em `EXPEDIENTE` — que existe **nos dois arquivos**
+(`index.html` e `agendar.html`). Mudou num, mude no outro.
+
+Cada janela tem `tol` = quanto o atendimento pode passar do fim:
+- **Manhã: `tol:0`** — se passar, invade o almoço dela. (Bug real: a primeira versão
+  usava tolerância única e oferecia banho às 12h30, terminando 13h20.)
+- **Tarde: `tol:60`** — 16h é o último horário e pode terminar até 17h.
+
+**Cada serviço tem `dur`** (minutos), e os horários oferecidos são **gerados a partir
+do serviço escolhido**: uma tosa modelada (2h) não aparece às 11h30 porque
+atravessaria o almoço. Por isso `montarHoras()` roda também ao trocar de serviço.
+
+Tempos informados pela Ju: banho simples 50 · banho+hidratação 70 · tosa higiênica 80 ·
+tosa máquina 90 · tosa modelada 120 · tintura 80.
+⚠️ `durSugerida:true` marca os tempos que **eu estimei** (finalização, spa, extras,
+desembolo, pacotes) — aguardam confirmação dela.
+
+**Choque de agenda** (`conflitosDe` / `checarConflito`): ao salvar um atendimento o app
+compara o intervalo com os já marcados no dia e pede confirmação se houver
+sobreposição. O modal mostra em tempo real "Ocupa das 10:00 às 12:00" e avisa do
+choque **antes** de salvar. `dur` é gravado no atendimento para o cálculo não mudar
+se a tabela for alterada depois.
+
+⚠️ **Tintura** entrou com tempo (1h20) mas **sem preço** — está como `consultar:true`.
 
 ## Tabela de preços
 
