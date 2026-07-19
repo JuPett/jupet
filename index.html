@@ -474,7 +474,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <button class="btn-report" onclick="document.getElementById('extratoInput').click()">🏦 Importar extrato do banco</button>
     </div>
     <div style="font-size:11px;color:var(--cinza-claro);margin:-6px 0 12px;line-height:1.5;">
-      No Bradesco Net Empresa, exporte o extrato em <b>CSV</b> (leitura exata). PDF também funciona, mas pode errar.
+      No Bradesco Net Empresa, exporte o extrato em <b>Excel</b> — é a leitura exata. CSV também serve. PDF funciona, mas pode errar.
     </div>
     <!-- SEM `accept` de propósito: no iPhone, uma extensão que o iOS não conhece
          (.ofx) faz o seletor DESABILITAR todos os arquivos, inclusive o PDF.
@@ -899,7 +899,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-184315';
+const VERSAO_APP='2026-07-19-184943';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -2805,7 +2805,7 @@ function lerOFX(txt){
 const RE_DATA=/(\d{2})\/(\d{2})\/(\d{2,4})/;
 const RE_VALOR=/-?\d{1,3}(?:\.\d{3})*,\d{2}/g;
 // linhas que têm data e valor mas NÃO são lançamento
-const RE_IGNORAR=/saldo\s+(do\s+dia|anterior|em|final|\(r\$\))|^saldo\b|data\s+e\s+hora|per[íi]odo:|extrato\s+para|total\s+de/i;
+const RE_IGNORAR=/saldo\s+(do\s+dia|anterior|em|final|\(r\$\))|^saldo\b|data\s+e\s+hora|per[íi]odo:|extrato\s+(para|simples)|total\s+de|^lan[çc]amentos$|^dados\s+da\s+empresa$|busca\s+de\s+lan|data\s+do\s+lan[çc]amento|^ag[êe]ncia|^empresa\b|ouvidoria|telefones?\s+de\s+contato|atendimento/i;
 
 function lerLinhasExtrato(linhas){
   const itens=[];
@@ -2874,6 +2874,96 @@ function lerLinhasExtrato(linhas){
 // CSV do Bradesco: Data;Histórico;...;Crédito;Débito;Saldo
 function lerCSVExtrato(txt){
   return lerLinhasExtrato(txt.split(/\r?\n/));
+}
+
+// ─── XLSX (Excel) — o MELHOR formato que o Bradesco exporta ───
+// Vem em colunas de verdade: Data | Descrição | Documento | Tipo | Valor | Saldo,
+// com a descrição completa numa célula só ("PIX ENVIADO DES: FULANO"). Sem
+// interpretação de layout e sem fonte embaralhada — leitura exata, ao contrário
+// do PDF. Confirmado no arquivo real do Bradesco em 19/07/2026.
+//
+// XLSX é um ZIP de XMLs. O navegador não abre ZIP sozinho, mas dá para ler a
+// estrutura na mão e descompactar cada item com DecompressionStream
+// ('deflate-raw', que é o que o ZIP usa). Continua sem biblioteca externa.
+async function lerZip(buffer){
+  const bytes=new Uint8Array(buffer);
+  const dv=new DataView(buffer);
+  // acha o fim do diretório central, procurando de trás para frente
+  let eocd=-1;
+  for(let i=bytes.length-22;i>=0&&i>bytes.length-66000;i--){
+    if(dv.getUint32(i,true)===0x06054b50){eocd=i;break;}
+  }
+  if(eocd<0)throw new Error('não é um ZIP/XLSX válido');
+  const qtd=dv.getUint16(eocd+10,true);
+  let p=dv.getUint32(eocd+16,true);
+  const arquivos={};
+  for(let i=0;i<qtd;i++){
+    if(dv.getUint32(p,true)!==0x02014b50)break;
+    const metodo=dv.getUint16(p+10,true);
+    const tamComp=dv.getUint32(p+20,true);
+    const nomeLen=dv.getUint16(p+28,true);
+    const extraLen=dv.getUint16(p+30,true);
+    const comentLen=dv.getUint16(p+32,true);
+    const offLocal=dv.getUint32(p+42,true);
+    let nome='';
+    for(let k=0;k<nomeLen;k++)nome+=String.fromCharCode(bytes[p+46+k]);
+    // no cabeçalho local os tamanhos de nome/extra podem diferir do central
+    const nomeLen2=dv.getUint16(offLocal+26,true);
+    const extraLen2=dv.getUint16(offLocal+28,true);
+    const ini=offLocal+30+nomeLen2+extraLen2;
+    const dados=bytes.subarray(ini,ini+tamComp);
+    if(metodo===0){
+      arquivos[nome]=new TextDecoder('utf-8').decode(dados);
+    }else{
+      try{
+        const fluxo=new Blob([dados]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        arquivos[nome]=await new Response(fluxo).text();
+      }catch(e){ arquivos[nome]=''; }
+    }
+    p+=46+nomeLen+extraLen+comentLen;
+  }
+  return arquivos;
+}
+
+function destrocarXML(s){
+  return (s||'').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+                .replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'")
+                .replace(/&amp;/g,'&');
+}
+
+// Devolve as linhas da planilha como texto, prontas para lerLinhasExtrato().
+async function lerXLSX(buffer){
+  const arqs=await lerZip(buffer);
+  // no XLSX os textos ficam num arquivo à parte, referenciados por índice
+  const compartilhadas=[];
+  const ss=arqs['xl/sharedStrings.xml']||'';
+  for(const si of ss.matchAll(/<si>([\s\S]*?)<\/si>/g)){
+    let txt='';
+    for(const t of si[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g))txt+=t[1];
+    compartilhadas.push(destrocarXML(txt));
+  }
+  const nomeAba=Object.keys(arqs).find(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+  if(!nomeAba)return [];
+  const linhas=[];
+  for(const row of arqs[nomeAba].matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)){
+    const celulas=[];
+    for(const c of row[1].matchAll(/<c([^>]*)>([\s\S]*?)<\/c>/g)){
+      const attrs=c[1]||'', corpo=c[2]||'';
+      const tipo=(attrs.match(/\st="([^"]*)"/)||[])[1]||'';
+      let val='';
+      const inline=corpo.match(/<t[^>]*>([\s\S]*?)<\/t>/);
+      const v=corpo.match(/<v>([\s\S]*?)<\/v>/);
+      if(tipo==='inlineStr'&&inline)val=destrocarXML(inline[1]);
+      else if(v){
+        val=v[1];
+        if(tipo==='s'){const i=parseInt(val);val=compartilhadas[i]!==undefined?compartilhadas[i]:'';}
+        else val=destrocarXML(val);
+      }
+      if(val)celulas.push(String(val).replace(/\s+/g,' ').trim());
+    }
+    if(celulas.length)linhas.push(celulas.join(' '));
+  }
+  return linhas;
 }
 
 // ─── PDF ───
@@ -3098,19 +3188,22 @@ function conteudoParaTexto(conteudo){
 function importarExtrato(input){
   if(!input.files||!input.files[0])return;
   const arq=input.files[0];
-  const ehPDF=/\.pdf$/i.test(arq.name)||arq.type==='application/pdf';
-  // Como o seletor aceita qualquer arquivo (por causa do iPhone), barra aqui o
-  // que claramente não é extrato — melhor avisar do que tentar ler e falhar feio.
-  if(!ehPDF&&/\.(jpe?g|png|heic|gif|webp|zip|docx?|xlsx?|mp4|mov)$/i.test(arq.name)){
+  const ehPDF =/\.pdf$/i.test(arq.name)||arq.type==='application/pdf';
+  const ehXLSX=/\.xlsx?$/i.test(arq.name)||/spreadsheet|excel/i.test(arq.type||'');
+  // O seletor aceita qualquer arquivo (senão o iPhone desabilita tudo), então a
+  // triagem é aqui. ⚠️ XLSX é ZIP por dentro: não pode entrar na lista de recusa.
+  if(!ehPDF&&!ehXLSX&&/\.(jpe?g|png|heic|gif|webp|docx?|mp4|mov|zip)$/i.test(arq.name)){
     input.value='';
-    alert('Esse arquivo não é um extrato.\n\nNo Bradesco Net Empresa, exporte em CSV (melhor) ou PDF e escolha esse arquivo.');
+    alert('Esse arquivo não parece um extrato.\n\nNo Bradesco Net Empresa, exporte em Excel (melhor), CSV ou PDF.');
     return;
   }
   const leitor=new FileReader();
   leitor.onload=async e=>{
     input.value='';
     try{
-      if(ehPDF){
+      if(ehXLSX){
+        extratoImportado=lerLinhasExtrato(await lerXLSX(e.target.result));
+      }else if(ehPDF){
         const texto=await extrairTextoPDF(e.target.result);
         extratoImportado=lerLinhasExtrato(texto.split('\n'));
       }else{
@@ -3134,18 +3227,22 @@ function importarExtrato(input){
               'blocos '+d.streams+' · abertos '+d.inflados+' · com texto '+d.comTexto+
               ' · letras '+d.caracteres+' · linhas '+d.linhas+
               '\nmétodos: '+(Object.keys(d.metodos).length?JSON.stringify(d.metodos):'nenhum'));
+      }else if(ehXLSX){
+        alert('📗 Não consegui ler essa planilha.\n\nConfira se é o arquivo do extrato exportado pelo banco (.xlsx).');
       }else{
-        alert('Não consegui ler esse arquivo.\n\nNo Bradesco Net Empresa, exporte o extrato em CSV e tente de novo.');
+        alert('Não consegui ler esse arquivo.\n\nNo Bradesco Net Empresa, exporte o extrato em Excel ou CSV e tente de novo.');
       }
       return;
     }
     if(ehPDF){
-      alert('📄 Li '+extratoImportado.length+' lançamento(s) do PDF.\n\n⚠️ Leitura de PDF pode errar. Confira os valores antes de confirmar cada linha.\n\nSe algo vier errado, exporte em CSV — aí a leitura é exata.');
+      alert('📄 Li '+extratoImportado.length+' lançamento(s) do PDF.\n\n⚠️ PDF é interpretação de layout e pode errar. Confira os valores antes de confirmar.\n\nO Excel (.xlsx) do banco é leitura exata — prefira ele.');
+    }else if(ehXLSX){
+      alert('📗 Li '+extratoImportado.length+' lançamento(s) da planilha do banco.');
     }
     renderConciliacao();
   };
-  if(ehPDF)leitor.readAsArrayBuffer(arq);
-  else leitor.readAsText(arq,'ISO-8859-1');   // extrato de banco vem em latin1
+  if(ehPDF||ehXLSX)leitor.readAsArrayBuffer(arq);
+  else leitor.readAsText(arq,'ISO-8859-1');   // CSV de banco vem em latin1
 }
 
 // Casa cada linha do extrato com um lançamento: mesmo valor e data até 3 dias
