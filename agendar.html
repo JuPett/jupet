@@ -60,6 +60,14 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 .aviso{background:var(--lilas-palido);border-radius:12px;padding:14px;font-size:13px;line-height:1.55;color:var(--cinza);margin-top:12px;}
 .resumo{background:var(--lilas-palido);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;line-height:1.7;}
 .resumo b{color:var(--roxo);}
+.regra{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--borda);font-size:13px;line-height:1.55;}
+.regra-ico{font-size:17px;flex-shrink:0;line-height:1.3;}
+.regra b{color:var(--roxo);}
+.aceite{display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:13px;background:var(--lilas-palido);border-radius:12px;cursor:pointer;font-size:14px;font-weight:500;color:var(--roxo);line-height:1.4;}
+.aceite input{width:20px;height:20px;flex-shrink:0;accent-color:var(--roxo);margin-top:1px;}
+.pacote{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--borda);font-size:14px;}
+.pacote-sub{font-size:11px;color:var(--cinza-claro);font-weight:400;margin-top:2px;line-height:1.45;}
+.pacote-preco{color:var(--roxo);font-weight:500;white-space:nowrap;}
 .rodape{text-align:center;padding:24px 20px;font-size:12px;color:var(--cinza-claro);line-height:1.7;}
 .erro{color:#A32D2D;font-size:12px;margin-top:8px;display:none;}
 </style>
@@ -107,9 +115,54 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       </div>
     </div>
 
-    <!-- 4. ENVIAR -->
+    <!-- 4. COMBINADOS -->
+    <!-- As regras aparecem ANTES do envio e o aceite trava o botão: o cliente
+         precisa saber de pontualidade e taxa de espera antes de marcar, não depois. -->
     <div class="card">
-      <div class="passo"><div class="passo-num">4</div><div class="passo-txt">Enviar o pedido</div></div>
+      <div class="passo"><div class="passo-num">4</div><div class="passo-txt">Nossos combinados</div></div>
+
+      <div class="regra">
+        <div class="regra-ico">🕘</div>
+        <div><b>Chegada pontual.</b> Atrasos podem reduzir o tempo do atendimento ou exigir remarcação, conforme a agenda.</div>
+      </div>
+      <div class="regra">
+        <div class="regra-ico">🛁</div>
+        <div><b>Retirada em até 1 hora</b> após o aviso de que o pet ficou pronto.</div>
+      </div>
+      <div class="regra">
+        <div class="regra-ico">⏳</div>
+        <div><b>Atraso na retirada:</b> taxa de espera de R$ 10 a R$ 20 por hora (ou fração). Em atraso maior, a retirada pode ser reagendada.</div>
+      </div>
+      <div class="regra">
+        <div class="regra-ico">📅</div>
+        <div><b>Faltou sem avisar?</b> O horário é considerado realizado. Para remarcar, avise com antecedência.</div>
+      </div>
+      <div class="regra">
+        <div class="regra-ico">💳</div>
+        <div><b>Pagamento no início</b> do atendimento ou do pacote — Pix ou cartão (com taxa). Pacotes não são parcelados e são pessoais e intransferíveis.</div>
+      </div>
+      <div class="regra">
+        <div class="regra-ico">✂️</div>
+        <div><b>Desembolo, nós e serviços extras</b> são cobrados à parte, conforme avaliação do pet no dia.</div>
+      </div>
+      <div class="regra">
+        <div class="regra-ico">🧴</div>
+        <div><b>Dermatite ou pele sensível?</b> Traga o shampoo indicado pelo veterinário.</div>
+      </div>
+      <div class="regra" style="border:none;">
+        <div class="regra-ico">💜</div>
+        <div>Trabalhamos com <b>amor, paciência e respeito</b> ao seu pet.</div>
+      </div>
+
+      <label class="aceite" for="aceitou">
+        <input type="checkbox" id="aceitou" onchange="atualizar()">
+        <span>Li e concordo com os combinados acima.</span>
+      </label>
+    </div>
+
+    <!-- 5. ENVIAR -->
+    <div class="card">
+      <div class="passo"><div class="passo-num">5</div><div class="passo-txt">Enviar o pedido</div></div>
       <div class="form-group"><label class="form-label">Alguma observação?</label><input class="form-input" id="obs" placeholder="Ex: tem medo de secador, alergia..." oninput="atualizar()"></div>
       <div class="resumo" id="resumo">Preencha os passos acima para montar seu pedido.</div>
       <button class="btn-zap" id="botao" onclick="enviar()" disabled>💬 Pedir pelo WhatsApp</button>
@@ -117,6 +170,28 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div class="aviso">
         ⚠️ Este é um <b>pedido de horário</b>, não uma reserva confirmada. A Tia Ju vai responder pelo WhatsApp confirmando ou sugerindo outro horário.
       </div>
+    </div>
+
+    <!-- PACOTES (informativo) -->
+    <div class="card">
+      <div class="passo"><div class="passo-num">💜</div><div class="passo-txt">Pacotes mensais</div></div>
+      <div style="font-size:13px;color:var(--cinza-claro);margin-bottom:12px;line-height:1.5;">
+        Quem tem pacote <b>tem prioridade na agenda</b> e ganha mimo de hidratação ou perfume. Pergunte à Tia Ju no WhatsApp.
+      </div>
+      <div class="pacote"><div><b>Essencial</b><div class="pacote-sub">2 banhos no mês · banho completo + escovação + perfume</div></div><div class="pacote-preco">R$ 120</div></div>
+      <div class="pacote"><div><b>Cuidado</b><div class="pacote-sub">4 banhos no mês · + finalização especial + 1 hidratação</div></div><div class="pacote-preco">R$ 250</div></div>
+      <div class="pacote"><div><b>Spa Pet</b><div class="pacote-sub">4 banhos no mês · hidratação premium + BB Cream/óleo + perfume especial</div></div><div class="pacote-preco">R$ 350</div></div>
+      <div class="pacote"><div><b>Família</b> <span class="pacote-sub">(2 pets)</span><div class="pacote-sub">a partir de 4 banhos no total, desconto no 2º pet</div></div><div class="pacote-preco">R$ 220+</div></div>
+      <div class="pacote" style="border:none;"><div><b>Manutenção</b> <span class="pacote-sub">(2 pets)</span><div class="pacote-sub">banhos + tosa higiênica de manutenção inclusa</div></div><div class="pacote-preco">R$ 360+</div></div>
+    </div>
+
+    <!-- CLUBINHO -->
+    <div class="card" style="background:linear-gradient(135deg,var(--roxo),#8B5CA8);color:white;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;margin-bottom:6px;">⭐ Clubinho Ju Pet</div>
+      <div style="font-size:14px;opacity:0.95;line-height:1.6;">
+        A cada <b>10 banhos</b> no clubinho, você ganha <b>1 hidratação simples grátis!</b>
+      </div>
+      <div style="font-size:12px;opacity:0.75;margin-top:10px;">Terça a quinta são os dias do clubinho.</div>
     </div>
 
   </div>
@@ -142,16 +217,27 @@ const HORAS=['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00'];
 const DIAS_A_MOSTRAR=21;               // janela de dias oferecida
 const WHATSAPP='5571987699236';
 
+// Tabela oficial da Ju (PDF "Tabela de Serviços", 19/07/2026).
+// Preço em FAIXA é mostrado como faixa de propósito — depende do porte, da
+// pelagem e do estado do pet no dia. Prometer o valor mínimo geraria discussão
+// na hora de pagar. ⚠️ Mesma tabela existe no index.html; mudou aqui, mude lá.
 const SERVICOS=[
-  {nome:'Banho simples',preco:65},
-  {nome:'Banho + finalização',preco:80},
-  {nome:'Banho + hidratação',preco:100},
-  {nome:'Spa Premium',preco:130},
-  {nome:'Tosa higiênica',preco:75},
-  {nome:'Tosa máquina',preco:90},
-  {nome:'Tosa modelada',preco:120},
-  {nome:'Não sei, quero orientação',preco:0}
+  {nome:'Banho simples',        min:65},
+  {nome:'Banho + finalização',  min:80},
+  {nome:'Banho + hidratação',   min:100, max:120},
+  {nome:'Spa Premium',          min:130, max:150},
+  {nome:'Tosa higiênica',       min:75},
+  {nome:'Tosa máquina',         min:90},
+  {nome:'Tosa modelada',        min:120, max:150},
+  {nome:'Hidratação',           min:25,  max:60},
+  {nome:'Mechas coloridas',     min:30,  max:60},
+  {nome:'Não sei, quero orientação', min:0, consultar:true}
 ];
+function rotuloPreco(s){
+  if(s.consultar||!s.min)return '';
+  if(s.max&&s.max>s.min)return 'R$ '+s.min+' a '+s.max;
+  return 'R$ '+s.min;
+}
 
 let servicoSel=null, diaSel=null, horaSel=null;
 
@@ -171,9 +257,10 @@ function mascaraTel(input){
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 // ─── SERVIÇOS ───
-document.getElementById('servicos').innerHTML=SERVICOS.map((s,i)=>
-  `<span class="chip" onclick="selServico(${i},this)">${esc(s.nome)}${s.preco?` <span class="chip-preco">R$ ${s.preco}</span>`:''}</span>`
-).join('');
+document.getElementById('servicos').innerHTML=SERVICOS.map((s,i)=>{
+  const p=rotuloPreco(s);
+  return `<span class="chip" onclick="selServico(${i},this)">${esc(s.nome)}${p?` <span class="chip-preco">${p}</span>`:''}</span>`;
+}).join('');
 function selServico(i,el){
   servicoSel=SERVICOS[i];
   document.querySelectorAll('#servicos .chip').forEach(c=>c.classList.remove('sel'));
@@ -238,7 +325,8 @@ function atualizar(){
   const tutor=document.getElementById('tutor').value.trim();
   const pet=document.getElementById('pet').value.trim();
   const tel=document.getElementById('tel').value.trim();
-  const ok=tutor&&pet&&tel.replace(/\D/g,'').length>=10&&servicoSel&&diaSel&&horaSel;
+  const aceitou=document.getElementById('aceitou').checked;
+  const ok=tutor&&pet&&tel.replace(/\D/g,'').length>=10&&servicoSel&&diaSel&&horaSel&&aceitou;
   document.getElementById('botao').disabled=!ok;
 
   const faltando=[];
@@ -248,13 +336,15 @@ function atualizar(){
   if(!servicoSel)faltando.push('o serviço');
   if(!diaSel)faltando.push('o dia');
   if(!horaSel)faltando.push('o horário');
+  if(!aceitou)faltando.push('aceitar os combinados');
 
   const r=document.getElementById('resumo');
   if(faltando.length){
     r.innerHTML='Ainda falta: <b>'+faltando.join('</b>, <b>')+'</b>.';
   }else{
+    const p=rotuloPreco(servicoSel);
     r.innerHTML=`<b>${esc(pet)}</b> (${esc(document.getElementById('porte').value)})<br>`+
-      `${esc(servicoSel.nome)}${servicoSel.preco?' — R$ '+servicoSel.preco:''}<br>`+
+      `${esc(servicoSel.nome)}${p?' — '+p:''}<br>`+
       `<b>${fmtData(diaSel)}</b> às <b>${horaSel}</b>`;
   }
 }
@@ -274,12 +364,14 @@ function montarMensagem(){
   const raca=document.getElementById('raca').value.trim();
   if(raca)l.push('Raça: '+raca);
   l.push('Servico: '+servicoSel.nome);
-  if(servicoSel.preco)l.push('Valor: '+servicoSel.preco);
+  // manda o MÍNIMO da faixa: é o piso, e a Ju ajusta ao ver o pet
+  if(servicoSel.min)l.push('Valor: '+servicoSel.min);
   l.push('Dia: '+fmtData(diaSel));
   l.push('Hora: '+horaSel);
   const obs=document.getElementById('obs').value.trim();
   if(obs)l.push('Obs: '+obs);
   l.push('');
+  l.push('✔ Li e aceito os combinados de agendamento.');
   l.push('_Enviado pelo site da Ju Pet_');
   return l.join('\n');
 }

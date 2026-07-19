@@ -435,19 +435,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div class="form-group"><label class="form-label">Pet</label><input class="form-input" id="reciboPet" placeholder="Nome do pet" oninput="atualizarRecibo()"></div>
       <div class="form-group">
         <label class="form-label">Serviços realizados</label>
-        <div class="servicos-chips">
-          <span class="servico-chip" onclick="toggleServico(this,'Banho simples','65')">Banho simples R$65</span>
-          <span class="servico-chip" onclick="toggleServico(this,'Banho + finalização','80')">Banho + finalização R$80</span>
-          <span class="servico-chip" onclick="toggleServico(this,'Banho + hidratação','100')">Banho + hidratação R$100</span>
-          <span class="servico-chip" onclick="toggleServico(this,'Spa Premium','130')">Spa Premium R$130</span>
-          <span class="servico-chip" onclick="toggleServico(this,'Tosa higiênica','75')">Tosa higiênica R$75</span>
-          <span class="servico-chip" onclick="toggleServico(this,'Tosa máquina','90')">Tosa máquina R$90</span>
-          <span class="servico-chip" onclick="toggleServico(this,'Tosa modelada','120')">Tosa modelada R$120</span>
-          <span class="servico-chip" onclick="toggleServico(this,'Hidratação','25')">Hidratação R$25</span>
-          <span class="servico-chip" onclick="toggleServico(this,'Mechas coloridas','30')">Mechas R$30</span>
-          <span class="servico-chip" onclick="toggleServico(this,'Perfume especial','10')">Perfume R$10</span>
-          <span class="servico-chip" onclick="toggleServico(this,'Desembolo','20')">Desembolo R$20</span>
-        </div>
+        <!-- chips gerados de SERVICOS_LISTA (fonte unica de preco) -->
+        <div class="servicos-chips" id="servicosChips"></div>
       </div>
       <div class="form-group"><label class="form-label">Forma de pagamento</label><select class="form-select" id="reciboPagamento" onchange="atualizarRecibo()"><option>Pix</option><option>Cartão de Débito</option><option>Cartão de Crédito</option><option>Dinheiro</option></select></div>
       <div class="form-group"><label class="form-label">Observações</label><input class="form-input" id="reciboObs" placeholder="ex: próximo banho em 30 dias" oninput="atualizarRecibo()"></div>
@@ -763,32 +752,74 @@ let periodoFin='mes';
 let petTutorAlvo=null; // id do tutor ao adicionar pet
 const RETORNO_DIAS_PADRAO=30;
 // Pacotes mensais (tabela Ju Pet) + valor de referência por mês
+// Valor de referência do pacote por mês. Família e Manutenção são FAIXA na tabela
+// (220–480 e 360–750); aqui fica o mínimo, só para estimar a receita recorrente.
 const PACOTES={'Essencial':120,'Cuidado':250,'Spa Pet':350,'Família':220,'Manutenção':360};
 const FIDELIDADE_META=10; // a cada 10 banhos no clube, 1 hidratação grátis
 function valorPacote(nome){return PACOTES[nome]||0;}
 
 // ─── TABELA DE SERVIÇOS ───
-// Mesma tabela usada nos chips do Recibo. Fonte única: mudou aqui, muda nos dois.
-// ⚠️ Preço ainda NÃO varia por porte (banho de Grande custa mais na prática).
-// Falta a Ju passar a tabela real por porte para embutir isso.
-const SERVICOS={
-  'Banho simples':{preco:65,retorno:30},
-  'Banho + finalização':{preco:80,retorno:30},
-  'Banho + hidratação':{preco:100,retorno:30},
-  'Spa Premium':{preco:130,retorno:30},
-  'Tosa higiênica':{preco:75,retorno:45},
-  'Tosa máquina':{preco:90,retorno:45},
-  'Tosa modelada':{preco:120,retorno:45},
-  'Pacote Essencial':{preco:120,retorno:30},
-  'Pacote Cuidado':{preco:250,retorno:30},
-  'Pacote Spa Pet':{preco:350,retorno:30},
-  'Pacote Família (2 pets)':{preco:220,retorno:30},
-  'Pacote Manutenção (2 pets)':{preco:360,retorno:30},
-  'Hidratação':{preco:25,retorno:30},
-  'Mechas coloridas':{preco:30,retorno:30},
-  'Perfume especial':{preco:10,retorno:30},
-  'Desembolo':{preco:20,retorno:30}
-};
+// FONTE ÚNICA: o <select> do agendamento e os chips do Recibo são gerados daqui.
+// Valores da tabela oficial da Ju (PDF "Tabela de Serviços", recebido em 19/07/2026).
+//
+// ⚠️ Vários preços são FAIXA, não valor fixo — dependem de porte, pelagem e do
+// estado do pet no dia. O app sugere o MÍNIMO e mostra a faixa; a Ju ajusta.
+// Nunca transformar faixa em valor único: seria cobrar a menos sem perceber.
+//
+// ⚠️ A mesma tabela existe no agendar.html (página do cliente). Mudou aqui, mude lá.
+const SERVICOS_LISTA=[
+  {nome:'Banho simples',            grupo:'Banhos', min:65,             retorno:30},
+  {nome:'Banho + finalização',      grupo:'Banhos', min:80,             retorno:30},
+  {nome:'Banho + hidratação',       grupo:'Banhos', min:100, max:120,   retorno:30},
+  {nome:'Spa Premium',              grupo:'Banhos', min:130, max:150,   retorno:30},
+
+  {nome:'Tosa higiênica',           grupo:'Tosas',  min:75,             retorno:45},
+  {nome:'Tosa máquina',             grupo:'Tosas',  min:90,             retorno:45},
+  {nome:'Tosa modelada',            grupo:'Tosas',  min:120, max:150,   retorno:45},
+  {nome:'Outros tipos de tosa',     grupo:'Tosas',  min:0, consultar:true, retorno:45},
+
+  {nome:'Hidratação',               grupo:'Extras', min:25,  max:60,    retorno:30},
+  {nome:'Mechas coloridas',         grupo:'Extras', min:30,  max:60,    retorno:30},
+  {nome:'Perfume especial',         grupo:'Extras', min:10,             retorno:30},
+  {nome:'Desembolo leve',           grupo:'Extras', min:20,  apartir:true, retorno:30},
+  {nome:'Desembolo médio',          grupo:'Extras', min:50,  apartir:true, retorno:30},
+  {nome:'Desembolo intenso',        grupo:'Extras', min:100, apartir:true, retorno:30},
+
+  {nome:'Pacote Essencial',         grupo:'Pacotes mensais', min:120,           pacote:true, retorno:30},
+  {nome:'Pacote Cuidado',           grupo:'Pacotes mensais', min:250,           pacote:true, retorno:30},
+  {nome:'Pacote Spa Pet',           grupo:'Pacotes mensais', min:350,           pacote:true, retorno:30},
+  {nome:'Pacote Família (2 pets)',  grupo:'Pacotes mensais', min:220, max:480,  pacote:true, retorno:30},
+  {nome:'Pacote Manutenção (2 pets)',grupo:'Pacotes mensais',min:360, max:750,  pacote:true, retorno:30}
+];
+const SERVICOS=Object.fromEntries(SERVICOS_LISTA.map(s=>[s.nome,s]));
+
+// "R$ 65" · "R$ 100 a 120" · "a partir de R$ 20" · "consultar"
+function rotuloPreco(s){
+  if(!s)return'';
+  if(s.consultar)return'consultar';
+  if(s.apartir)return'a partir de '+brl(s.min);
+  if(s.max&&s.max>s.min)return brl(s.min)+' a '+brl(s.max);
+  return brl(s.min);
+}
+
+// monta o <select> do agendamento a partir da tabela
+function montarSelectServicos(){
+  const sel=document.getElementById('atendServico');
+  const grupos=[...new Set(SERVICOS_LISTA.map(s=>s.grupo))];
+  sel.innerHTML=grupos.map(g=>
+    `<optgroup label="${g}">`+
+    SERVICOS_LISTA.filter(s=>s.grupo===g).map(s=>`<option>${esc(s.nome)}</option>`).join('')+
+    '</optgroup>'
+  ).join('')+'<option>Outro / personalizado</option>';
+}
+
+// monta os chips do Recibo (sem pacotes — recibo é de atendimento avulso)
+function montarChipsRecibo(){
+  document.getElementById('servicosChips').innerHTML=
+    SERVICOS_LISTA.filter(s=>!s.pacote&&!s.consultar).map(s=>
+      `<span class="servico-chip" onclick="toggleServico(this,'${esc(s.nome).replace(/'/g,"\\'")}',${s.min})">${esc(s.nome)} <span style="opacity:0.7;">${rotuloPreco(s)}</span></span>`
+    ).join('');
+}
 
 // ─── IDADE DO PET ───
 // Guardamos a DATA DE NASCIMENTO e calculamos a idade na hora de mostrar.
@@ -1174,16 +1205,20 @@ function aoTrocarServico(){
   const s=SERVICOS[nome];
   const campoValor=document.getElementById('atendValor');
   const dica=document.getElementById('atendValorDica');
-  if(s){
-    campoValor.value=s.preco;
-    dica.textContent='Preço de tabela — pode alterar';
-    document.getElementById('atendRetorno').value=s.retorno;
-    document.getElementById('atendRetornoDica').textContent=
-      'Sugerido para '+nome.toLowerCase()+': '+s.retorno+' dias';
-  }else{
+  if(!s){
     campoValor.value='';
     dica.textContent='Serviço personalizado — informe o valor';
+    return;
   }
+  // Sugere o MÍNIMO da faixa. Quem decide o valor final é a Ju, olhando o pet.
+  campoValor.value=s.consultar?'':s.min;
+  if(s.consultar)                  dica.textContent='Preço sob consulta — avalie o pet e informe o valor';
+  else if(s.apartir)               dica.innerHTML='Tabela: <b>a partir de '+brl(s.min)+'</b> — conforme o estado do pelo';
+  else if(s.max&&s.max>s.min)      dica.innerHTML='Tabela: <b>'+brl(s.min)+' a '+brl(s.max)+'</b> — ajuste pelo porte e pelagem';
+  else                             dica.textContent='Preço de tabela — pode alterar';
+  document.getElementById('atendRetorno').value=s.retorno;
+  document.getElementById('atendRetornoDica').textContent=
+    'Sugerido para '+nome.toLowerCase()+': '+s.retorno+' dias';
 }
 function sugerirRetornoPorPet(p){
   // se o pet tem pacote mensal, o retorno natural é mensal
@@ -2323,6 +2358,8 @@ function renderBackupInfo(){
 }
 
 // ─── INIT ───
+montarSelectServicos();
+montarChipsRecibo();
 document.getElementById('atendData').value=hojeISO();
 document.getElementById('recData').value=hojeISO();
 renderDash();
