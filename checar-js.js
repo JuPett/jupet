@@ -43,6 +43,36 @@ for (const pagina of ['index.html', 'agendar.html']) {
   else console.log(`  ${pagina} ids do getElementById: OK`);
 }
 
+// ── XSS: dado do usuario indo cru para innerHTML ──────────────────────────────
+// O app monta HTML com template string. Se um campo preenchido por gente entra
+// sem esc(), quem digitar HTML no nome injeta markup na tela — e esse dado pode
+// vir de FORA, pelo pedido que o cliente manda pelo link de agendamento.
+// Esta checagem existe porque a auditoria de 19/07/2026 achou 15 pontos assim.
+const CAMPOS_DE_GENTE = [
+  'c\\.nome', 'c\\.tel', 'a\\.pet', 'a\\.tutor', 'a\\.tel', 'a\\.servico', 'a\\.obs',
+  'p\\.nome', 'p\\.raca', 'p\\.obs', 'p\\.pacote', 'l\\.desc', 'l\\.cat',
+  'r\\.nome', 'r\\.pet', 'petsLabel', 'nomes'
+];
+{
+  const html = fs.readFileSync(path.join(raiz, 'index.html'), 'utf8');
+  const linhas = html.split('\n');
+  const suspeitas = [];
+  const reCampo = new RegExp('\\$\\{\\s*(' + CAMPOS_DE_GENTE.join('|') + ')\\s*(\\|\\|[^}]*)?\\}', 'g');
+  linhas.forEach((linha, i) => {
+    // só interessa linha que monta HTML
+    if (!/<(div|span|b|td|li|p)\b/.test(linha)) return;
+    let m;
+    while ((m = reCampo.exec(linha)) !== null) {
+      suspeitas.push(`  linha ${i + 1}: \${${m[1]}} sem esc()`);
+    }
+  });
+  if (suspeitas.length) {
+    falhar('campos preenchidos por gente indo crus para innerHTML (risco de XSS):\n' + suspeitas.join('\n'));
+  } else {
+    console.log('  escape de dados do usuario (XSS): OK');
+  }
+}
+
 // ── arquivos soltos ───────────────────────────────────────────────────────────
 for (const arq of ['sw.js', 'racas.js']) {
   try {

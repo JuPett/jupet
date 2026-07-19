@@ -2253,7 +2253,7 @@ function renderClientes(){
       <div class="cliente-info">
         <div class="cliente-nome">${esc(c.nome)} ${temPacote?'📦':''}</div>
         <div class="cliente-pets">🐾 ${esc(petsLabel)}${petsCount}</div>
-        <div class="cliente-tel">${c.tel||''}</div>
+        <div class="cliente-tel">${esc(c.tel||'')}</div>
         ${anivTag}
       </div>
       <button class="btn-delete" onclick="event.stopPropagation();deletarCliente(${c.id})">🗑</button>
@@ -2442,7 +2442,7 @@ function renderFin(){
   if(!todos.length){cont.innerHTML='<div class="empty"><div class="empty-icon">💰</div><div class="empty-text">Nenhum lançamento neste período</div></div>';return;}
   cont.innerHTML=todos.map(l=>`
     <div class="fin-item">
-      <div><div class="fin-desc">${l.desc}</div><div class="fin-meta">${l.cat} · ${formatData(l.data)}</div></div>
+      <div><div class="fin-desc">${esc(l.desc)}</div><div class="fin-meta">${esc(l.cat)} · ${formatData(l.data)}</div></div>
       <div style="display:flex;align-items:center;gap:8px;"><div class="fin-valor ${l.tipo}">${l.tipo==='entrada'?'+':'-'}R$ ${l.valor.toLocaleString('pt-BR')}</div><button class="btn-delete" onclick="deletarLanc(${l.id})">🗑</button></div>
     </div>`).join('');
 }
