@@ -68,6 +68,16 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 .pacote{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--borda);font-size:14px;}
 .pacote-sub{font-size:11px;color:var(--cinza-claro);font-weight:400;margin-top:2px;line-height:1.45;}
 .pacote-preco{color:var(--roxo);font-weight:500;white-space:nowrap;}
+.explica{border:1.5px solid var(--borda);border-radius:12px;margin-top:4px;background:var(--lilas-palido);}
+.explica summary{padding:13px 14px;font-size:13px;font-weight:500;color:var(--roxo);cursor:pointer;list-style:none;}
+.explica summary::-webkit-details-marker{display:none;}
+.explica summary::after{content:'  ▾';float:right;opacity:0.6;}
+.explica[open] summary::after{content:'  ▴';}
+.explica-corpo{padding:0 14px 14px;font-size:12.5px;line-height:1.6;color:var(--cinza);}
+.explica-corpo p{margin-bottom:10px;}
+.explica-corpo b{color:var(--roxo);}
+.faixa{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--lilas-claro);font-size:12.5px;}
+.faixa:last-of-type{border:none;}
 .raca-lista{display:none;border:1.5px solid var(--borda);border-radius:10px;margin-top:6px;max-height:220px;overflow-y:auto;background:white;}
 .raca-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 13px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--borda);}
 .raca-item:last-child{border:none;}
@@ -108,8 +118,32 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div class="form-group">
         <label class="form-label">Porte</label>
         <select class="form-select" id="porte" onchange="aoTrocarPorte()"><option>Pequeno</option><option>Médio</option><option>Grande</option></select>
-        <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;">Preenche sozinho ao escolher a raça — mas você pode ajustar.</div>
+        <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;" id="porteOrigem">Preenche sozinho ao escolher a raça — mas você pode ajustar.</div>
       </div>
+
+      <!-- Peso: o desempate objetivo para SRD e mistura, onde não há padrão de
+           raça para consultar. É o que tira a discussão do "acho que é pequeno". -->
+      <div class="form-group" id="pesoGrupo" style="display:none;">
+        <label class="form-label">Peso aproximado (kg)</label>
+        <input class="form-input" id="peso" type="number" step="0.5" min="0" max="120" placeholder="Ex: 8" inputmode="decimal" oninput="aoInformarPeso()">
+        <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;" id="pesoDica">Sem raça definida a gente usa o peso. Não sabe? Deixe em branco que conferimos no atendimento.</div>
+      </div>
+
+      <details class="explica">
+        <summary>📏 Como definimos o porte do seu pet</summary>
+        <div class="explica-corpo">
+          <p><b>Pela raça.</b> Cada raça tem um padrão oficial (CBKC/FCI) que define a altura e o peso do cão adulto. É por isso que, ao escolher a raça acima, o porte já aparece preenchido.</p>
+
+          <p><b>Sem raça definida ou misturado?</b> Aí vale o peso do pet adulto:</p>
+          <div class="faixa"><span><b>Pequeno</b></span><span>até 10 kg</span></div>
+          <div class="faixa"><span><b>Médio</b></span><span>de 10 a 25 kg</span></div>
+          <div class="faixa"><span><b>Grande</b></span><span>acima de 25 kg</span></div>
+
+          <p style="margin-top:12px;"><b>E a pelagem?</b> A pelagem <u>não muda o porte</u> — um Lulu da Pomerânia é pequeno mesmo tendo muito pelo. O que a pelagem muda é o <b>tempo de trabalho</b>: pelo longo, dupla pelagem, nós e embaraçado entram como <b>desembolo</b>, cobrado à parte e sempre avaliado no dia, com você sabendo antes de começar.</p>
+
+          <p><b>Ficou em dúvida?</b> Sem problema. Na chegada a gente confere junto com você e combina o valor <u>antes</u> de começar o banho. Nunca tem surpresa no final. 💜</p>
+        </div>
+      </details>
     </div>
 
     <!-- 2. SERVIÇO -->
@@ -268,10 +302,40 @@ const SERVICOS=[
 // ─── RAÇA → PORTE → PREÇO ───
 // Escolher a raça já acerta o porte, e o porte acerta o preço. O cliente não
 // precisa saber em que "porte" o cachorro dele se encaixa.
+// Faixas de peso para quem não tem raça definida. É o critério objetivo que
+// substitui o "acho que ele é pequeno": peso se confere na balança.
+// ⚠️ Faixas propostas (10 / 25 kg) — confirmar com a Ju.
+function porteDoPeso(kg){
+  if(!kg||kg<=0)return '';
+  if(kg<=10)return 'Pequeno';
+  if(kg<=25)return 'Médio';
+  return 'Grande';
+}
+function aoInformarPeso(){
+  const kg=parseFloat(document.getElementById('peso').value);
+  const p=porteDoPeso(kg);
+  const dica=document.getElementById('pesoDica');
+  if(!p){
+    dica.textContent='Sem raça definida a gente usa o peso. Não sabe? Deixe em branco que conferimos no atendimento.';
+    return;
+  }
+  document.getElementById('porte').value=p;
+  document.getElementById('porteOrigem').textContent='Definido pelo peso informado ('+kg+' kg).';
+  dica.innerHTML='<b style="color:var(--roxo);">'+kg+' kg = porte '+p.toLowerCase()+'</b>';
+  montarServicos();
+  atualizar();
+}
+
 RACA_AO_ESCOLHER['raca']=(nome,porte)=>{
+  // sem porte conhecido (SRD, "não sei", raça digitada livre) → pede o peso
+  document.getElementById('pesoGrupo').style.display=porte?'none':'';
   if(porte){
     document.getElementById('porte').value=porte;
+    document.getElementById('porteOrigem').textContent='Definido pelo padrão da raça '+nome+'. Pode ajustar se precisar.';
+    document.getElementById('peso').value='';
     montarServicos();   // preço se ajusta ao porte novo
+  }else if(nome){
+    document.getElementById('porteOrigem').textContent='Essa raça não tem porte fixo — informe o peso abaixo.';
   }
   // Raça não atendida: avisa AQUI, não na porta da loja.
   const bloq=racaBloqueada(nome);
@@ -433,6 +497,8 @@ function montarMensagem(){
   l.push('Telefone: '+document.getElementById('tel').value.trim());
   l.push('Pet: '+document.getElementById('pet').value.trim());
   l.push('Porte: '+document.getElementById('porte').value);
+  const kg=parseFloat(document.getElementById('peso').value);
+  if(kg>0)l.push('Peso: '+kg+' kg');
   const raca=racaFinal();
   if(raca)l.push('Raça: '+raca);
   l.push('Servico: '+servicoSel.nome);
