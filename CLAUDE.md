@@ -105,21 +105,34 @@ de configuração ainda.
 
 Fonte: PDF **"Ju Pet — Tabela de Serviços"**, recebido da Ju em 19/07/2026.
 
-**Vários preços são FAIXA, não valor fixo** — dependem de porte, pelagem e do estado
-do pet no dia. O app **sugere o mínimo** e mostra a faixa na dica; quem decide o valor
-final é a Ju, olhando o pet. **Nunca converter faixa em valor único**: seria cobrar a
-menos sem perceber. Três formatos: faixa (`min`+`max`), `apartir:true` (desembolo) e
-`consultar:true` (outros tipos de tosa, sem valor sugerido).
+**O preço é POR PORTE** (Pequeno / Médio / Grande), em `precos:{}`. As faixas do PDF
+original ("R$ 100 a 120") já eram o porte — foram abertas em três valores.
 
-| | |
-|---|---|
-| Banho simples · finalização | 65 · 80 |
-| Banho + hidratação · Spa Premium | 100–120 · 130–150 |
-| Tosa higiênica · máquina · modelada | 75 · 90 · 120–150 |
-| Hidratação · Mechas · Perfume | 25–60 · 30–60 · 10 |
-| Desembolo leve · médio · intenso | a partir de 20 · 50 · 100 |
-| Pacotes Essencial · Cuidado · Spa Pet | 120 · 250 · 350 |
-| Pacote Família · Manutenção (2 pets) | 220–480 · 360–750 |
+| Serviço | Peq | Méd | Gra | Origem |
+|---|---|---|---|---|
+| Banho simples | 65 | 75 | 85 | ⚠️ sugerido |
+| Banho + finalização | 80 | 90 | 105 | ⚠️ sugerido |
+| Banho + hidratação | 100 | 110 | 120 | tabela da Ju |
+| Spa Premium | 130 | 140 | 150 | tabela da Ju |
+| Tosa higiênica | 75 | 85 | 95 | ⚠️ sugerido |
+| Tosa máquina | 90 | 105 | 120 | ⚠️ sugerido |
+| Tosa modelada | 120 | 135 | 150 | tabela da Ju |
+| Hidratação | 25 | 40 | 60 | tabela da Ju |
+| Mechas coloridas | 30 | 45 | 60 | tabela da Ju |
+
+Sem porte (campo `fixo`): Perfume 10 · Desembolo leve/médio/intenso a partir de
+20/50/100 · Pacotes Essencial 120, Cuidado 250, Spa Pet 350, Família 220–480,
+Manutenção 360–750. `consultar:true` = outros tipos de tosa, sem valor sugerido.
+
+⚠️ **`sugerido:true` marca os 4 valores que EU propus**, não os que a Ju passou. A
+tabela dela dava valor único para esses (65/80/75/90) e eu apliquei a mesma proporção
++15%/+30% que as faixas dela mostram. **Aguardando confirmação dela (19/07/2026).**
+Enquanto a flag existir, a dica do agendamento mostra "(valor a confirmar)". Ao
+confirmar, ajustar o número e remover a flag.
+
+**O porte vem do cadastro do pet** — `porteDoPetSelecionado()` lê o pet escolhido no
+agendamento, então o preço sai certo sem ninguém digitar. No Recibo há um seletor de
+porte próprio (o recibo não exige cliente cadastrado).
 
 No `index.html`, `SERVICOS_LISTA` é a **fonte única**: o `<select>` do agendamento e
 os chips do Recibo são **gerados** dela (`montarSelectServicos`, `montarChipsRecibo`).

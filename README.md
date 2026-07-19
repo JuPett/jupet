@@ -57,8 +57,10 @@ nenhuma mensagem — daí a checagem ser obrigatória.
 
 1. Não dá para **editar** cliente, pet ou lançamento já salvo — só criar e apagar.
    (Produto já pode ser editado.)
-2. **Preço em faixa é resolvido pela Ju no atendimento** — o app sugere o mínimo e
-   mostra a faixa. Não há regra automática por porte; a tabela oficial não define uma.
+2. **4 preços aguardam confirmação da Ju** — banho simples, banho + finalização,
+   tosa higiênica e tosa máquina tinham valor único na tabela dela; os valores de
+   Médio e Grande foram propostos (marcados `sugerido:true` no código e com
+   "(valor a confirmar)" na tela). Confirmar e remover a flag.
 3. Despesas fixas ainda são **valores fixos no código** (agora num lugar só,
    `DESPESAS_FIXAS`) — falta uma tela para a Ju editar sozinha.
 4. Apagar cliente deixa os atendimentos dele órfãos no financeiro.
