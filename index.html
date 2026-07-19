@@ -1181,10 +1181,11 @@ function detalheBreakEven(){
   const varia=doMes.filter(l=>l.tipo==='saida').reduce((s,l)=>s+l.valor,0);
   const pct=Math.min(100,Math.round(receita/TOTAL_FIXO*100));
   const sobra=receita-TOTAL_FIXO-varia;
-  const ticket=(()=>{
-    const at=atendimentos.filter(a=>a.status==='concluido'&&a.data&&a.data.startsWith(mes)&&a.valor>0);
-    return at.length?receita/at.length:0;
-  })();
+  // Ticket médio = média DOS ATENDIMENTOS, não da receita total.
+  // Dividir a receita inteira inflava o ticket, porque ela inclui pacote
+  // mensal e venda de produto, que não são atendimento.
+  const atMes=atendimentos.filter(a=>a.status==='concluido'&&a.data&&a.data.startsWith(mes)&&a.valor>0);
+  const ticket=atMes.length?atMes.reduce((s,a)=>s+a.valor,0)/atMes.length:0;
   const faltam=Math.max(0,TOTAL_FIXO-receita);
   abrirDetalhe('Break-even do mês',
     `<div class="det-linha"><span>Receita do mês</span><span class="fin-valor entrada">${brl(receita)}</span></div>`+
@@ -1194,7 +1195,7 @@ function detalheBreakEven(){
     `<div class="det-nota"><b>O que é break-even:</b> é o ponto em que o que você recebeu já pagou tudo que a loja gasta. Antes disso você trabalha para pagar as contas; depois, o que entra é lucro.<br><br>`+
     `Você está em <b>${pct}%</b> do custo fixo.`+
     (faltam>0
-      ? ` Faltam <b>${brl(faltam)}</b>`+(ticket>0?` — mais ou menos <b>${Math.ceil(faltam/ticket)} atendimentos</b> no ticket médio de ${brl(Math.round(ticket))}.`:'.')
+      ? ` Faltam <b>${brl(faltam)}</b>`+(ticket>0?` — mais ou menos <b>${Math.ceil(faltam/ticket)} atendimentos</b> no seu ticket médio de ${brl(Math.round(ticket))} (média de ${atMes.length} atendimento${atMes.length>1?'s':''} concluído${atMes.length>1?'s':''} no mês).`:'.')
       : ` <b>O fixo já está pago este mês.</b> 🎉`)+
     `<br><br>⚠️ A porcentagem no painel considera só o custo fixo. As despesas variáveis entram nesta conta detalhada.</div>`);
 }
