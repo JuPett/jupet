@@ -54,14 +54,17 @@ nenhuma mensagem — daí a checagem ser obrigatória.
 
 ## Pendências conhecidas
 
-Levantadas na revisão de 19/07/2026, ainda **não** corrigidas:
+1. Não dá para **editar** cliente, pet ou lançamento já salvo — só criar e apagar.
+2. **Preço não varia por porte** — falta a tabela real da Ju.
+3. Despesas fixas (R$ 5.280) **fixas no código**, repetidas em 5 lugares.
+4. Apagar cliente deixa os atendimentos dele órfãos no financeiro.
+5. Break-even ignora as despesas variáveis já lançadas — sai otimista.
 
-1. Não dá para **editar** cliente, pet, agendamento ou lançamento — só criar e apagar.
-2. Agendamento não pode ser marcado como concluído depois (consequência do item 1).
-3. Aniversário do pet mostra "em 365d" no próprio dia, no perfil (`getDiasParaAniv`
-   compara com a hora atual e joga para o ano seguinte).
-4. Atendimento liga no pet **por nome em texto livre** — dois pets "Mel" misturam histórico.
-5. Receita pode ser contada **em dobro** (atendimento concluído + recibo do mesmo serviço).
-6. Depois das 21h o app trata "hoje" como o dia seguinte (`toISOString()` converte para UTC).
-7. Despesas fixas (R$ 5.280) estão **fixas no código**, repetidas em 5 lugares.
-8. Apagar cliente deixa os atendimentos dele órfãos no financeiro.
+## Já corrigido
+
+- Backup/restauração, compressão de foto e gravação que avisa quando falha (19/07)
+- Agendamento passa a **escolher** o cliente cadastrado, com vínculo por id
+- Idade do pet calculada a partir do nascimento
+- Concluir atendimento pela agenda, com carimbo de fidelidade automático
+- Receita em dobro barrada; aniversário no dia certo; fuso após as 21h
+- Atualização do app chega ao celular (o `sw.js` é carimbado a cada deploy)

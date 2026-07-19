@@ -81,21 +81,37 @@ sem nenhuma mensagem de erro. Nunca publicar sem passar por essa checagem.
 Ao mexer no app, atualizar `manual.html` junto quando a mudança for visível para
 a Ju — o manual é o treinamento dela e faz parte do "done".
 
+## Regras que não podem regredir
+
+- **Agendamento SELECIONA o cliente, não redigita.** `atendimentos` guarda
+  `clienteId` e `petId`; `pet`/`tutor`/`tel` são cópia para leitura. Voltar a pedir
+  nome digitado ressuscita o bug de dois pets "Mel" com histórico misturado.
+  Use `atendimentosDoPet(c,p)` para ler histórico — nunca comparar `a.pet` com `p.nome`.
+- **Idade é CALCULADA** a partir de `p.aniv` via `idadeTexto()`. Nunca criar campo de
+  idade digitada: envelhece errado.
+- **`hojeISO()` / `mesISO()` em vez de `toISOString()`** para datas do dia. O
+  `toISOString()` converte para UTC e, em Salvador, depois das 21h devolve o dia seguinte.
+- **`getDiasParaAniv` zera `hoje` na meia-noite.** Sem isso, no dia do aniversário
+  a data pula para o ano seguinte e aparece "em 365d".
+- **`lancarReceitaDoAtend()` é o único caminho para lançar receita de atendimento.**
+  Ele guarda `lancamentoId` e avisa se já existe entrada igual no mesmo dia — é o que
+  impede a receita de ser contada em dobro junto com o Recibo.
+- **`SERVICOS` é a fonte única de preço e retorno.** Os chips do Recibo usam a mesma
+  tabela. Mudou preço, muda num lugar só.
+- **`esc()` antes de jogar texto do usuário em `innerHTML`.**
+
 ## Pendências conhecidas
 
-Levantadas na revisão de 19/07/2026, ainda **não** corrigidas:
+Ainda **não** corrigidas (revisão de 19/07/2026):
 
-1. Não dá para **editar** cliente, pet, agendamento ou lançamento — só criar e apagar.
-2. Agendamento não pode ser marcado como concluído depois (consequência do item 1),
-   o que na prática esvazia a agenda: ela tem que cadastrar já como "concluído".
-3. `getDiasParaAniv` compara com a **hora atual**, então no dia do aniversário
-   joga para o ano seguinte e o perfil mostra "em 365d". Só o banner do dashboard
-   escapa, porque trata esse caso à parte.
-4. Atendimento liga no pet **por nome em texto livre** — dois pets "Mel" misturam histórico.
-5. Receita pode ser contada **em dobro** (atendimento concluído + recibo do mesmo serviço).
-6. Depois das 21h o app trata "hoje" como o dia seguinte (`toISOString()` converte para UTC).
-7. Despesas fixas (R$ 5.280) **fixas no código**, repetidas em 5 lugares.
-8. Apagar cliente deixa os atendimentos dele órfãos no financeiro.
+1. Não dá para **editar** cliente, pet ou lançamento já salvo — só criar e apagar.
+   (Agendamento já pode ser concluído pela agenda; falta editar os demais.)
+2. **Preço não varia por porte.** Banho de porte Grande custa mais na prática, mas a
+   tabela `SERVICOS` tem um preço só. Depende da Ju passar a tabela real por porte.
+3. Despesas fixas (R$ 5.280) **fixas no código**, repetidas em 5 lugares.
+4. Apagar cliente deixa os atendimentos dele órfãos no financeiro.
+5. Break-even do painel compara receita só com o custo fixo, ignorando as despesas
+   variáveis já lançadas — o número sai otimista.
 
 ## Histórico
 
