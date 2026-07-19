@@ -2790,9 +2790,14 @@ function lerLinhasExtrato(linhas){
     const marca=l.match(/\b([DC])\b(?!.*\b[DC]\b)/);
     let tipo=valor<0?'saida':'entrada';
     if(marca)tipo=marca[1]==='D'?'saida':'entrada';
-    // descrição: tira data, valores e a marca D/C
-    const desc=l.replace(dm[0],'').replace(/-?\d{1,3}(?:\.\d{3})*,\d{2}/g,'')
-                .replace(/\s+[DC]\s+/,' ').replace(/\s{2,}/g,' ')
+    // Descrição: tira data, valores, a marca D/C, os separadores e os números
+    // soltos (coluna "Docto" do extrato) — sobra o histórico legível.
+    const desc=l.replace(dm[0],'')
+                .replace(/-?\d{1,3}(?:\.\d{3})*,\d{2}/g,' ')
+                .replace(/[;|\t]/g,' ')
+                .replace(/\s+[DC]\s+/,' ')
+                .replace(/\b\d{1,10}\b/g,' ')
+                .replace(/\s{2,}/g,' ')
                 .replace(/^[\s;,|-]+|[\s;,|-]+$/g,'').trim();
     const [,d,m,y]=dm;
     itens.push({
