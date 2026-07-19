@@ -68,6 +68,14 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 .pacote{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--borda);font-size:14px;}
 .pacote-sub{font-size:11px;color:var(--cinza-claro);font-weight:400;margin-top:2px;line-height:1.45;}
 .pacote-preco{color:var(--roxo);font-weight:500;white-space:nowrap;}
+.raca-lista{display:none;border:1.5px solid var(--borda);border-radius:10px;margin-top:6px;max-height:220px;overflow-y:auto;background:white;}
+.raca-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 13px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--borda);}
+.raca-item:last-child{border:none;}
+.raca-item:active{background:var(--lilas-palido);}
+.raca-porte{font-size:10px;color:var(--lilas);text-transform:uppercase;letter-spacing:0.06em;flex-shrink:0;}
+.raca-bloq{font-size:10px;color:#A32D2D;background:#FDEAEA;padding:2px 7px;border-radius:10px;white-space:nowrap;}
+.raca-vazio{padding:12px 13px;font-size:12px;color:var(--cinza-claro);line-height:1.5;}
+.raca-alerta{background:#FDEAEA;border-radius:12px;padding:13px;margin-top:8px;font-size:13px;color:#A32D2D;line-height:1.55;}
 .rodape{text-align:center;padding:24px 20px;font-size:12px;color:var(--cinza-claro);line-height:1.7;}
 .erro{color:#A32D2D;font-size:12px;margin-top:8px;display:none;}
 </style>
@@ -90,11 +98,18 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div class="form-group"><label class="form-label">Seu nome</label><input class="form-input" id="tutor" placeholder="Nome completo" oninput="atualizar()"></div>
       <div class="form-group"><label class="form-label">Seu WhatsApp</label><input class="form-input" id="tel" type="tel" inputmode="numeric" placeholder="(71) 9 0000-0000" oninput="mascaraTel(this);atualizar()"></div>
       <div class="form-group"><label class="form-label">Nome do pet</label><input class="form-input" id="pet" placeholder="Nome do pet" oninput="atualizar()"></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Raça</label><select class="form-select" id="raca" onchange="aoTrocarRaca()"></select></div>
-        <div class="form-group"><label class="form-label">Porte</label><select class="form-select" id="porte" onchange="aoTrocarPorte()"><option>Pequeno</option><option>Médio</option><option>Grande</option></select></div>
+      <div class="form-group">
+        <label class="form-label">Raça</label>
+        <input class="form-input" id="raca" placeholder="Digite para buscar (ex: york, maltes...)" autocomplete="off"
+               oninput="racaBuscar('raca')" onfocus="racaBuscar('raca')">
+        <div class="raca-lista" id="racaLista"></div>
+        <div id="racaAviso"></div>
       </div>
-      <div class="form-group" id="racaOutraGrupo" style="display:none;"><input class="form-input" id="racaOutra" placeholder="Qual a raça do seu pet?" oninput="atualizar()"></div>
+      <div class="form-group">
+        <label class="form-label">Porte</label>
+        <select class="form-select" id="porte" onchange="aoTrocarPorte()"><option>Pequeno</option><option>Médio</option><option>Grande</option></select>
+        <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;">Preenche sozinho ao escolher a raça — mas você pode ajustar.</div>
+      </div>
     </div>
 
     <!-- 2. SERVIÇO -->
@@ -253,23 +268,26 @@ const SERVICOS=[
 // ─── RAÇA → PORTE → PREÇO ───
 // Escolher a raça já acerta o porte, e o porte acerta o preço. O cliente não
 // precisa saber em que "porte" o cachorro dele se encaixa.
-function aoTrocarRaca(){
-  const sel=document.getElementById('raca');
-  const ehOutra=sel.value==='Outra raça (digitar)';
-  document.getElementById('racaOutraGrupo').style.display=ehOutra?'':'none';
-  if(!ehOutra)document.getElementById('racaOutra').value='';
-  const p=porteDaRaca(sel.value);
-  if(p){
-    document.getElementById('porte').value=p;
+RACA_AO_ESCOLHER['raca']=(nome,porte)=>{
+  if(porte){
+    document.getElementById('porte').value=porte;
     montarServicos();   // preço se ajusta ao porte novo
   }
+  // Raça não atendida: avisa AQUI, não na porta da loja.
+  const bloq=racaBloqueada(nome);
+  document.getElementById('racaAviso').innerHTML=bloq
+    ? `<div class="raca-alerta">😔 Infelizmente <b>ainda não atendemos ${esc(bloq.n)}</b>.<br>`+
+      `Por segurança do seu pet e da nossa equipe, não realizamos banho e tosa nessa raça. `+
+      `Se tiver dúvida, fale com a Tia Ju no WhatsApp — vamos adorar ajudar no que for possível. 💜</div>`
+    : '';
   atualizar();
-}
-function racaFinal(){
-  const v=document.getElementById('raca').value;
-  if(v==='Outra raça (digitar)')return document.getElementById('racaOutra').value.trim();
-  return v||'';
-}
+};
+function racaFinal(){return (document.getElementById('raca').value||'').trim();}
+// fecha a lista ao tocar fora
+document.addEventListener('click',e=>{
+  const inp=document.getElementById('raca'), lst=document.getElementById('racaLista');
+  if(e.target!==inp&&!lst.contains(e.target))lst.style.display='none';
+});
 function porteAtual(){return document.getElementById('porte').value;}
 function precoDe(s,porte){
   if(s.consultar)return 0;
@@ -316,7 +334,6 @@ function selServico(i,el){
 }
 // trocar o porte re-precifica tudo na hora
 function aoTrocarPorte(){montarServicos();atualizar();}
-montarSelectRacas('raca');
 montarServicos();
 
 // ─── DIAS ───
@@ -377,8 +394,12 @@ function atualizar(){
   const pet=document.getElementById('pet').value.trim();
   const tel=document.getElementById('tel').value.trim();
   const aceitou=document.getElementById('aceitou').checked;
-  const ok=tutor&&pet&&tel.replace(/\D/g,'').length>=10&&servicoSel&&diaSel&&horaSel&&aceitou;
+  // raça não atendida trava o envio: melhor barrar aqui do que a Ju ter que
+  // recusar depois, com o cliente já contando com o horário.
+  const bloqueada=!!racaBloqueada(racaFinal());
+  const ok=tutor&&pet&&tel.replace(/\D/g,'').length>=10&&servicoSel&&diaSel&&horaSel&&aceitou&&!bloqueada;
   document.getElementById('botao').disabled=!ok;
+  document.getElementById('botao').textContent=bloqueada?'Raça não atendida':'💬 Pedir pelo WhatsApp';
 
   const faltando=[];
   if(!tutor)faltando.push('seu nome');

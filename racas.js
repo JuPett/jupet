@@ -60,7 +60,10 @@ const RACAS_LISTA = [
   { n: 'Cão de Crista Chinês',             p: 'Pequeno' },
   { n: 'Cavalier King Charles Spaniel',    p: 'Pequeno' },
   { n: 'Chihuahua',                        p: 'Pequeno' },
-  { n: 'Chow Chow',                        p: 'Grande'  },
+  // NÃO ATENDIDA por segurança (do pet e de quem trabalha) — decisão da Ju,
+  // 19/07/2026. Fica na lista de propósito: se sumisse, o cliente escolheria
+  // "outra raça" e só descobriria na porta da loja.
+  { n: 'Chow Chow',                        p: 'Grande', naoAtende: true },
   { n: 'Cocker Spaniel Americano',         p: 'Médio'   },
   { n: 'Cocker Spaniel Inglês',            p: 'Médio'   },
   { n: 'Collie',                           p: 'Grande'  },
@@ -181,17 +184,86 @@ const RACAS = [
   ...RACAS_FIM
 ];
 
+// ─── CONSULTAS ───
+function racaPorNome(nome) {
+  const t = normalizarTexto(nome);
+  return RACAS.find(x => normalizarTexto(x.n) === t) || null;
+}
 // porte típico de uma raça ('' quando não dá para saber, como SRD)
 function porteDaRaca(nome) {
-  const r = RACAS.find(x => x.n === nome);
+  const r = racaPorNome(nome);
   return r ? r.p : '';
 }
+// raça que a loja não atende? (devolve o objeto ou null)
+function racaBloqueada(nome) {
+  const r = racaPorNome(nome);
+  return r && r.naoAtende ? r : null;
+}
+// minúsculas e sem acento: "maltes" acha "Maltês", "poodle toy" acha "Poodle Toy".
+// O intervalo ̀-ͯ é escrito com escape de propósito: são os sinais de
+// acentuação separados pelo NFD, e escrevê-los literalmente quebra se o arquivo
+// for reencodado por alguma ferramenta.
+function normalizarTexto(s) {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+}
+function filtrarRacas(q, limite) {
+  const t = normalizarTexto(q);
+  if (!t) return RACAS.slice(0, limite || 8);
+  // começa com o termo primeiro, depois contém — quem digita "pas" quer "Pastor"
+  const comeca = [], contem = [];
+  for (const r of RACAS) {
+    const n = normalizarTexto(r.n);
+    if (n.startsWith(t)) comeca.push(r);
+    else if (n.includes(t)) contem.push(r);
+  }
+  return comeca.concat(contem).slice(0, limite || 8);
+}
 
-// preenche um <select> com a lista. `outraId` é o campo de texto que aparece
-// quando a pessoa escolhe "Outra raça (digitar)".
-function montarSelectRacas(selectId) {
-  const sel = document.getElementById(selectId);
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Selecione a raça...</option>' +
-    RACAS.map(r => `<option value="${r.n}">${r.n}</option>`).join('');
+// ─── CAMPO DE BUSCA DE RAÇA ───
+// A lista tem 150+ raças: rolar um <select> no celular é ruim. Aqui a pessoa
+// digita e a lista filtra. Também aceita raça fora da lista — é só digitar e
+// seguir, sem precisar escolher uma opção "outra".
+//
+// Convenção de ids: input = baseId, lista = baseId + 'Lista'.
+// Cada página registra em RACA_AO_ESCOLHER o que fazer ao escolher (setar porte,
+// recalcular preço, bloquear raça não atendida).
+const RACA_AO_ESCOLHER = {};
+
+function racaBuscar(baseId) {
+  const input = document.getElementById(baseId);
+  const lista = document.getElementById(baseId + 'Lista');
+  if (!input || !lista) return;
+  const achados = filtrarRacas(input.value, 8);
+  if (!achados.length) {
+    lista.innerHTML = '<div class="raca-vazio">Não achei essa raça na lista — pode deixar digitado assim mesmo. 🐾</div>';
+    lista.style.display = 'block';
+  } else {
+    lista.innerHTML = achados.map(r => {
+      const aviso = r.naoAtende ? ' <span class="raca-bloq">não atendemos</span>' : '';
+      const porte = r.p ? `<span class="raca-porte">${r.p}</span>` : '';
+      return `<div class="raca-item" onclick="racaEscolher('${baseId}', ${JSON.stringify(r.n).replace(/"/g, '&quot;')})">
+        <span>${r.n}${aviso}</span>${porte}</div>`;
+    }).join('');
+    lista.style.display = 'block';
+  }
+  if (RACA_AO_ESCOLHER[baseId]) RACA_AO_ESCOLHER[baseId](input.value, porteDaRaca(input.value));
+}
+
+function racaEscolher(baseId, nome) {
+  const input = document.getElementById(baseId);
+  input.value = nome;
+  racaFechar(baseId);
+  if (RACA_AO_ESCOLHER[baseId]) RACA_AO_ESCOLHER[baseId](nome, porteDaRaca(nome));
+}
+
+function racaFechar(baseId) {
+  const lista = document.getElementById(baseId + 'Lista');
+  if (lista) lista.style.display = 'none';
+}
+
+// preenche o campo sem disparar efeito colateral (usado ao reabrir cadastro)
+function setRacaValor(baseId, valor) {
+  const input = document.getElementById(baseId);
+  if (input) input.value = valor || '';
+  racaFechar(baseId);
 }
