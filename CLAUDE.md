@@ -96,8 +96,16 @@ conhecido com pet novo (abre o cadastro do pet) e cliente novo (abre o cadastro
 completo). Nos três, volta ao agendamento com tudo preenchido.
 
 **Horário de funcionamento** (`DIAS_ABERTOS` e `HORAS` no `agendar.html`): terça a
-sábado, 9h às 16h, informado pela Ju em 19/07/2026. Mudou? Altere lá e faça deploy —
-não há tela de configuração ainda.
+sábado, das 9h às 16h, informado pela Ju em 19/07/2026. **O 16h é o último
+agendamento, não o fechamento** — o atendimento pode terminar às 17h. Está certo
+oferecer 16:00 na grade; não remover. Mudou? Altere lá e faça deploy — não há tela
+de configuração ainda.
+
+**Tabela de preços:** os preços do `agendar.html` (`SERVICOS`) e os do app
+(`SERVICOS` no `index.html`, mais os chips do Recibo) precisam bater. Hoje são
+listas separadas nos dois arquivos — ao atualizar preço, atualizar nos dois.
+⚠️ A Ju vai enviar a tabela real (pendente em 19/07/2026); os valores atuais vieram
+do app antigo e podem estar defasados.
 
 ## Padrão visual
 
