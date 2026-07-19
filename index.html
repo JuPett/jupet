@@ -899,7 +899,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-183315';
+const VERSAO_APP='2026-07-19-183832';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -2792,43 +2792,82 @@ function lerOFX(txt){
 // Serve para CSV e para o texto extraído do PDF: em ambos, uma linha de extrato
 // é "tem uma data e tem um valor". Ignorar o layout e procurar esses dois padrões
 // é mais robusto que depender da posição das colunas, que muda entre formatos.
+// Calibrado contra um extrato REAL do Bradesco (19/07/2026). O que o arquivo
+// verdadeiro mostrou, e que nenhuma suposição tinha pego:
+//
+//   1. A DESCRIÇÃO NÃO ESTÁ NA LINHA DO LANÇAMENTO. Um PIX vem em 3 linhas:
+//        PIX ENVIADO                                    <- o que é
+//        20/07/2026  1315272  Débito  -150,00  850,00   <- data, tipo e valor
+//        DES: JUBILENE MELO DE BRIT 19/07                <- para quem
+//      A linha do meio, sozinha, não diz nada além do número do documento.
+//   2. Existem linhas "Saldo do dia" COM data e valor — viravam lançamento falso.
+//   3. Há coluna "Tipo" escrita: Crédito / Débito (melhor que deduzir pelo sinal).
+const RE_DATA=/(\d{2})\/(\d{2})\/(\d{2,4})/;
+const RE_VALOR=/-?\d{1,3}(?:\.\d{3})*,\d{2}/g;
+// linhas que têm data e valor mas NÃO são lançamento
+const RE_IGNORAR=/saldo\s+(do\s+dia|anterior|em|final|\(r\$\))|^saldo\b|data\s+e\s+hora|per[íi]odo:|extrato\s+para|total\s+de/i;
+
 function lerLinhasExtrato(linhas){
   const itens=[];
-  linhas.forEach(bruta=>{
-    const l=bruta.replace(/\s+/g,' ').trim();
-    if(!l)return;
-    const dm=l.match(/(\d{2})\/(\d{2})\/(\d{2,4})/);
-    if(!dm)return;                                   // cabeçalho, saldo, rodapé
-    // valores no formato brasileiro: 1.180,00 · -49,90 · 65,00
-    const nums=[...l.matchAll(/-?\d{1,3}(?:\.\d{3})*,\d{2}/g)].map(m=>m[0]);
-    if(!nums.length)return;
+  const norm=linhas.map(l=>(l||'').replace(/[;|\t]/g,' ').replace(/\s+/g,' ').trim());
+  let rotuloPendente='';   // "PIX ENVIADO", "PIX QR CODE DINAMICO"...
+
+  for(let i=0;i<norm.length;i++){
+    const l=norm[i];
+    if(!l)continue;
+    if(RE_IGNORAR.test(l)){rotuloPendente='';continue;}
+
+    const dm=l.match(RE_DATA);
+    const nums=l.match(RE_VALOR);
+
+    // Linha sem data e sem valor, e com texto: é o rótulo do lançamento seguinte.
+    if(!dm&&!nums){
+      if(/[A-Za-zÀ-ú]{3}/.test(l)&&l.length<60)rotuloPendente=l;
+      continue;
+    }
+    if(!dm||!nums){continue;}
+
     const vals=nums.map(x=>parseFloat(x.replace(/\./g,'').replace(',','.')));
-    // a última coluna do extrato costuma ser o SALDO — descarta quando há mais de um
+    // última coluna é o SALDO acumulado — nunca é o valor do lançamento
     const candidatos=vals.length>1?vals.slice(0,-1):vals;
-    let valor=candidatos.find(n=>n!==0);
-    if(valor===undefined)return;
-    // Bradesco marca D (débito) / C (crédito) numa coluna própria
-    const marca=l.match(/\b([DC])\b(?!.*\b[DC]\b)/);
-    let tipo=valor<0?'saida':'entrada';
-    if(marca)tipo=marca[1]==='D'?'saida':'entrada';
-    // Descrição: tira data, valores, a marca D/C, os separadores e os números
-    // soltos (coluna "Docto" do extrato) — sobra o histórico legível.
-    const desc=l.replace(dm[0],'')
-                .replace(/-?\d{1,3}(?:\.\d{3})*,\d{2}/g,' ')
-                .replace(/[;|\t]/g,' ')
-                .replace(/\s+[DC]\s+/,' ')
-                .replace(/\b\d{1,10}\b/g,' ')
-                .replace(/\s{2,}/g,' ')
-                .replace(/^[\s;,|-]+|[\s;,|-]+$/g,'').trim();
+    const valor=candidatos.find(n=>n!==0);
+    if(valor===undefined){rotuloPendente='';continue;}
+
+    // 1º a coluna "Tipo" escrita; 2º a marca D/C; 3º o sinal do número
+    let tipo;
+    if(/\bcr[ée]dito\b/i.test(l))      tipo='entrada';
+    else if(/\bd[ée]bito\b/i.test(l))  tipo='saida';
+    else{
+      const marca=l.match(/\s([DC])\s/);
+      tipo=marca?(marca[1]==='D'?'saida':'entrada'):(valor<0?'saida':'entrada');
+    }
+
+    // descrição que sobra na própria linha (quando existe, caso "OPERACAO CAPITAL GIRO")
+    const inline=l.replace(dm[0],' ')
+                  .replace(RE_VALOR,' ')
+                  .replace(/\b(cr[ée]dito|d[ée]bito)\b/ig,' ')
+                  .replace(/\b\d{4,}\b/g,' ')        // nº do documento
+                  .replace(/\s{2,}/g,' ').trim();
+
+    // linha seguinte com o favorecido/remetente ("DES:" enviado, "REM:" recebido)
+    let contraparte='';
+    const prox=norm[i+1]||'';
+    const mp=prox.match(/^(?:DES|REM|Favorecido|Pagador)\s*:\s*(.+?)(?:\s+\d{2}\/\d{2})?$/i);
+    if(mp)contraparte=mp[1].trim();
+
+    const partes=[rotuloPendente,inline,contraparte].filter(x=>x&&x.length>2);
+    const desc=[...new Set(partes)].join(' — ').replace(/\s{2,}/g,' ').trim();
+    rotuloPendente='';
+
     const [,d,m,y]=dm;
     itens.push({
       data:(y.length===2?'20'+y:y)+'-'+m+'-'+d,
       valor:Math.abs(valor),
       tipo,
-      desc:desc.length>3?desc.slice(0,60):'Movimentação',
+      desc:desc.length>2?desc.slice(0,70):'Movimentação',
       id:''
     });
-  });
+  }
   return itens;
 }
 

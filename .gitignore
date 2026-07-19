@@ -2,3 +2,4 @@
 _check.js
 *.log
 .wrangler/
+_linhas_teste.json
