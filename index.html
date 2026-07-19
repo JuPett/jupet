@@ -2292,8 +2292,8 @@ function verPerfil(id){
       <div class="pet-bloco-head">
         <div class="pet-bloco-foto">${foto}</div>
         <div style="flex:1;">
-          <div class="pet-bloco-nome">${p.nome||'Pet'} ${pacoteBadge}</div>
-          <div class="pet-bloco-sub">${[p.raca,p.porte,idadeTexto(p.aniv)].filter(Boolean).join(' · ')||'—'}${p.aniv?' · 🎂 '+anivFmt+(anivTexto?' ('+anivTexto+')':''):''}</div>
+          <div class="pet-bloco-nome">${esc(p.nome||'Pet')} ${pacoteBadge}</div>
+          <div class="pet-bloco-sub">${esc([p.raca,p.porte,idadeTexto(p.aniv)].filter(Boolean).join(' · ')||'—')}${p.aniv?' · 🎂 '+anivFmt+(anivTexto?' ('+anivTexto+')':''):''}</div>
         </div>
         <button class="btn-delete" onclick="deletarPet(${c.id},${p.id})">🗑</button>
       </div>
