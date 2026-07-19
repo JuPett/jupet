@@ -183,6 +183,19 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 .quick-btn-icon{font-size:24px;margin-bottom:8px;}
 .quick-btn-label{font-size:13px;font-weight:500;color:var(--roxo);}
 .quick-btn-sub{font-size:11px;color:var(--cinza-claro);margin-top:2px;}
+/* TELA DE BLOQUEIO */
+#telaBloqueio{position:fixed;inset:0;z-index:9999;background:var(--roxo);display:flex;align-items:center;justify-content:center;padding:24px;}
+.bloq-caixa{width:100%;max-width:320px;text-align:center;color:white;}
+.bloq-logo{width:78px;height:78px;border-radius:22px;margin:0 auto 14px;overflow:hidden;background:rgba(255,255,255,0.15);}
+.bloq-logo img{width:100%;height:100%;object-fit:cover;}
+.bloq-nome{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:600;}
+.bloq-sub{font-size:13px;opacity:0.7;margin-bottom:22px;}
+.bloq-pin{width:100%;padding:16px;border:none;border-radius:14px;font-size:26px;text-align:center;letter-spacing:0.5em;font-family:'DM Sans',sans-serif;outline:none;color:var(--roxo);}
+.bloq-btn{width:100%;margin-top:12px;padding:15px;border:none;border-radius:14px;background:white;color:var(--roxo);font-size:16px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.bloq-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.bloq-erro{font-size:13px;color:#FFD3D3;margin-top:12px;min-height:18px;}
+.bloq-ajuda{font-size:11.5px;opacity:0.6;margin-top:22px;line-height:1.6;}
+
 /* PEDIDO PENDENTE */
 .pendente-item{background:var(--amarelo-claro);border-radius:12px;padding:12px;margin-bottom:10px;}
 .pendente-item:last-child{margin-bottom:0;}
@@ -287,6 +300,23 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 </head>
 <body>
 
+<!-- TELA DE BLOQUEIO — só aparece quando o cofre está ativo -->
+<div id="telaBloqueio" style="display:none;">
+  <div class="bloq-caixa">
+    <div class="bloq-logo"><img src="./icon-512.png" alt="Ju Pet"></div>
+    <div class="bloq-nome">Ju Pet</div>
+    <div class="bloq-sub">Digite seu PIN para entrar</div>
+    <input type="password" id="bloqPin" class="bloq-pin" inputmode="numeric" autocomplete="off"
+           placeholder="••••" onkeydown="if(event.key==='Enter')destrancar()" oninput="document.getElementById('bloqErro').textContent=''">
+    <button class="bloq-btn" onclick="destrancar()" id="bloqBtn">Entrar</button>
+    <div class="bloq-erro" id="bloqErro"></div>
+    <div class="bloq-ajuda">
+      Esqueceu o PIN? Não há como recuperar — os dados são abertos só com ele.
+      Use o arquivo de backup para começar de novo.
+    </div>
+  </div>
+</div>
+
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-brand">
@@ -374,6 +404,13 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div style="font-size:11px;color:var(--cinza-claro);margin-top:10px;" id="dashUltimoBackup"></div>
       <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" id="dashStorageBar" style="width:0%"></div></div>
       <div style="font-size:11px;color:var(--cinza-claro);margin-top:5px;" id="dashStorageTxt"></div>
+    </div>
+
+    <!-- PROTEÇÃO POR PIN -->
+    <div class="card">
+      <div class="sec-header"><div class="sec-title">🔒 Proteção do aparelho</div></div>
+      <div id="cofreEstado"></div>
+      <div id="cofreBotoes"></div>
     </div>
   </div>
 
@@ -780,24 +817,65 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 
 <script src="./racas.js"></script>
 <script src="./foto.js"></script>
+<script src="./cofre.js"></script>
 <script>
 // ─── STORAGE ───
+// Dois modos, e o resto do app não precisa saber em qual está:
+//   ABERTO   — sem PIN. Cada chave em texto puro no localStorage (como sempre foi).
+//   COFRE    — com PIN. Tudo vive num objeto em memória (DB._mem) e é gravado
+//              cifrado num blob único. Por isso `get`/`set` continuam SÍNCRONOS:
+//              a cifragem acontece depois, sem travar a tela.
+const AVISO_FALHA_GRAVACAO='⚠️ NÃO FOI POSSÍVEL SALVAR!\n\nA memória do app encheu ou o navegador bloqueou a gravação.\n\nO que fazer AGORA:\n1. Vá na tela Início, desça até "Backup dos dados" e toque em "Fazer backup".\n2. Guarde o arquivo e me avise (Freud).\n\nNão feche o app antes de fazer o backup.';
+
+let PIN_ATUAL=null;          // só existe na memória, enquanto o app está aberto
+let _gravacaoAgendada=null;
+
 const DB={
-  get(k){try{return JSON.parse(localStorage.getItem('jupet_'+k)||'null');}catch(e){return null;}},
+  _mem:null,                 // preenchido quando o cofre é destrancado
+  get(k){
+    if(DB._mem) return DB._mem[k]!==undefined?DB._mem[k]:null;
+    try{return JSON.parse(localStorage.getItem('jupet_'+k)||'null');}catch(e){return null;}
+  },
   set(k,v){
+    if(DB._mem){
+      DB._mem[k]=v;
+      DB._agendarGravacao();
+      return true;
+    }
     try{localStorage.setItem('jupet_'+k,JSON.stringify(v));return true;}
     catch(e){
       // NUNCA falhar em silêncio: se não salvou, a Ju precisa saber na hora.
-      alert('⚠️ NÃO FOI POSSÍVEL SALVAR!\n\nA memória do app encheu ou o navegador bloqueou a gravação.\n\nO que fazer AGORA:\n1. Vá na tela Início, desça até "Backup dos dados" e toque em "Fazer backup".\n2. Guarde o arquivo e me avise (Freud).\n\nNão feche o app antes de fazer o backup.');
+      alert(AVISO_FALHA_GRAVACAO);
       return false;
     }
+  },
+  // junta as gravações próximas numa só (cifrar é caro)
+  _agendarGravacao(){
+    if(_gravacaoAgendada)clearTimeout(_gravacaoAgendada);
+    _gravacaoAgendada=setTimeout(()=>{
+      _gravacaoAgendada=null;
+      cofreGravar(PIN_ATUAL,DB._mem).catch(()=>alert(AVISO_FALHA_GRAVACAO));
+    },150);
+  },
+  // grava JÁ (usado antes de sair da tela / ao trocar o PIN)
+  async gravarAgora(){
+    if(!DB._mem)return true;
+    if(_gravacaoAgendada){clearTimeout(_gravacaoAgendada);_gravacaoAgendada=null;}
+    try{await cofreGravar(PIN_ATUAL,DB._mem);return true;}
+    catch(e){alert(AVISO_FALHA_GRAVACAO);return false;}
   }
 };
-let atendimentos=DB.get('atend')||[];
-let clientes=DB.get('clientes')||[];
-let lancamentos=DB.get('lanc')||[];
-let produtos=DB.get('produtos')||[];
-let movimentacoes=DB.get('mov')||[];   // histórico de entrada/saída do estoque
+
+let atendimentos=[],clientes=[],lancamentos=[],produtos=[],movimentacoes=[];
+// relê tudo do DB para as variáveis em memória (após destrancar ou restaurar)
+function carregarDoDB(){
+  atendimentos=DB.get('atend')||[];
+  clientes=DB.get('clientes')||[];
+  lancamentos=DB.get('lanc')||[];
+  produtos=DB.get('produtos')||[];
+  movimentacoes=DB.get('mov')||[];   // histórico de entrada/saída do estoque
+}
+carregarDoDB();
 let filtroEstoque='todos';
 let tipoAtual='entrada';
 let servicosRecibo=[];
@@ -2532,6 +2610,110 @@ function copiarRecibo(){
   else{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('✅ Copiado! Cole no WhatsApp.');}
 }
 
+// ─── COFRE: destrancar, ativar, desativar ───
+let _tentativas=0;
+
+async function destrancar(){
+  const campo=document.getElementById('bloqPin');
+  const erro=document.getElementById('bloqErro');
+  const btn=document.getElementById('bloqBtn');
+  const pin=campo.value.trim();
+  if(!pin){erro.textContent='Digite o PIN.';return;}
+  btn.disabled=true; btn.textContent='Abrindo...';
+  const dados=await cofreLer(pin);
+  btn.disabled=false; btn.textContent='Entrar';
+  if(!dados){
+    _tentativas++;
+    campo.value='';
+    // atraso crescente: torna a tentativa e erro cansativa
+    if(_tentativas>=3){
+      const espera=Math.min(30,_tentativas*3);
+      erro.textContent='PIN incorreto. Aguarde '+espera+'s antes de tentar de novo.';
+      btn.disabled=true; campo.disabled=true;
+      setTimeout(()=>{btn.disabled=false;campo.disabled=false;erro.textContent='';},espera*1000);
+    }else{
+      erro.textContent='PIN incorreto. Tente de novo.';
+    }
+    return;
+  }
+  PIN_ATUAL=pin;
+  DB._mem=dados;
+  _tentativas=0;
+  campo.value='';
+  document.getElementById('telaBloqueio').style.display='none';
+  carregarDoDB();
+  iniciarApp();
+}
+
+// Ativar: exige backup antes, porque esquecer o PIN é perda total.
+async function ativarCofre(){
+  if(!confirm('🔒 Proteger o app com PIN\n\nOs dados passam a ficar CRIPTOGRAFADOS neste celular. Sem o PIN, ninguém abre — nem eu, nem você.\n\n⚠️ ESQUECEU O PIN = PERDEU OS DADOS. Não existe recuperação.\n\nPor isso vou pedir um backup antes. Continuar?'))return;
+
+  if(!confirm('Primeiro, o backup de segurança.\n\nVou baixar o arquivo agora. Guarde-o em lugar seguro (e-mail para você mesma, por exemplo) ANTES de continuar.\n\nBaixar o backup?'))return;
+  exportarBackup();
+
+  const pin=prompt('Agora escolha seu PIN.\n\nSó números. Mínimo 4 dígitos — 6 protege bem mais.\nAnote em lugar seguro:');
+  if(!pin)return;
+  const forca=cofreForcaDoPin(pin.trim());
+  if(!forca.ok){alert('❌ '+forca.txt);return;}
+  if(forca.fraco&&!confirm('⚠️ '+forca.txt+'\n\nUsar assim mesmo?'))return;
+
+  const conf=prompt('Digite o PIN de novo para confirmar:');
+  if(conf!==pin){alert('❌ Os PINs não bateram. Nada foi alterado.');return;}
+
+  // move tudo do texto puro para o cofre
+  const dados={
+    clientes:DB.get('clientes')||[], atend:DB.get('atend')||[],
+    lanc:DB.get('lanc')||[], produtos:DB.get('produtos')||[],
+    mov:DB.get('mov')||[], ultimo_backup:DB.get('ultimo_backup')||null
+  };
+  try{
+    await cofreGravar(pin.trim(),dados);
+  }catch(e){
+    alert('❌ Não consegui ativar a proteção. Nada foi alterado.');
+    return;
+  }
+  // só apaga o texto puro DEPOIS que o cofre gravou
+  ['clientes','atend','lanc','produtos','mov','ultimo_backup']
+    .forEach(k=>localStorage.removeItem('jupet_'+k));
+  PIN_ATUAL=pin.trim();
+  DB._mem=dados;
+  carregarDoDB();
+  renderBackupInfo();
+  alert('✅ Pronto! Seus dados agora estão criptografados.\n\nDa próxima vez que abrir o app, ele vai pedir o PIN.\n\nGuarde o PIN e o backup em lugares seguros.');
+}
+
+async function desativarCofre(){
+  if(!confirm('🔓 Tirar a proteção por PIN?\n\nOs dados voltam a ficar SEM criptografia neste celular. Quem pegar o aparelho desbloqueado vai ver tudo.\n\nTem certeza?'))return;
+  const pin=prompt('Digite o PIN atual para confirmar:');
+  if(!pin)return;
+  const dados=await cofreLer(pin.trim());
+  if(!dados){alert('❌ PIN incorreto. Nada foi alterado.');return;}
+  Object.keys(dados).forEach(k=>{
+    try{localStorage.setItem('jupet_'+k,JSON.stringify(dados[k]));}catch(e){}
+  });
+  localStorage.removeItem(COFRE_CHAVE);
+  PIN_ATUAL=null; DB._mem=null;
+  carregarDoDB();
+  renderBackupInfo();
+  alert('Proteção removida. Os dados voltaram ao modo aberto.');
+}
+
+async function trocarPin(){
+  const atual=prompt('Digite o PIN atual:');
+  if(!atual)return;
+  const dados=await cofreLer(atual.trim());
+  if(!dados){alert('❌ PIN incorreto.');return;}
+  const novo=prompt('Novo PIN (mínimo 4 dígitos):');
+  if(!novo)return;
+  const forca=cofreForcaDoPin(novo.trim());
+  if(!forca.ok){alert('❌ '+forca.txt);return;}
+  if(prompt('Confirme o novo PIN:')!==novo){alert('❌ Os PINs não bateram.');return;}
+  await cofreGravar(novo.trim(),DB._mem||dados);
+  PIN_ATUAL=novo.trim();
+  alert('✅ PIN alterado.');
+}
+
 // ─── BACKUP / RESTAURAÇÃO ───
 // Os dados vivem no localStorage deste navegador. Trocar de celular, limpar o
 // navegador ou (no iPhone) 7 dias sem abrir o app apagam tudo. Isto é a saída.
@@ -2588,8 +2770,28 @@ function importarBackup(input){
   reader.readAsText(input.files[0]);
 }
 
+// estado da proteção, no painel
+function renderCofreInfo(){
+  const est=document.getElementById('cofreEstado');
+  const bts=document.getElementById('cofreBotoes');
+  if(!est||!bts)return;
+  if(cofreExiste()){
+    est.innerHTML='<div class="det-nota" style="background:var(--verde-claro);color:var(--verde);margin-top:0;">'+
+      '✅ <b>Seus dados estão criptografados.</b><br>O app pede o PIN toda vez que abre. Se alguém pegar seu celular, não consegue ver nada.</div>';
+    bts.innerHTML='<div style="display:flex;gap:8px;margin-top:10px;">'+
+      '<button class="btn-report" onclick="trocarPin()">🔑 Trocar PIN</button>'+
+      '<button class="btn-report" style="border-color:var(--cinza-claro);color:var(--cinza-claro);" onclick="desativarCofre()">Desativar</button></div>';
+  }else{
+    est.innerHTML='<div class="det-nota" style="background:var(--amarelo-claro);color:#8C5510;margin-top:0;">'+
+      '⚠️ <b>Sem proteção.</b> Quem pegar seu celular desbloqueado consegue ver o nome, o telefone e o histórico de todos os seus clientes.</div>';
+    bts.innerHTML='<button class="btn-primary" style="margin-top:10px;" onclick="ativarCofre()">🔒 Proteger com PIN</button>'+
+      '<div style="font-size:11px;color:var(--cinza-claro);margin-top:8px;line-height:1.5;">Antes de ativar, o app baixa um backup — porque quem esquece o PIN perde os dados, e o backup é a única volta.</div>';
+  }
+}
+
 // Quanto do localStorage já foi usado + há quanto tempo não faz backup
 function renderBackupInfo(){
+  renderCofreInfo();
   let bytes=0;
   for(const k in localStorage){
     if(Object.prototype.hasOwnProperty.call(localStorage,k)&&k.indexOf('jupet_')===0){
@@ -2616,13 +2818,24 @@ function renderBackupInfo(){
 }
 
 // ─── INIT ───
-ligarBuscaRaca('cliRaca','cliPorte','cliRacaAviso');
-ligarBuscaRaca('petRaca','petPorte','petRacaAviso');
-montarSelectServicos();
-montarChipsRecibo();
-document.getElementById('atendData').value=hojeISO();
-document.getElementById('recData').value=hojeISO();
-renderDash();
+// Quando o cofre esta ativo, NADA e montado antes de destrancar: a tela de
+// bloqueio cobre tudo e as variaveis so sao preenchidas apos decifrar.
+function iniciarApp(){
+  ligarBuscaRaca('cliRaca','cliPorte','cliRacaAviso');
+  ligarBuscaRaca('petRaca','petPorte','petRacaAviso');
+  montarSelectServicos();
+  montarChipsRecibo();
+  document.getElementById('atendData').value=hojeISO();
+  document.getElementById('recData').value=hojeISO();
+  renderDash();
+}
+
+if(cofreExiste()){
+  document.getElementById('telaBloqueio').style.display='flex';
+  setTimeout(()=>document.getElementById('bloqPin').focus(),150);
+}else{
+  iniciarApp();
+}
 
 // ─── PWA: registra o service worker (faz o app abrir sem internet) ───
 if('serviceWorker' in navigator){

@@ -74,7 +74,7 @@ const CAMPOS_DE_GENTE = [
 }
 
 // ── arquivos soltos ───────────────────────────────────────────────────────────
-for (const arq of ['sw.js', 'racas.js', 'foto.js']) {
+for (const arq of ['sw.js', 'racas.js', 'foto.js', 'cofre.js']) {
   try {
     new vm.Script(fs.readFileSync(path.join(raiz, arq), 'utf8'), { filename: arq });
     console.log(`  ${arq}: OK`);
