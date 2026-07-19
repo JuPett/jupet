@@ -436,7 +436,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <div class="sec-header"><div class="sec-title">Agenda</div><button class="btn-add" onclick="openModal('modalAtend')">+ Agendar</button></div>
     <div class="report-actions">
       <button class="btn-report" onclick="abrirModalPedido()">📥 Pedido do zap</button>
-      <button class="btn-report" onclick="compartilharLink()">🔗 Link p/ clientes</button>
+      <button class="btn-report" onclick="abrirModalMensagens()">💬 Mensagens e link</button>
     </div>
 
     <!-- FILA DE PEDIDOS — fora do filtro de data de propósito: um pedido para a
@@ -743,6 +743,20 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
   </div>
 </div>
 
+<!-- MODAL: MENSAGENS PRONTAS DO WHATSAPP -->
+<div class="modal-overlay" id="modalMensagens">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💬 Mensagens para o WhatsApp</div>
+    <div style="font-size:13px;color:var(--cinza-claro);line-height:1.55;margin-bottom:14px;">
+      Textos prontos com seu link de agendamento. As duas primeiras o WhatsApp envia
+      <b>sozinho</b> — o cliente já recebe o caminho sem você digitar nada.
+    </div>
+    <div id="zapLista"></div>
+    <button class="btn-secondary" onclick="closeModal('modalMensagens')">Fechar</button>
+  </div>
+</div>
+
 <!-- MODAL: LER CUPOM FISCAL -->
 <div class="modal-overlay" id="modalCupom">
   <div class="modal">
@@ -899,7 +913,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-185703';
+const VERSAO_APP='2026-07-19-185931';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -1537,20 +1551,169 @@ function abrirModalPedido(){
   openModal('modalPedido');
 }
 
-function compartilharLink(){
-  const msg='Oi! 🐾 Para pedir seu horário na Ju Pet é só abrir este link:\n\n'+LINK_AGENDAMENTO+'\n\nVocê escolhe o serviço e o melhor dia, e eu confirmo por aqui. 💜';
-  if(navigator.share){
-    navigator.share({title:'Agendar na Ju Pet',text:msg}).catch(()=>copiarTexto(msg));
-  }else{
-    copiarTexto(msg);
+// ─── MENSAGENS PRONTAS PARA O WHATSAPP ───
+// O WhatsApp Business responde sozinho a quem chama: "Mensagem de saudação"
+// (primeiro contato) e "Ausência" (fora do horário). Colocando o link do
+// agendamento nelas, o cliente já recebe o caminho sem a Ju digitar nada.
+// As respostas rápidas são atalhos que ela dispara com "/" na conversa.
+const MENSAGENS_ZAP=[
+  {
+    id:'saudacao',
+    titulo:'💜 Boas-vindas (automática)',
+    onde:'WhatsApp Business → Ferramentas comerciais → <b>Mensagem de saudação</b>',
+    dica:'Dispara sozinha quando alguém fala com você pela primeira vez, ou depois de 14 dias sem conversa.',
+    texto:
+`Oi! 🐾 Aqui é a Ju Pet — Banho & Tosa Premium 💜
+
+Que alegria ter você e seu pet por aqui!
+
+Para agendar é rapidinho, é só tocar no link:
+${LINK_AGENDAMENTO}
+
+Você escolhe o serviço, o dia e o horário. Eu confirmo por aqui mesmo. 😊
+
+🕘 Terça a sábado, das 9h às 16h
+📍 Acupe de Brotas, Salvador`
+  },
+  {
+    id:'ausencia',
+    titulo:'🌙 Fora do horário (automática)',
+    onde:'WhatsApp Business → Ferramentas comerciais → <b>Mensagem de ausência</b>',
+    dica:'Dispara fora do horário de atendimento. Assim ninguém fica sem resposta de madrugada.',
+    texto:
+`Oi! 🐾 Obrigada pela mensagem 💜
+
+Agora estou fora do horário de atendimento, mas respondo assim que abrir.
+
+Se quiser adiantar, deixe já seu pedido de horário aqui:
+${LINK_AGENDAMENTO}
+
+Eu confirmo assim que voltar. 😊
+
+🕘 Terça a sábado, das 9h às 16h`
+  },
+  {
+    id:'agendar',
+    titulo:'📅 Como agendar',
+    onde:'Resposta rápida — atalho <b>/agendar</b>',
+    dica:'Para quando o cliente pergunta como marcar.',
+    texto:
+`Claro! 🐾 É só tocar no link abaixo:
+
+${LINK_AGENDAMENTO}
+
+Lá você escolhe o serviço, vê o valor pelo porte do seu pet e me diz o melhor dia e horário. Aí eu confirmo por aqui. 💜`
+  },
+  {
+    id:'precos',
+    titulo:'💰 Valores',
+    onde:'Resposta rápida — atalho <b>/valores</b>',
+    dica:'Os preços variam pelo porte. O link mostra o valor certo depois que a pessoa escolhe a raça.',
+    texto:
+`Nossos valores por porte 🐾
+
+🛁 Banho: R$ 65 (pequeno) · R$ 75 (médio) · R$ 85 (grande)
+✨ Banho + hidratação: R$ 100 a R$ 120
+💎 Spa Premium: R$ 130 a R$ 150
+✂️ Tosa higiênica: R$ 75 a R$ 95
+✂️ Tosa modelada: R$ 120 a R$ 150
+
+📦 Temos pacotes mensais a partir de R$ 120, com prioridade na agenda!
+
+Veja o valor certinho do seu pet e agende aqui:
+${LINK_AGENDAMENTO}`
+  },
+  {
+    id:'combinados',
+    titulo:'📋 Nossos combinados',
+    onde:'Resposta rápida — atalho <b>/regras</b>',
+    dica:'Manda antes do primeiro atendimento. Evita discussão sobre atraso e taxa.',
+    texto:
+`Nossos combinados, com todo carinho 💜
+
+🕘 Chegada no horário — atrasos podem reduzir o tempo do atendimento
+🛁 Retirada em até 1 hora após o aviso de que seu pet ficou pronto
+⏳ Após esse prazo há taxa de espera de R$ 10 a R$ 20 por hora
+📅 Faltou sem avisar? O horário é considerado realizado
+💳 Pagamento no início do atendimento (Pix ou cartão)
+✂️ Desembolo e serviços extras são avaliados no dia e cobrados à parte
+🧴 Pet com dermatite? Traga o shampoo indicado pelo veterinário
+
+Tudo certinho também no link:
+${LINK_AGENDAMENTO}`
+  },
+  {
+    id:'endereco',
+    titulo:'📍 Endereço e horário',
+    onde:'Resposta rápida — atalho <b>/local</b>',
+    dica:'Para quem pergunta onde fica.',
+    texto:
+`Estamos no Acupe de Brotas, Salvador 📍
+
+🕘 Terça a sábado, das 9h às 16h
+(16h é o último horário de agendamento)
+
+📱 (71) 98769-9236
+📷 @ju.pett
+
+Agende pelo link:
+${LINK_AGENDAMENTO}`
+  },
+  {
+    id:'pronto',
+    titulo:'🎉 Pet pronto',
+    onde:'Resposta rápida — atalho <b>/pronto</b>',
+    dica:'Avisa que terminou e já lembra do prazo de retirada, sem parecer cobrança.',
+    texto:
+`Oi! 🐾 Seu pet está pronto e lindo! ✨💜
+
+Pode vir buscar quando quiser — o combinado é a retirada em até 1 hora, tá bom?
+
+Te espero! 😊
+Ju Pet · Banho & Tosa Premium`
   }
+];
+
+function abrirModalMensagens(){
+  document.getElementById('zapLista').innerHTML=
+    `<div class="det-nota" style="margin-top:0;">
+       🔗 <b>Seu link de agendamento</b><br>
+       <span style="font-size:12px;word-break:break-all;">${LINK_AGENDAMENTO}</span>
+     </div>
+     <button class="btn-report" style="width:100%;margin:10px 0 4px;" onclick="copiarTexto('${LINK_AGENDAMENTO}','Link copiado!')">📋 Copiar só o link</button>
+     <div class="sep">Mensagens prontas</div>`
+    +MENSAGENS_ZAP.map((m,i)=>`
+      <div class="card card-sm" style="margin-bottom:10px;">
+        <div style="font-size:14px;font-weight:500;color:var(--roxo);">${m.titulo}</div>
+        <div style="font-size:11px;color:var(--cinza-claro);margin-top:3px;">${m.onde}</div>
+        <div style="font-size:11px;color:var(--cinza-claro);margin-top:4px;line-height:1.45;">${m.dica}</div>
+        <div style="background:var(--fundo);border-radius:10px;padding:11px;margin-top:8px;font-size:12px;white-space:pre-wrap;line-height:1.5;max-height:130px;overflow-y:auto;">${esc(m.texto)}</div>
+        <button class="btn-report" style="width:100%;margin-top:8px;" onclick="copiarMensagem(${i})">📋 Copiar mensagem</button>
+      </div>`).join('')
+    +`<div class="det-nota">
+        <b>Como ligar as automáticas:</b><br>
+        No WhatsApp Business, toque em <b>⋮ → Ferramentas comerciais</b>. Lá você acha
+        "Mensagem de saudação" e "Mensagem de ausência" — é só colar o texto e ativar.<br><br>
+        As <b>respostas rápidas</b> ficam no mesmo menu: você cadastra o atalho (ex: /valores)
+        e depois é só digitar a barra na conversa.
+      </div>`;
+  openModal('modalMensagens');
 }
-function copiarTexto(t){
+
+function copiarMensagem(i){
+  const m=MENSAGENS_ZAP[i];
+  copiarTexto(m.texto,'Mensagem copiada!\n\nAgora é só colar em:\n'+m.onde.replace(/<[^>]+>/g,''));
+}
+
+function compartilharLink(){ abrirModalMensagens(); }
+
+function copiarTexto(t,aviso){
   if(navigator.clipboard){
-    navigator.clipboard.writeText(t).then(()=>alert('✅ Link copiado!\n\nAgora é só colar no WhatsApp, no Instagram ou na bio.'))
-      .catch(()=>alert('Link para os clientes:\n\n'+LINK_AGENDAMENTO));
+    navigator.clipboard.writeText(t)
+      .then(()=>alert('✅ '+(aviso||'Copiado!')))
+      .catch(()=>alert(t));
   }else{
-    alert('Link para os clientes:\n\n'+LINK_AGENDAMENTO);
+    alert(t);
   }
 }
 
