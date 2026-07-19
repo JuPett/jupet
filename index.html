@@ -183,6 +183,15 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 .quick-btn-icon{font-size:24px;margin-bottom:8px;}
 .quick-btn-label{font-size:13px;font-weight:500;color:var(--roxo);}
 .quick-btn-sub{font-size:11px;color:var(--cinza-claro);margin-top:2px;}
+/* TOCAVEL — afunda ao toque, para ficar claro que abre alguma coisa */
+.tocavel{cursor:pointer;transition:transform 0.1s ease;}
+.tocavel:active{transform:scale(0.97);}
+/* DETALHE (linhas dentro do modal de detalhe) */
+.det-linha{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--borda);font-size:14px;}
+.det-linha:last-child{border:none;}
+.det-linha .det-sub{font-size:11px;color:var(--cinza-claro);margin-top:2px;}
+.det-total{display:flex;justify-content:space-between;border-top:2px solid var(--roxo);padding-top:12px;margin-top:8px;font-weight:500;color:var(--roxo);font-size:16px;}
+.det-nota{background:var(--lilas-palido);border-radius:12px;padding:12px;font-size:12px;color:var(--cinza);line-height:1.5;margin-top:14px;}
 .progress-bar{background:var(--lilas-claro);border-radius:4px;height:6px;overflow:hidden;margin-top:8px;}
 .progress-fill{height:100%;border-radius:4px;background:var(--roxo);transition:width 0.4s ease;}
 .sep{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--lilas);padding:8px 0 6px;}
@@ -283,7 +292,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 
   <!-- DASHBOARD -->
   <div class="screen active" id="screen-dash">
-    <div class="dash-atend-hoje">
+    <div class="dash-atend-hoje tocavel" onclick="irParaAgendaHoje()">
       <div>
         <div class="dash-atend-num" id="dashHoje">0</div>
         <div class="dash-atend-label">atendimentos hoje</div>
@@ -291,6 +300,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div class="dash-atend-right">
         <div class="dash-atend-proximo">próximo</div>
         <div class="dash-atend-hora" id="dashProximo">—</div>
+        <div class="dash-atend-proximo" style="margin-top:4px;">ver agenda ›</div>
       </div>
     </div>
 
@@ -300,11 +310,13 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <!-- RETORNOS RECOMENDADOS -->
     <div id="dashRetornoContainer"></div>
 
+    <!-- Cada número abre o detalhe por trás dele. Sem isso o painel só informa;
+         com isso ela toca no número e entende de onde veio. -->
     <div class="metrics">
-      <div class="metric verde"><div class="metric-label">Receita do mês</div><div class="metric-value" id="dashReceita">R$ 0</div><div class="metric-sub">entradas</div></div>
-      <div class="metric vermelho"><div class="metric-label">Despesas fixas</div><div class="metric-value">R$ 5.280</div><div class="metric-sub">meta mensal</div></div>
-      <div class="metric"><div class="metric-label">Clientes</div><div class="metric-value" id="dashClientes">0</div><div class="metric-sub">tutores</div></div>
-      <div class="metric amarelo"><div class="metric-label">Break-even</div><div class="metric-value" id="dashBreak">0%</div><div class="metric-sub">do fixo coberto</div></div>
+      <div class="metric verde tocavel" onclick="detalheReceita()"><div class="metric-label">Receita do mês ›</div><div class="metric-value" id="dashReceita">R$ 0</div><div class="metric-sub" id="dashReceitaSub">entradas</div></div>
+      <div class="metric vermelho tocavel" onclick="detalheDespesasFixas()"><div class="metric-label">Despesas fixas ›</div><div class="metric-value" id="dashFixo">R$ 0</div><div class="metric-sub">meta mensal</div></div>
+      <div class="metric tocavel" onclick="detalheClientes()"><div class="metric-label">Clientes ›</div><div class="metric-value" id="dashClientes">0</div><div class="metric-sub" id="dashClientesSub">tutores</div></div>
+      <div class="metric amarelo tocavel" onclick="detalheBreakEven()"><div class="metric-label">Break-even ›</div><div class="metric-value" id="dashBreak">0%</div><div class="metric-sub">do fixo coberto</div></div>
     </div>
     <div class="progress-bar" style="margin-bottom:16px;"><div class="progress-fill" id="dashProgress" style="width:0%"></div></div>
 
@@ -315,8 +327,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <button class="quick-btn" onclick="goRecibo()"><div class="quick-btn-icon">🧾</div><div class="quick-btn-label">Gerar recibo</div><div class="quick-btn-sub">emitir comanda</div></button>
     </div>
 
-    <div class="clubinho-banner">
-      <div class="clubinho-banner-title">📦 Pacotes Mensais</div>
+    <div class="clubinho-banner tocavel" onclick="detalhePacotes()">
+      <div class="clubinho-banner-title">📦 Pacotes Mensais ›</div>
       <div class="clubinho-banner-sub">Pets com pacote ativo</div>
       <div class="clubinho-banner-num" id="dashClubinho">0</div>
       <div class="clubinho-banner-sub" style="margin-top:4px;" id="dashClubinhoVal">R$ 0 em receita recorrente</div>
@@ -382,21 +394,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div style="font-size:11px;color:var(--cinza-claro);margin-top:6px;" id="finMeta"></div>
     </div>
     <div class="sep">Despesas fixas mensais</div>
-    <div class="card card-sm" style="margin-bottom:12px;">
-      <div class="fin-item"><div><div class="fin-desc">Aluguel</div></div><div class="fin-valor saida">R$ 1.200</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Energia elétrica</div></div><div class="fin-valor saida">R$ 500</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Água</div></div><div class="fin-valor saida">R$ 200</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Internet</div></div><div class="fin-valor saida">R$ 100</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Transporte (Tia Ju)</div></div><div class="fin-valor saida">R$ 500</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Bolsa assistente (6h)</div></div><div class="fin-valor saida">R$ 700</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Alimentação — Tia Ju</div></div><div class="fin-valor saida">R$ 600</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Alimentação — Assistente</div></div><div class="fin-valor saida">R$ 500</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Produtos de consumo</div></div><div class="fin-valor saida">R$ 400</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Maquininha</div></div><div class="fin-valor saida">R$ 80</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Contador / DAS</div></div><div class="fin-valor saida">R$ 200</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Manutenção equipamentos</div></div><div class="fin-valor saida">R$ 150</div></div>
-      <div class="fin-item"><div><div class="fin-desc">Marketing digital</div></div><div class="fin-valor saida">R$ 150</div></div>
-    </div>
+    <!-- Lista montada a partir de DESPESAS_FIXAS (fonte unica). Antes estava
+         digitada aqui e repetida no painel: mudar um valor exigia editar varios lugares. -->
+    <div class="card card-sm" style="margin-bottom:12px;" id="finFixas"></div>
     <div class="sep" id="finLancSep">Lançamentos variáveis</div>
     <div class="card" id="finLancamentos"><div class="empty"><div class="empty-icon">💰</div><div class="empty-text">Nenhum lançamento ainda</div></div></div>
   </div>
@@ -619,6 +619,16 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     </div>
     <button class="btn-primary" onclick="salvarPet()">✅ Salvar pet</button>
     <button class="btn-secondary" onclick="closeModal('modalPet')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL: DETALHE (o que está por trás de cada número do painel) -->
+<div class="modal-overlay" id="modalDetalhe">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="detTitulo"></div>
+    <div id="detCorpo"></div>
+    <button class="btn-secondary" onclick="closeModal('modalDetalhe')">Fechar</button>
   </div>
 </div>
 
@@ -1081,6 +1091,147 @@ function esc(s){
   return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// ─── DETALHE DOS NÚMEROS DO PAINEL ───
+// Cada card do painel abre o que está por trás dele. O número sozinho informa;
+// o detalhe explica de onde veio e o que fazer com aquilo.
+const DESPESAS_FIXAS=[
+  {nome:'Aluguel',valor:1200},{nome:'Energia elétrica',valor:500},{nome:'Água',valor:200},
+  {nome:'Internet',valor:100},{nome:'Transporte (Tia Ju)',valor:500},{nome:'Bolsa assistente (6h)',valor:700},
+  {nome:'Alimentação — Tia Ju',valor:600},{nome:'Alimentação — Assistente',valor:500},
+  {nome:'Produtos de consumo',valor:400},{nome:'Maquininha',valor:80},{nome:'Contador / DAS',valor:200},
+  {nome:'Manutenção equipamentos',valor:150},{nome:'Marketing digital',valor:150}
+];
+const TOTAL_FIXO=DESPESAS_FIXAS.reduce((s,d)=>s+d.valor,0); // 5280
+function brl(v){return'R$ '+Number(v||0).toLocaleString('pt-BR');}
+
+function abrirDetalhe(titulo,html){
+  document.getElementById('detTitulo').textContent=titulo;
+  document.getElementById('detCorpo').innerHTML=html;
+  openModal('modalDetalhe');
+}
+function vazio(msg){return'<div class="empty"><div class="empty-icon">🐾</div><div class="empty-text">'+msg+'</div></div>';}
+
+function irParaAgendaHoje(){
+  const el=document.getElementById('agendaFiltroData');
+  el.value=hojeISO();
+  goScreen('agenda',document.querySelectorAll('.nav-btn')[1]);
+}
+
+// Receita do mês → de onde veio, por categoria e por lançamento
+function detalheReceita(){
+  const mes=hojeISO().substring(0,7);
+  const ent=lancamentos.filter(l=>l.tipo==='entrada'&&l.data&&l.data.startsWith(mes));
+  if(!ent.length){
+    abrirDetalhe('Receita do mês',vazio('Nenhuma entrada lançada este mês.')+
+      '<div class="det-nota">A receita entra quando você conclui um atendimento na agenda ou salva um recibo.</div>');
+    return;
+  }
+  const total=ent.reduce((s,l)=>s+l.valor,0);
+  const porCat={};ent.forEach(l=>{porCat[l.cat||'Outros']=(porCat[l.cat||'Outros']||0)+l.valor;});
+  const cats=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  const linhas=ent.slice().sort((a,b)=>b.data.localeCompare(a.data)).map(l=>
+    `<div class="det-linha"><div><div>${esc(l.desc)}</div><div class="det-sub">${esc(l.cat||'')} · ${formatData(l.data)}</div></div>
+     <div class="fin-valor entrada">${brl(l.valor)}</div></div>`).join('');
+  abrirDetalhe('Receita do mês',
+    '<div class="sep" style="padding-top:0;">Por categoria</div>'+
+    cats.map(([c,v])=>`<div class="det-linha"><span>${esc(c)}</span><span>${brl(v)}</span></div>`).join('')+
+    `<div class="det-total"><span>Total</span><span>${brl(total)}</span></div>`+
+    '<div class="sep">Lançamentos ('+ent.length+')</div>'+linhas);
+}
+
+// Despesas fixas → a conta que precisa ser paga todo mês
+function detalheDespesasFixas(){
+  const mes=hojeISO().substring(0,7);
+  const receita=lancamentos.filter(l=>l.tipo==='entrada'&&l.data&&l.data.startsWith(mes)).reduce((s,l)=>s+l.valor,0);
+  const falta=Math.max(0,TOTAL_FIXO-receita);
+  abrirDetalhe('Despesas fixas do mês',
+    DESPESAS_FIXAS.map(d=>`<div class="det-linha"><span>${esc(d.nome)}</span><span class="fin-valor saida">${brl(d.valor)}</span></div>`).join('')+
+    `<div class="det-total"><span>Total por mês</span><span>${brl(TOTAL_FIXO)}</span></div>`+
+    `<div class="det-nota">Você já fez <b>${brl(receita)}</b> este mês.`+
+    (falta>0?` Faltam <b>${brl(falta)}</b> para cobrir o custo fixo.`:` <b>O custo fixo já está coberto!</b> 🎉`)+
+    `<br><br>Estes valores estão fixos no app. Se algum mudar, me avise para atualizar.</div>`);
+}
+
+// Clientes → quem são, e quem está sem voltar há mais tempo
+function detalheClientes(){
+  if(!clientes.length){
+    abrirDetalhe('Clientes',vazio('Nenhum cliente cadastrado ainda.'));return;
+  }
+  let totalPets=0,comPacote=0;
+  const linhas=clientes.map(c=>{
+    const pets=petsDe(c);totalPets+=pets.length;
+    pets.forEach(p=>{if(p.pacote)comPacote++;});
+    const nomes=pets.map(p=>p.nome).filter(Boolean).join(', ')||'—';
+    return `<div class="det-linha tocavel" onclick="closeModal('modalDetalhe');verPerfil(${c.id})">
+      <div><div>${esc(c.nome)}</div><div class="det-sub">🐾 ${esc(nomes)}${c.tel?' · '+esc(c.tel):''}</div></div>
+      <span style="color:var(--lilas);">›</span></div>`;
+  }).join('');
+  abrirDetalhe('Clientes',
+    `<div class="det-linha"><span>Tutores cadastrados</span><b>${clientes.length}</b></div>`+
+    `<div class="det-linha"><span>Pets</span><b>${totalPets}</b></div>`+
+    `<div class="det-linha"><span>Pets com pacote mensal</span><b>${comPacote}</b></div>`+
+    '<div class="sep">Toque para abrir a ficha</div>'+linhas);
+}
+
+// Break-even → a conta explicada, sem economês
+function detalheBreakEven(){
+  const mes=hojeISO().substring(0,7);
+  const doMes=lancamentos.filter(l=>l.data&&l.data.startsWith(mes));
+  const receita=doMes.filter(l=>l.tipo==='entrada').reduce((s,l)=>s+l.valor,0);
+  const varia=doMes.filter(l=>l.tipo==='saida').reduce((s,l)=>s+l.valor,0);
+  const pct=Math.min(100,Math.round(receita/TOTAL_FIXO*100));
+  const sobra=receita-TOTAL_FIXO-varia;
+  const ticket=(()=>{
+    const at=atendimentos.filter(a=>a.status==='concluido'&&a.data&&a.data.startsWith(mes)&&a.valor>0);
+    return at.length?receita/at.length:0;
+  })();
+  const faltam=Math.max(0,TOTAL_FIXO-receita);
+  abrirDetalhe('Break-even do mês',
+    `<div class="det-linha"><span>Receita do mês</span><span class="fin-valor entrada">${brl(receita)}</span></div>`+
+    `<div class="det-linha"><span>Custo fixo</span><span class="fin-valor saida">${brl(TOTAL_FIXO)}</span></div>`+
+    `<div class="det-linha"><span>Despesas variáveis lançadas</span><span class="fin-valor saida">${brl(varia)}</span></div>`+
+    `<div class="det-total"><span>${sobra>=0?'Sobra':'Falta'}</span><span style="color:${sobra>=0?'var(--verde)':'var(--vermelho)'}">${brl(Math.abs(sobra))}</span></div>`+
+    `<div class="det-nota"><b>O que é break-even:</b> é o ponto em que o que você recebeu já pagou tudo que a loja gasta. Antes disso você trabalha para pagar as contas; depois, o que entra é lucro.<br><br>`+
+    `Você está em <b>${pct}%</b> do custo fixo.`+
+    (faltam>0
+      ? ` Faltam <b>${brl(faltam)}</b>`+(ticket>0?` — mais ou menos <b>${Math.ceil(faltam/ticket)} atendimentos</b> no ticket médio de ${brl(Math.round(ticket))}.`:'.')
+      : ` <b>O fixo já está pago este mês.</b> 🎉`)+
+    `<br><br>⚠️ A porcentagem no painel considera só o custo fixo. As despesas variáveis entram nesta conta detalhada.</div>`);
+}
+
+// Pacotes mensais → quem tem, quanto rende, e quem está perto do brinde
+function detalhePacotes(){
+  const comPacote=[];const fidelidade=[];
+  clientes.forEach(c=>petsDe(c).forEach(p=>{
+    if(p.pacote)comPacote.push({c,p});
+    const f=parseInt(p.fidelidade)||0;
+    if(f>0)fidelidade.push({c,p,f});
+  }));
+  const recorrente=comPacote.reduce((s,x)=>s+valorPacote(x.p.pacote),0);
+  let html='';
+  if(comPacote.length){
+    html+='<div class="sep" style="padding-top:0;">Pets com pacote ativo</div>'+
+      comPacote.map(({c,p})=>`<div class="det-linha tocavel" onclick="closeModal('modalDetalhe');verPerfil(${c.id})">
+        <div><div>${esc(p.nome)} <span class="det-sub">de ${esc(c.nome)}</span></div><div class="det-sub">📦 ${esc(p.pacote)}</div></div>
+        <span>${brl(valorPacote(p.pacote))}</span></div>`).join('')+
+      `<div class="det-total"><span>Por mês</span><span>${brl(recorrente)}</span></div>`;
+  }else{
+    html+=vazio('Nenhum pet com pacote mensal ainda.')+
+      '<div class="det-nota">Pacote mensal é receita que entra todo mês sem depender de agendamento. Vale oferecer para quem já vem sempre.</div>';
+  }
+  if(fidelidade.length){
+    html+='<div class="sep">⭐ Clubinho fidelidade</div>'+
+      fidelidade.sort((a,b)=>b.f-a.f).map(({c,p,f})=>{
+        const faltam=FIDELIDADE_META-f;
+        return `<div class="det-linha tocavel" onclick="closeModal('modalDetalhe');verPerfil(${c.id})">
+          <div><div>${esc(p.nome)} <span class="det-sub">de ${esc(c.nome)}</span></div>
+          <div class="det-sub">${f}/${FIDELIDADE_META} banhos</div></div>
+          <span style="color:${faltam<=2?'var(--verde)':'var(--cinza-claro)'};font-size:12px;">${faltam<=2?'faltam '+faltam+' 🎁':'faltam '+faltam}</span></div>`;
+      }).join('');
+  }
+  abrirDetalhe('Pacotes e fidelidade',html);
+}
+
 // ─── DASHBOARD ───
 function renderDash(){
   const hoje=hojeISO();
@@ -1092,8 +1243,12 @@ function renderDash(){
   const entradas=lancamentos.filter(l=>l.tipo==='entrada'&&l.data&&l.data.startsWith(mesAtual));
   const totalE=entradas.reduce((s,l)=>s+l.valor,0);
   document.getElementById('dashReceita').textContent='R$ '+totalE.toLocaleString('pt-BR');
+  document.getElementById('dashReceitaSub').textContent=entradas.length+(entradas.length===1?' entrada':' entradas');
   document.getElementById('dashClientes').textContent=clientes.length;
-  const pct=Math.min(100,Math.round((totalE/5280)*100));
+  const totalPets=clientes.reduce((s,c)=>s+petsDe(c).length,0);
+  document.getElementById('dashClientesSub').textContent=totalPets+(totalPets===1?' pet':' pets');
+  const pct=Math.min(100,Math.round((totalE/TOTAL_FIXO)*100));
+  document.getElementById('dashFixo').textContent=brl(TOTAL_FIXO);
   document.getElementById('dashBreak').textContent=pct+'%';
   document.getElementById('dashProgress').style.width=pct+'%';
   let pacotesAtivos=0, recorrente=0, carimbos=0, quase=0;
@@ -1429,6 +1584,10 @@ function setPeriodo(p,btn){
   renderFin();
 }
 function renderFin(){
+  // despesas fixas vêm da constante — um lugar só para mudar valor
+  document.getElementById('finFixas').innerHTML=
+    DESPESAS_FIXAS.map(d=>`<div class="fin-item"><div><div class="fin-desc">${esc(d.nome)}</div></div><div class="fin-valor saida">${brl(d.valor)}</div></div>`).join('')+
+    `<div class="det-total" style="font-size:14px;"><span>Total por mês</span><span>${brl(TOTAL_FIXO)}</span></div>`;
   const lista=lancamentos.filter(noPeriodo);
   const eList=lista.filter(l=>l.tipo==='entrada');
   const sList=lista.filter(l=>l.tipo==='saida');
@@ -1448,7 +1607,7 @@ function renderFin(){
   // break-even: meta = R$5.280 por mês do período
   const ms=mesesDoPeriodo();
   let nMeses=ms?ms.length:(new Set(lancamentos.filter(l=>l.data).map(l=>l.data.substring(0,7))).size||1);
-  const metaFixa=5280*nMeses;
+  const metaFixa=TOTAL_FIXO*nMeses;
   const pct=Math.min(100,Math.round((totalE/metaFixa)*100));
   document.getElementById('finProgress').style.width=pct+'%';
   document.getElementById('finMeta').textContent=pct+'% da meta de despesas fixas (R$ '+metaFixa.toLocaleString('pt-BR')+(nMeses>1?' · '+nMeses+' meses':'')+') coberto';
@@ -1479,7 +1638,7 @@ function gerarRelatorio(){
   const atendMes=atendimentos.filter(a=>a.data&&a.data.startsWith(mes)&&a.status==='concluido');
   let pacotesAtivos=0, recorrente=0;
   clientes.forEach(c=>petsDe(c).forEach(p=>{if(p.pacote){pacotesAtivos++;recorrente+=valorPacote(p.pacote);}}));
-  const pct=Math.min(100,Math.round((totalE/5280)*100));
+  const pct=Math.min(100,Math.round((totalE/TOTAL_FIXO)*100));
   const brl=v=>'R$ '+v.toLocaleString('pt-BR');
   // agrupa por categoria
   const porCat=arr=>{const m={};arr.forEach(l=>{m[l.cat||'Outros']=(m[l.cat||'Outros']||0)+l.valor;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
@@ -1505,7 +1664,7 @@ function gerarRelatorio(){
     <div class="rp-row total"><span>Total de receitas</span><span>${brl(totalE)}</span></div>
     <div class="rp-sec">Despesas variáveis por categoria</div>
     ${linhasCat(porCat(saidas))}
-    <div class="rp-row"><span style="color:#8A8A8A;">+ Despesas fixas mensais estimadas</span><span style="color:#8A8A8A;">R$ 5.280</span></div>
+    <div class="rp-row"><span style="color:#8A8A8A;">+ Despesas fixas mensais estimadas</span><span style="color:#8A8A8A;">${brl(TOTAL_FIXO)}</span></div>
     <div class="rp-row total"><span>Total de despesas variáveis</span><span>${brl(totalS)}</span></div>
     <div class="rp-foot">Gerado em ${hoje.toLocaleDateString('pt-BR')} · Ju Pet · @ju.pett 🐾</div>
   </div>`;
