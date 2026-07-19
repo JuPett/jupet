@@ -107,6 +107,35 @@ Produto de **uso** ganha `rende` (quantos atendimentos uma unidade cobre) e
 - Scanner nativo (`BarcodeDetector`) aparece só onde existe (Android Chrome). No iOS
   o caminho é colar, igual ao "Pedido do zap".
 
+## Olhinho (ocultar valores)
+
+A Ju abre o app no balcão com o cliente do lado. `alternarValores()` mascara todo o
+dinheiro da tela com `R$ ••••`, e o estado fica salvo entre aberturas.
+
+**`brl()` é o ponto único de mascaramento** — todo valor exibido precisa passar por
+ela. Se aparecer `'R$ '+x.toLocaleString(...)` solto em algum render novo, aquele
+valor vaza com o olhinho fechado. Foi por isso que os 9 pontos que formatavam na mão
+foram migrados.
+
+## Conciliação bancária (Bradesco MEI)
+
+**Não existe API viável.** O Bradesco expõe extrato via **Open Finance**, que exige
+ser instituição autorizada pelo Banco Central, com certificado ICP e servidor — nada
+disso cabe num app sem servidor. Agregadores (Pluggy, Belvo, TecnoSpeed) resolveriam,
+mas cobram mensalidade e também exigem backend.
+
+O caminho implementado é **importar o extrato** exportado do Net Empresa:
+
+- `lerOFX()` — formato preferido, é o padrão de extrato bancário.
+- `lerCSVExtrato()` — ⚠️ o separador é `;` ou tab, **nunca `,`**: no Brasil a vírgula
+  é o separador decimal, e dividir por ela quebra `65,00` em dois campos (bug real,
+  pego em teste). Só entende valor no formato brasileiro (`1.180,00`); CSV com ponto
+  decimal devolve vazio de propósito, em vez de ler o milhar errado.
+- `acharLancamentoParecido()` casa por **mesmo valor + mesmo tipo + até 3 dias** de
+  diferença (o banco registra em D+1/D+2).
+- Linha sem par vira "+ Lançar" com o modal já preenchido. Conciliado marca
+  `l.conciliado=true`, e lançamento conciliado não casa de novo.
+
 ## Agendamento pelo cliente (`agendar.html`)
 
 **https://jupet.pages.dev/agendar** — página pública, sem login, para o cliente.
