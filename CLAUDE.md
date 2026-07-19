@@ -90,6 +90,31 @@ Produto de **uso** ganha `rende` (quantos atendimentos uma unidade cobre) e
   para dizer quantos dias o estoque aguenta e até quando comprar — com **7 dias de
   folga**, porque avisar no dia que acaba não serve para nada.
 
+## Categorias editáveis
+
+`CATEGORIAS_PADRAO` são só o ponto de partida; a lista real fica em
+`DB.get('categorias')` e a Ju edita pelo ⚙️ dentro do lançamento. O `<select>` é
+gerado por `montarSelectCategorias()` e **muda conforme entrada/saída** — por isso
+`setTipo()` chama a função. Em `editarLanc`, chamar `setTipo` **antes** de
+selecionar a categoria, senão a lista trocada apaga a seleção.
+
+- **Renomear atualiza os lançamentos antigos** que usavam o nome — sem isso eles
+  sumiriam dos relatórios por categoria.
+- **Categoria em uso não pode ser excluída.** O app conta os lançamentos e recusa.
+
+## Foto do comprovante
+
+Anexa a foto da nota ao lançamento (`l.foto`, comprimida pelo `comprimirFoto`) e,
+**se a nota tiver QR Code, lê a chave direto da imagem** (`lerQRdaImagem`, via
+`BarcodeDetector`) preenchendo fornecedor, data e nº da nota.
+
+⚠️ **Não é OCR e não deve ser vendido como tal.** Ler o texto de uma nota exigiria
+biblioteca de vários MB, o que quebraria o app offline/self-contained. O que existe
+é: guardar o comprovante + ler o QR. O valor continua digitado — o QR da NFC-e não
+o carrega (ver seção do cupom fiscal).
+⚠️ O QR é lido da imagem **original**, não da comprimida: 400px perde a resolução
+do código.
+
 ## Financeiro: editar e ler cupom
 
 - **`editarLanc(id)`** abre o modal preenchido; `salvarLancamento()` decide entre criar
@@ -211,6 +236,12 @@ E do lado do `lerLinhasExtrato`, o layout real exigiu:
 conferência. **O CSV continua sendo o caminho exato** — recomendar ele sempre.
 - `acharLancamentoParecido()` casa por **mesmo valor + mesmo tipo + até 3 dias** de
   diferença (o banco registra em D+1/D+2).
+- **`conciliarAutomatico()`** roda logo após a importação e dá baixa sozinho no que
+  bate. ⚠️ **Só concilia quando há UM único candidato.** Havendo dois lançamentos
+  iguais no período (dois banhos de R$ 100 no mesmo dia é comum), ele **não decide** —
+  deixa para a Ju. Baixar o errado em silêncio é pior que dar trabalho.
+  O resumo mostra quantos foram automáticos, quantos ficaram ambíguos e quantos
+  sobraram. Lançamento conciliado exibe "✓ no banco" na lista.
 - Linha sem par vira "+ Lançar" com o modal já preenchido. Conciliado marca
   `l.conciliado=true`, e lançamento conciliado não casa de novo.
 
