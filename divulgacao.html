@@ -103,10 +103,10 @@ function fundo(ctx,L,A){
   const g=ctx.createLinearGradient(0,0,L,A);
   g.addColorStop(0,ROXO); g.addColorStop(1,ROXO_ESCURO);
   ctx.fillStyle=g; ctx.fillRect(0,0,L,A);
-  // patinhas decorativas, bem discretas
+  // patinhas decorativas, bem discretas e nos cantos — longe do texto
   ctx.globalAlpha=0.06;
-  patinha(ctx,L*0.14,A*0.90,L*0.10,'#FFFFFF');
-  patinha(ctx,L*0.87,A*0.12,L*0.08,'#FFFFFF');
+  patinha(ctx,L*0.10,A*0.945,L*0.10,'#FFFFFF');
+  patinha(ctx,L*0.92,A*0.055,L*0.08,'#FFFFFF');
   ctx.globalAlpha=1;
 }
 
@@ -166,9 +166,9 @@ function arteValores(ctx,L,A){
   ctx.fillStyle=LILAS_PAL; ctx.fillRect(0,0,L,A);
   ctx.fillStyle=ROXO; ctx.fillRect(0,0,L,A*0.30);
   const cx=L/2;
-  patinha(ctx,cx,A*0.095,L*0.075,'#FFFFFF');
-  texto(ctx,MARCA,cx,A*0.185,{fonte:'600 '+(L*0.090)+'px "Cormorant Garamond"',cor:'#FFFFFF'});
-  texto(ctx,SUB,cx,A*0.230,{fonte:'400 '+(L*0.022)+'px "DM Sans"',cor:'rgba(255,255,255,0.65)',espaco:L*0.010});
+  patinha(ctx,cx,A*0.085,L*0.070,'#FFFFFF');
+  texto(ctx,MARCA,cx,A*0.172,{fonte:'600 '+(L*0.086)+'px "Cormorant Garamond"',cor:'#FFFFFF'});
+  texto(ctx,SUB,cx,A*0.240,{fonte:'400 '+(L*0.022)+'px "DM Sans"',cor:'rgba(255,255,255,0.65)',espaco:L*0.010});
 
   texto(ctx,'Nossos serviços',cx,A*0.365,{fonte:'700 '+(L*0.050)+'px "DM Sans"',cor:ROXO});
 
