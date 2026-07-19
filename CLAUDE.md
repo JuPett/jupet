@@ -126,11 +126,27 @@ mas cobram mensalidade e também exigem backend.
 
 O caminho implementado é **importar o extrato** exportado do Net Empresa:
 
-- `lerOFX()` — formato preferido, é o padrão de extrato bancário.
-- `lerCSVExtrato()` — ⚠️ o separador é `;` ou tab, **nunca `,`**: no Brasil a vírgula
-  é o separador decimal, e dividir por ela quebra `65,00` em dois campos (bug real,
-  pego em teste). Só entende valor no formato brasileiro (`1.180,00`); CSV com ponto
-  decimal devolve vazio de propósito, em vez de ler o milhar errado.
+⚠️ **O Bradesco só exporta PDF e CSV — não tem OFX** (confirmado pelo usuário em
+19/07/2026). O `lerOFX()` continua no código para outros bancos, mas não é o caminho
+dela. **Recomendar sempre o CSV**, que é leitura exata.
+
+- **`lerLinhasExtrato()` é o interpretador único** — serve para CSV e para o texto
+  extraído do PDF. A ideia: uma linha de extrato é "tem uma data e tem um valor";
+  procurar esses dois padrões é mais robusto que depender da posição das colunas,
+  que muda entre formatos. Ele também:
+  - descarta a **última coluna quando há mais de um valor** (é o saldo, não lançamento);
+  - respeita a marca **D/C** do Bradesco quando existe, senão usa o sinal;
+  - limpa da descrição a data, os valores, os separadores e os **números soltos**
+    (coluna "Docto"), deixando só o histórico legível.
+- ⚠️ Separador é `;` ou tab, **nunca `,`**: no Brasil a vírgula é o separador
+  decimal, e dividir por ela quebra `65,00` em dois campos (bug real, pego em teste).
+  Só entende valor no formato brasileiro (`1.180,00`); formato com ponto decimal
+  devolve vazio de propósito, em vez de ler o milhar errado.
+- **`extrairTextoPDF()`** infla os streams do PDF com **`DecompressionStream` nativo**
+  — sem biblioteca externa, o que preserva o app self-contained e offline. Funciona em
+  PDF de **texto** (o extrato é), não em digitalizado.
+  ⚠️ **Extração de PDF é aproximada.** O app avisa isso ao ler e pede para conferir os
+  valores antes de confirmar cada linha. Nunca tratar como exata — o CSV é que é.
 - `acharLancamentoParecido()` casa por **mesmo valor + mesmo tipo + até 3 dias** de
   diferença (o banco registra em D+1/D+2).
 - Linha sem par vira "+ Lançar" com o modal já preenchido. Conciliado marca
