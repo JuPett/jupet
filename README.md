@@ -57,6 +57,8 @@ nenhuma mensagem — daí a checagem ser obrigatória.
 
 1. Não dá para **editar** cliente, pet ou lançamento já salvo — só criar e apagar.
    (Produto já pode ser editado.)
+1b. **Faixas de peso do porte aguardam confirmação** — até 10 kg / 10–25 / acima de 25,
+   usadas para pet sem raça definida. Propostas por mim, publicadas na página do cliente.
 2. **4 preços aguardam confirmação da Ju** — banho simples, banho + finalização,
    tosa higiênica e tosa máquina tinham valor único na tabela dela; os valores de
    Médio e Grande foram propostos (marcados `sugerido:true` no código e com

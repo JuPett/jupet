@@ -156,6 +156,30 @@ que faz o banho sair R$ 85. Uma escolha em vez de três campos.
 - O porte da raça é **sugestão editável** — Poodle vai de toy a standard, e filhote não
   tem o porte do adulto. `setRaca()` de propósito **não** sobrescreve o porte salvo.
 
+### Como o porte é determinado (e por que isso importa)
+
+O porte define o preço, então virava discussão de balcão ("meu cachorro é pequeno!").
+A página do cliente publica o critério **antes** do agendamento, no bloco
+"📏 Como definimos o porte".
+
+Duas fontes, nesta ordem:
+1. **Raça** → o porte vem de `racas.js`, que reflete altura/peso do adulto no padrão
+   da raça.
+2. **Sem raça definida / raça digitada livre** → aparece o campo **peso**, e
+   `porteDoPeso()` decide: **até 10 kg** Pequeno · **10–25 kg** Médio · **acima de
+   25 kg** Grande. ⚠️ Faixas **propostas por mim, a confirmar com a Ju** (19/07/2026).
+
+⚠️ **NÃO escrever que "a CBKC define o porte"** — é falso. A CBKC/FCI classifica as
+raças em 10 grupos por **função e morfologia** (pastores, molossos, terriers, spitz…),
+não por tamanho: Chow Chow e Lulu da Pomerânia estão no mesmo Grupo 5. O que a CBKC
+define, e o que a página cita, é a **altura e o peso do adulto no padrão de cada raça**.
+Citar a CBKC como autoridade sobre porte daria ao cliente um argumento contra a Ju.
+
+**Pelagem não é porte** — e essa separação é o que evita a briga. Um Lulu é pequeno
+mesmo com muito pelo. A pelagem afeta o **tempo de trabalho**, e entra como
+**desembolo** (leve/médio/intenso), que a tabela da Ju já cobra à parte "conforme
+avaliação do pet no dia". Nunca embutir pelagem no porte para cobrar mais.
+
 ### Raça não atendida (`naoAtende: true`)
 
 **Chow Chow não é atendida**, por segurança do pet e da equipe (decisão da Ju, 19/07/2026).
