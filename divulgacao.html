@@ -30,6 +30,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 .dica{background:var(--lilas-palido);border-radius:12px;padding:14px;font-size:12.5px;line-height:1.6;margin-bottom:16px;}
 .dica b{color:var(--roxo);}
 .carregando{text-align:center;padding:40px;color:var(--cinza-claro);font-size:14px;}
+.aviso-imagem{background:#FFF7E6;border:1px solid #F0D9A8;border-radius:10px;padding:11px 13px;
+              font-size:12px;line-height:1.55;color:#8C5510;margin-bottom:10px;}
+.aviso-imagem b{color:#6B4A0F;}
 </style>
 </head>
 <body>
@@ -148,8 +151,10 @@ function arteFeed(ctx,L,A){
   texto(ctx,'do seu pet',cx,A*0.505,{fonte:'700 '+(L*0.082)+'px "DM Sans"',cor:'#FFFFFF'});
   texto(ctx,'em 1 minuto, sem sair do sofá 🐾',cx,A*0.565,{fonte:'400 '+(L*0.033)+'px "DM Sans"',cor:'rgba(255,255,255,0.8)'});
 
-  pilula(ctx,LINK,cx,A*0.655,L*0.80,A*0.075,L*0.040);
-  texto(ctx,'ou toque no link da bio',cx,A*0.715,{fonte:'400 '+(L*0.028)+'px "DM Sans"',cor:'rgba(255,255,255,0.7)'});
+  pilula(ctx,LINK,cx,A*0.650,L*0.80,A*0.072,L*0.040);
+  // No Instagram não dá para clicar na imagem — o caminho real é a bio.
+  // Por isso esta linha é destaque, não rodapé.
+  texto(ctx,'👆 LINK NA BIO DO PERFIL',cx,A*0.712,{fonte:'700 '+(L*0.032)+'px "DM Sans"',cor:'#FFFFFF',espaco:L*0.004});
 
   texto(ctx,'✓ Escolha o serviço e veja o valor',cx,A*0.790,{fonte:'400 '+(L*0.030)+'px "DM Sans"',cor:'rgba(255,255,255,0.9)'});
   texto(ctx,'✓ Marque o melhor dia e horário',cx,A*0.832,{fonte:'400 '+(L*0.030)+'px "DM Sans"',cor:'rgba(255,255,255,0.9)'});
@@ -245,7 +250,13 @@ function montar(){
 
     const card=document.createElement('div');
     card.className='card';
-    card.innerHTML='<h2>'+a.nome+'</h2><div class="sub">'+a.sub+'</div>';
+    // ⚠️ O aviso existe porque o link desenhado dentro da arte PARECE um botão
+    // (pílula branca) e as pessoas tentam tocar. É imagem: não clica em lugar
+    // nenhum, nem aqui nem no Instagram.
+    card.innerHTML='<h2>'+a.nome+'</h2><div class="sub">'+a.sub+'</div>'
+      +'<div class="aviso-imagem">🖼️ <b>Isto é uma imagem.</b> O link desenhado nela '
+      +'não abre ao tocar — nem aqui, nem no Instagram. Para abrir a página, use os '
+      +'<b>botões roxos lá em cima</b>.</div>';
     cv.className='preview';
     card.appendChild(cv);
 
