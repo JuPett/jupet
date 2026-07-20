@@ -354,6 +354,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <!-- ANIVERSÁRIOS DO MÊS -->
     <div id="dashAnivContainer"></div>
 
+    <!-- PETS SEM DATA DE NASCIMENTO — sem isso o lembrete nunca dispara -->
+    <div id="dashSemAnivContainer"></div>
+
     <!-- RETORNOS RECOMENDADOS -->
     <div id="dashRetornoContainer"></div>
 
@@ -947,7 +950,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-212339';
+const VERSAO_APP='2026-07-19-213531';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -1396,6 +1399,67 @@ function renderAniversarios(){
     }).join('')}
   </div>`;
   container.innerHTML=html;
+}
+
+// ─── PETS SEM DATA DE NASCIMENTO ───
+// O lembrete de aniversário só existe se a data estiver preenchida, e o campo é
+// opcional no cadastro. Sem cobrar, a Ju cadastra 50 pets e o recurso nunca liga.
+// Cobrança discreta: uma linha, não um banner — ela completa no ritmo dela.
+function petsSemAniversario(){
+  const lista=[];
+  clientes.forEach(c=>petsDe(c).forEach(p=>{ if(!p.aniv)lista.push({c,p}); }));
+  return lista;
+}
+
+function renderSemAniversario(){
+  const cont=document.getElementById('dashSemAnivContainer');
+  if(!cont)return;
+  const faltam=petsSemAniversario();
+  if(!faltam.length){cont.innerHTML='';return;}
+  cont.innerHTML=`<div class="card card-sm tocavel" style="margin-bottom:12px;border-left:4px solid var(--lilas);"
+       onclick="abrirCompletarAniversarios()">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="font-size:20px;">🎂</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;color:var(--roxo);">
+          ${faltam.length} pet${faltam.length>1?'s':''} sem data de nascimento
+        </div>
+        <div style="font-size:11px;color:var(--cinza-claro);margin-top:2px;">
+          Sem a data, o aviso de aniversário não aparece. Toque para completar.
+        </div>
+      </div>
+      <span style="color:var(--lilas);">›</span>
+    </div>
+  </div>`;
+}
+
+function abrirCompletarAniversarios(){
+  const faltam=petsSemAniversario();
+  if(!faltam.length){abrirDetalhe('🎂 Aniversários',vazio('Todos os pets já têm data. 👏'));return;}
+  abrirDetalhe('🎂 Completar aniversários',
+    `<div class="det-nota" style="margin-top:0;">
+       Preencha a data que você souber — a idade e o aviso de aniversário passam a
+       funcionar sozinhos. Pode deixar em branco o que não souber e voltar depois.
+     </div>`
+    +faltam.map(({c,p})=>`
+      <div class="det-linha" style="align-items:center;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;">${esc(p.nome)}</div>
+          <div class="det-sub">de ${esc(c.nome)}${p.raca?' · '+esc(p.raca):''}</div>
+        </div>
+        <input type="date" class="form-input" style="width:150px;padding:8px 10px;font-size:13px;"
+               onchange="salvarAniversarioRapido(${c.id},${p.id},this.value)">
+      </div>`).join(''));
+}
+
+function salvarAniversarioRapido(cid,pid,valor){
+  const c=tutorPorId(cid); if(!c)return;
+  const p=petsDe(c).find(x=>x.id===pid); if(!p)return;
+  p.aniv=valor||'';
+  if(!DB.set('clientes',clientes))return;
+  renderDash();renderClientes();
+  // reabre a lista já sem o pet que acabou de ser preenchido
+  if(valor)setTimeout(abrirCompletarAniversarios,250);
 }
 
 // ─── RETORNO RECOMENDADO ───
@@ -2476,6 +2540,7 @@ function renderDash(){
   document.getElementById('dashFidelidade').textContent='⭐ Clubinho fidelidade: '+carimbos+' carimbos'+(quase?' · '+quase+' perto da hidratação grátis 🎁':'');
   renderAlertaPendentes();
   renderAniversarios();
+  renderSemAniversario();
   renderRetornos();
   renderAlertaEstoque();
   renderBackupInfo();
