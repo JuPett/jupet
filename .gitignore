@@ -4,3 +4,4 @@ _check.js
 .wrangler/
 _linhas_teste.json
 _b64_*.txt
+.env.github.ps1

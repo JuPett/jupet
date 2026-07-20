@@ -275,7 +275,14 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 .btn-report{flex:1;padding:11px;border:1.5px solid var(--lilas);background:white;color:var(--roxo);border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
 #relatorioPrint{display:none;}
 
-@media(min-width:560px){body{max-width:560px;margin:0 auto;border-left:1px solid var(--borda);border-right:1px solid var(--borda);}}
+/* No computador o corpo vira uma coluna de 560px centralizada. A .nav e
+   position:fixed, entao ela se ancora na JANELA, nao no corpo: sem o
+   max-width abaixo ela esparrama na tela toda e os botoes ficam soltos,
+   longe do conteudo. left:0/right:0 + max-width + margem auto centraliza. */
+@media(min-width:560px){
+  body{max-width:560px;margin:0 auto;border-left:1px solid var(--borda);border-right:1px solid var(--borda);}
+  .nav{max-width:560px;margin:0 auto;}
+}
 
 /* PRINT — RELATÓRIO MENSAL */
 @media print{
@@ -394,7 +401,10 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 
     <div class="card">
       <div class="sec-header"><div class="sec-title">Agenda de hoje</div></div>
-      <div id="dashAgendaHoje"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Sem agendamentos para hoje</div></div></div>
+      <!-- Icone de pata, nao calendario: o glifo 📅 do iPhone tem uma data
+           desenhada dentro dele (aparece "17"), e brigava com o dia mostrado
+           na tela. Pata nao carrega data e e da marca. -->
+      <div id="dashAgendaHoje"><div class="empty"><div class="empty-icon">🐾</div><div class="empty-text">Sem agendamentos para hoje</div></div></div>
     </div>
 
     <!-- BACKUP — os dados vivem só neste celular. Sem isso, trocar de aparelho apaga tudo. -->
@@ -950,7 +960,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-213531';
+const VERSAO_APP='2026-07-19-234840';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -2545,7 +2555,7 @@ function renderDash(){
   renderAlertaEstoque();
   renderBackupInfo();
   const cont=document.getElementById('dashAgendaHoje');
-  if(!atHoje.length){cont.innerHTML='<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Sem agendamentos para hoje</div></div>';return;}
+  if(!atHoje.length){cont.innerHTML='<div class="empty"><div class="empty-icon">🐾</div><div class="empty-text">Sem agendamentos para hoje</div></div>';return;}
   cont.innerHTML=atHoje.sort((a,b)=>a.hora.localeCompare(b.hora)).map(a=>`
     <div class="atend-item">
       <div class="atend-avatar">${petAvatar(a)}</div>
@@ -2582,7 +2592,7 @@ function renderAgenda(){
   const data=document.getElementById('agendaFiltroData').value;
   const lista=atendimentos.filter(a=>!data||a.data===data).sort((a,b)=>a.hora.localeCompare(b.hora));
   const container=document.getElementById('agendaLista');
-  if(!lista.length){container.innerHTML='<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Nenhum agendamento nesta data</div></div>';return;}
+  if(!lista.length){container.innerHTML='<div class="empty"><div class="empty-icon">🐾</div><div class="empty-text">Nenhum agendamento nesta data</div></div>';return;}
   container.innerHTML=lista.map(a=>`
     <div class="card card-sm">
       <div class="atend-item" style="padding:0;border:none;">
@@ -4208,7 +4218,10 @@ async function ativarCofre(){
   if(!confirm('🔒 Proteger o app com PIN\n\nOs dados passam a ficar CRIPTOGRAFADOS neste celular. Sem o PIN, ninguém abre — nem eu, nem você.\n\n⚠️ ESQUECEU O PIN = PERDEU OS DADOS. Não existe recuperação.\n\nPor isso vou pedir um backup antes. Continuar?'))return;
 
   if(!confirm('Primeiro, o backup de segurança.\n\nVou baixar o arquivo agora. Guarde-o em lugar seguro (e-mail para você mesma, por exemplo) ANTES de continuar.\n\nBaixar o backup?'))return;
-  exportarBackup();
+  // await obrigatório: exportarBackup é assíncrono (calcula o checksum). Sem
+  // esperar, o PIN seria pedido antes do arquivo existir — e aqui o backup é a
+  // ÚNICA rede de segurança: esquecer o PIN depois disso é perda total.
+  await exportarBackup();
 
   const pin=prompt('Agora escolha seu PIN.\n\nSó números. Mínimo 4 dígitos — 6 protege bem mais.\nAnote em lugar seguro:');
   if(!pin)return;
@@ -4275,12 +4288,47 @@ async function trocarPin(){
 // ─── BACKUP / RESTAURAÇÃO ───
 // Os dados vivem no localStorage deste navegador. Trocar de celular, limpar o
 // navegador ou (no iPhone) 7 dias sem abrir o app apagam tudo. Isto é a saída.
-function exportarBackup(){
+// Serializa o conteúdo do backup SEMPRE na mesma ordem de chaves.
+// Exportar e importar chamam esta mesma função: se cada lado montasse o JSON
+// por conta própria, uma ordem diferente geraria um checksum diferente e o
+// backup bom seria recusado como corrompido.
+// ⚠️ Ao criar um tipo novo de dado, INCLUIR AQUI (e nas outras duas marcas ⚠️).
+function corpoDoBackup(o){
+  return JSON.stringify({
+    clientes:o.clientes||[], atendimentos:o.atendimentos||[],
+    lancamentos:o.lancamentos||[], produtos:o.produtos||[],
+    movimentacoes:o.movimentacoes||[]
+  });
+}
+function contagemDoBackup(o){
+  return {clientes:(o.clientes||[]).length, atendimentos:(o.atendimentos||[]).length,
+          lancamentos:(o.lancamentos||[]).length, produtos:(o.produtos||[]).length,
+          movimentacoes:(o.movimentacoes||[]).length};
+}
+// SHA-256 do conteúdo. crypto.subtle só existe em contexto seguro (https ou
+// localhost); se faltar, devolve null e o backup segue sem checksum em vez de
+// falhar — melhor um backup sem selo do que backup nenhum.
+async function somaDeVerificacao(txt){
+  try{
+    if(!window.crypto||!crypto.subtle)return null;
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){return null;}
+}
+
+async function exportarBackup(){
   // ⚠️ Ao criar um tipo novo de dado, INCLUIR AQUI e no importarBackup.
   // Um dado fora do backup é um dado que se perde na troca de celular.
+  const dados={clientes, atendimentos, lancamentos, produtos, movimentacoes};
+  const corpo=corpoDoBackup(dados);
   const dump={
-    _app:'Ju Pet', _versao:2,
+    _app:'Ju Pet', _versao:3,
     _gerado_em:new Date().toISOString(),
+    // Contagem e checksum são o que permite provar, na hora de restaurar, que
+    // o arquivo chegou inteiro. Sem isso um arquivo truncado (upload cortado,
+    // pen drive com defeito) passaria batido e apagaria os dados bons.
+    _contagem:contagemDoBackup(dados),
+    _checksum:await somaDeVerificacao(corpo),
     clientes, atendimentos, lancamentos, produtos, movimentacoes
   };
   const blob=new Blob([JSON.stringify(dump)],{type:'application/json'});
@@ -4298,14 +4346,43 @@ function exportarBackup(){
 function importarBackup(input){
   if(!input.files||!input.files[0])return;
   const reader=new FileReader();
-  reader.onload=function(e){
+  reader.onload=async function(e){
     let dump;
     try{dump=JSON.parse(e.target.result);}
     catch(err){alert('❌ Esse arquivo não é um backup válido do Ju Pet.');input.value='';return;}
     if(!dump||dump._app!=='Ju Pet'||!Array.isArray(dump.clientes)){
       alert('❌ Esse arquivo não parece um backup do Ju Pet.');input.value='';return;
     }
-    const resumo='Backup de '+(dump._gerado_em?new Date(dump._gerado_em).toLocaleString('pt-BR'):'data desconhecida')
+
+    // ── Conferência de integridade ──────────────────────────────────────
+    // Restaurar APAGA os dados atuais. Antes de deixar isso acontecer, provamos
+    // que o arquivo chegou inteiro. Backups antigos (v1/v2) não têm esses
+    // campos: nesse caso seguimos, mas avisando que não deu para conferir.
+    if(dump._checksum){
+      const calculado=await somaDeVerificacao(corpoDoBackup(dump));
+      if(calculado&&calculado!==dump._checksum){
+        alert('❌ ARQUIVO CORROMPIDO — restauração cancelada.\n\n'
+          +'O conteúdo deste backup não confere com o selo de segurança gravado nele. '
+          +'Ele foi cortado no meio, alterado, ou se danificou no envio.\n\n'
+          +'NADA foi apagado — seus dados atuais continuam intactos.\n\n'
+          +'Procure outro arquivo de backup, ou me chame antes de tentar de novo.');
+        input.value='';return;
+      }
+    }
+    if(dump._contagem){
+      const real=contagemDoBackup(dump);
+      const faltando=Object.keys(dump._contagem).filter(k=>dump._contagem[k]!==real[k]);
+      if(faltando.length){
+        alert('❌ BACKUP INCOMPLETO — restauração cancelada.\n\n'
+          +faltando.map(k=>'• '+k+': o arquivo diz '+dump._contagem[k]+', mas só tem '+real[k]).join('\n')
+          +'\n\nNADA foi apagado. Use outro arquivo de backup.');
+        input.value='';return;
+      }
+    }
+    const semSelo=!dump._checksum&&!dump._contagem;
+
+    const resumo=(semSelo?'⚠️ Backup antigo, sem selo de conferência.\n\n':'✅ Arquivo conferido, chegou inteiro.\n\n')
+      +'Backup de '+(dump._gerado_em?new Date(dump._gerado_em).toLocaleString('pt-BR'):'data desconhecida')
       +'\n\n• '+dump.clientes.length+' clientes'
       +'\n• '+(dump.atendimentos||[]).length+' atendimentos'
       +'\n• '+(dump.lancamentos||[]).length+' lançamentos'
