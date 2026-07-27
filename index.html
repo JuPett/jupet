@@ -982,7 +982,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-27-111807';
+const VERSAO_APP='2026-07-27-112543';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -3487,7 +3487,10 @@ function lerOFX(txt){
 const RE_DATA=/(\d{2})\/(\d{2})\/(\d{2,4})/;
 const RE_VALOR=/-?\d{1,3}(?:\.\d{3})*,\d{2}/g;
 // linhas que têm data e valor mas NÃO são lançamento
-const RE_IGNORAR=/saldo\s+(do\s+dia|anterior|em|final|\(r\$\))|^saldo\b|data\s+e\s+hora|per[íi]odo:|extrato\s+(para|simples)|total\s+de|^lan[çc]amentos$|^dados\s+da\s+empresa$|busca\s+de\s+lan|data\s+do\s+lan[çc]amento|^ag[êe]ncia|^empresa\b|ouvidoria|telefones?\s+de\s+contato|atendimento/i;
+const RE_IGNORAR=/saldo\s+(do\s+dia|anterior|em|final|\(r\$\))|^saldo\b|data\s+e\s+hora|per[íi]odo:|extrato\s+(para|simples)|total\s+de|^lan[çc]amentos$|^dados\s+da\s+empresa$|busca\s+de\s+lan|data\s+(do\s+)?lan[çc]amento|hist[óo]rico\s+descri|valor\s+saldo$|^ag[êe]ncia|^empresa\b|ouvidoria|telefones?\s+de\s+contato|atendimento/i;
+// "data (do) lançamento", "histórico descrição" e "valor saldo" pegam o CABEÇALHO
+// do extrato Bradesco (CSV/Excel). Sem isso ele virava rótulo e grudava na
+// descrição do 1º lançamento (ex.: "Data Lançamento Histórico ... — Pix enviado").
 
 function lerLinhasExtrato(linhas){
   const itens=[];
