@@ -503,9 +503,12 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
       <div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" id="finProgress" style="width:0%"></div></div>
       <div style="font-size:11px;color:var(--cinza-claro);margin-top:6px;" id="finMeta"></div>
     </div>
-    <div class="sep">Despesas fixas mensais</div>
-    <!-- Lista montada a partir de DESPESAS_FIXAS (fonte unica). Antes estava
-         digitada aqui e repetida no painel: mudar um valor exigia editar varios lugares. -->
+    <div class="sep" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>Despesas fixas mensais</span>
+      <button class="btn-report" style="padding:5px 12px;font-size:12px;text-transform:none;letter-spacing:0;" onclick="abrirDespesasFixas()">✏️ Editar</button>
+    </div>
+    <!-- Lista vem de `despesasFixas` (salva no DB, editavel pelo botao acima).
+         Total e painel derivam dela via totalFixo(): um lugar so para o valor. -->
     <div class="card card-sm" style="margin-bottom:12px;" id="finFixas"></div>
     <div class="sep" id="finLancSep">Lançamentos variáveis</div>
     <div class="card" id="finLancamentos"><div class="empty"><div class="empty-icon">💰</div><div class="empty-text">Nenhum lançamento ainda</div></div></div>
@@ -804,6 +807,25 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
   </div>
 </div>
 
+<!-- MODAL: EDITAR DESPESAS FIXAS MENSAIS -->
+<div class="modal-overlay" id="modalFixas">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏷️ Despesas fixas mensais</div>
+    <div style="font-size:13px;color:var(--cinza-claro);line-height:1.55;margin-bottom:12px;">
+      O que você paga todo mês, tenha cliente ou não. A soma vira a
+      <b>meta do mês</b> — quanto precisa faturar só para empatar.
+    </div>
+    <div id="fixasLista"></div>
+    <button class="btn-report" style="width:100%;margin-top:10px;" onclick="novaDespesaFixa()">+ Adicionar despesa fixa</button>
+    <div class="det-total" style="font-size:15px;margin-top:14px;"><span>Total por mês</span><span id="fixasTotal">R$ 0</span></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn-secondary" style="flex:1;" onclick="fecharDespesasFixas()">Cancelar</button>
+      <button class="btn-primary" style="flex:1;" onclick="salvarDespesasFixas()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: LER CUPOM FISCAL -->
 <div class="modal-overlay" id="modalCupom">
   <div class="modal">
@@ -960,7 +982,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-19-234840';
+const VERSAO_APP='2026-07-27-111807';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -1009,7 +1031,22 @@ const DB={
   }
 };
 
-let atendimentos=[],clientes=[],lancamentos=[],produtos=[],movimentacoes=[];
+// Despesas fixas mensais (aluguel, energia, transporte...). Sao a base da
+// "meta do mes": a meta e a SOMA delas. Ficam SALVAS no DB e a Ju edita pela
+// tela do Financeiro; a lista abaixo e so a semente da 1a vez, quando ainda
+// nao ha nada gravado. Precisa estar declarada ANTES do carregarDoDB() la
+// embaixo (ele le a semente na 1a abertura) — const nao e hoisted.
+const DESPESAS_FIXAS_PADRAO=[
+  {nome:'Aluguel',valor:1200},{nome:'Energia elétrica',valor:500},{nome:'Água',valor:200},
+  {nome:'Internet',valor:100},{nome:'Transporte (Tia Ju)',valor:500},{nome:'Bolsa assistente (6h)',valor:700},
+  {nome:'Alimentação — Tia Ju',valor:600},{nome:'Alimentação — Assistente',valor:500},
+  {nome:'Produtos de consumo',valor:400},{nome:'Maquininha',valor:80},{nome:'Contador / DAS',valor:200},
+  {nome:'Manutenção equipamentos',valor:150},{nome:'Marketing digital',valor:150}
+];
+let atendimentos=[],clientes=[],lancamentos=[],produtos=[],movimentacoes=[],despesasFixas=[];
+// Meta do mes = soma das despesas fixas. Funcao (nao constante) porque agora o
+// valor muda quando a Ju edita a lista. Number()||0 blinda contra campo vazio.
+function totalFixo(){return despesasFixas.reduce((s,d)=>s+(Number(d.valor)||0),0);}
 // relê tudo do DB para as variáveis em memória (após destrancar ou restaurar)
 function carregarDoDB(){
   atendimentos=DB.get('atend')||[];
@@ -1017,6 +1054,8 @@ function carregarDoDB(){
   lancamentos=DB.get('lanc')||[];
   produtos=DB.get('produtos')||[];
   movimentacoes=DB.get('mov')||[];   // histórico de entrada/saída do estoque
+  // 1a vez (nada salvo) cai na semente; depois disso, o que a Ju editou manda
+  despesasFixas=DB.get('despesas_fixas')||DESPESAS_FIXAS_PADRAO.map(d=>({...d}));
 }
 carregarDoDB();
 let filtroEstoque='todos';
@@ -2358,14 +2397,8 @@ function detalheEstoqueBaixo(){
 // ─── DETALHE DOS NÚMEROS DO PAINEL ───
 // Cada card do painel abre o que está por trás dele. O número sozinho informa;
 // o detalhe explica de onde veio e o que fazer com aquilo.
-const DESPESAS_FIXAS=[
-  {nome:'Aluguel',valor:1200},{nome:'Energia elétrica',valor:500},{nome:'Água',valor:200},
-  {nome:'Internet',valor:100},{nome:'Transporte (Tia Ju)',valor:500},{nome:'Bolsa assistente (6h)',valor:700},
-  {nome:'Alimentação — Tia Ju',valor:600},{nome:'Alimentação — Assistente',valor:500},
-  {nome:'Produtos de consumo',valor:400},{nome:'Maquininha',valor:80},{nome:'Contador / DAS',valor:200},
-  {nome:'Manutenção equipamentos',valor:150},{nome:'Marketing digital',valor:150}
-];
-const TOTAL_FIXO=DESPESAS_FIXAS.reduce((s,d)=>s+d.valor,0); // 5280
+// DESPESAS_FIXAS agora e a variavel `despesasFixas` (salva no DB, editavel) e o
+// total virou a funcao totalFixo() — ambos declarados no topo, junto do carregarDoDB.
 // Ponto ÚNICO de formatação de dinheiro. Com o olhinho fechado devolve
 // mascarado — por isso todo valor na tela precisa passar por aqui.
 let valoresOcultos=false;
@@ -2429,13 +2462,13 @@ function detalheReceita(){
 function detalheDespesasFixas(){
   const mes=hojeISO().substring(0,7);
   const receita=lancamentos.filter(l=>l.tipo==='entrada'&&l.data&&l.data.startsWith(mes)).reduce((s,l)=>s+l.valor,0);
-  const falta=Math.max(0,TOTAL_FIXO-receita);
+  const falta=Math.max(0,totalFixo()-receita);
   abrirDetalhe('Despesas fixas do mês',
-    DESPESAS_FIXAS.map(d=>`<div class="det-linha"><span>${esc(d.nome)}</span><span class="fin-valor saida">${brl(d.valor)}</span></div>`).join('')+
-    `<div class="det-total"><span>Total por mês</span><span>${brl(TOTAL_FIXO)}</span></div>`+
+    despesasFixas.map(d=>`<div class="det-linha"><span>${esc(d.nome)}</span><span class="fin-valor saida">${brl(d.valor)}</span></div>`).join('')+
+    `<div class="det-total"><span>Total por mês</span><span>${brl(totalFixo())}</span></div>`+
     `<div class="det-nota">Você já fez <b>${brl(receita)}</b> este mês.`+
     (falta>0?` Faltam <b>${brl(falta)}</b> para cobrir o custo fixo.`:` <b>O custo fixo já está coberto!</b> 🎉`)+
-    `<br><br>Estes valores estão fixos no app. Se algum mudar, me avise para atualizar.</div>`);
+    `<br><br>Para mudar estes valores, toque em <b>✏️ Editar</b> na seção "Despesas fixas mensais" do Financeiro.</div>`);
 }
 
 // Clientes → quem são, e quem está sem voltar há mais tempo
@@ -2465,17 +2498,17 @@ function detalheBreakEven(){
   const doMes=soDaLoja(lancamentos.filter(l=>l.data&&l.data.startsWith(mes)));
   const receita=doMes.filter(l=>l.tipo==='entrada').reduce((s,l)=>s+l.valor,0);
   const varia=doMes.filter(l=>l.tipo==='saida').reduce((s,l)=>s+l.valor,0);
-  const pct=Math.min(100,Math.round(receita/TOTAL_FIXO*100));
-  const sobra=receita-TOTAL_FIXO-varia;
+  const pct=Math.min(100,Math.round(receita/totalFixo()*100));
+  const sobra=receita-totalFixo()-varia;
   // Ticket médio = média DOS ATENDIMENTOS, não da receita total.
   // Dividir a receita inteira inflava o ticket, porque ela inclui pacote
   // mensal e venda de produto, que não são atendimento.
   const atMes=atendimentos.filter(a=>a.status==='concluido'&&a.data&&a.data.startsWith(mes)&&a.valor>0);
   const ticket=atMes.length?atMes.reduce((s,a)=>s+a.valor,0)/atMes.length:0;
-  const faltam=Math.max(0,TOTAL_FIXO-receita);
+  const faltam=Math.max(0,totalFixo()-receita);
   abrirDetalhe('Break-even do mês',
     `<div class="det-linha"><span>Receita do mês</span><span class="fin-valor entrada">${brl(receita)}</span></div>`+
-    `<div class="det-linha"><span>Custo fixo</span><span class="fin-valor saida">${brl(TOTAL_FIXO)}</span></div>`+
+    `<div class="det-linha"><span>Custo fixo</span><span class="fin-valor saida">${brl(totalFixo())}</span></div>`+
     `<div class="det-linha"><span>Despesas variáveis lançadas</span><span class="fin-valor saida">${brl(varia)}</span></div>`+
     `<div class="det-total"><span>${sobra>=0?'Sobra':'Falta'}</span><span style="color:${sobra>=0?'var(--verde)':'var(--vermelho)'}">${brl(Math.abs(sobra))}</span></div>`+
     `<div class="det-nota"><b>O que é break-even:</b> é o ponto em que o que você recebeu já pagou tudo que a loja gasta. Antes disso você trabalha para pagar as contas; depois, o que entra é lucro.<br><br>`+
@@ -2535,8 +2568,8 @@ function renderDash(){
   document.getElementById('dashClientes').textContent=clientes.length;
   const totalPets=clientes.reduce((s,c)=>s+petsDe(c).length,0);
   document.getElementById('dashClientesSub').textContent=totalPets+(totalPets===1?' pet':' pets');
-  const pct=Math.min(100,Math.round((totalE/TOTAL_FIXO)*100));
-  document.getElementById('dashFixo').textContent=brl(TOTAL_FIXO);
+  const pct=Math.min(100,Math.round((totalE/totalFixo())*100));
+  document.getElementById('dashFixo').textContent=brl(totalFixo());
   document.getElementById('dashBreak').textContent=pct+'%';
   document.getElementById('dashProgress').style.width=pct+'%';
   let pacotesAtivos=0, recorrente=0, carimbos=0, quase=0;
@@ -3199,6 +3232,67 @@ function excluirCategoria(tipo,i){
   lista.splice(i,1);
   if(!salvarCategorias(tipo,lista))return;
   renderCategorias();montarSelectCategorias();
+}
+
+// ─── EDITAR DESPESAS FIXAS MENSAIS ───
+// Antes eram fixas no código; agora a Ju edita/inclui/remove pelo botão ✏️ e o
+// app grava no DB. A soma vira a meta do mês. Entram no backup (corpoDoBackup),
+// senão trocar de celular reverteria para a semente.
+// Cada linha é lida do DOM na hora de somar e de salvar (nada de re-render a
+// cada tecla, que faria o campo perder o foco). Só re-renderiza ao +Adicionar/🗑.
+function abrirDespesasFixas(){
+  renderFixasEdit(despesasFixas.map(d=>({nome:d.nome,valor:d.valor})));
+  openModal('modalFixas');
+}
+function lerFixasDoDOM(){
+  return [...document.querySelectorAll('#fixasLista [data-fx]')].map(row=>({
+    nome:(row.querySelector('[data-fx-nome]').value||'').trim(),
+    valor:Number(String(row.querySelector('[data-fx-valor]').value).replace(',','.'))||0
+  }));
+}
+function renderFixasEdit(itens){
+  document.getElementById('fixasLista').innerHTML=itens.map(d=>`
+    <div data-fx style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <input class="form-input" data-fx-nome style="flex:1;min-width:0;" value="${esc(d.nome)}" placeholder="Ex: Aluguel">
+      <input class="form-input" data-fx-valor type="number" inputmode="decimal" min="0" style="width:96px;text-align:right;" value="${d.valor!=null?d.valor:''}" placeholder="0" oninput="atualizarTotalFixas()">
+      <button class="btn-delete" onclick="removerDespesaFixa(this)" aria-label="Remover">🗑</button>
+    </div>`).join('');
+  atualizarTotalFixas();
+}
+function atualizarTotalFixas(){
+  const t=lerFixasDoDOM().reduce((s,d)=>s+d.valor,0);
+  // formata direto (sem brl) para o total aparecer mesmo com o olhinho fechado
+  document.getElementById('fixasTotal').textContent='R$ '+t.toLocaleString('pt-BR');
+}
+function novaDespesaFixa(){
+  const atual=lerFixasDoDOM();      // preserva o que já foi digitado
+  atual.push({nome:'',valor:''});
+  renderFixasEdit(atual);
+  // foca o nome da linha nova
+  const campos=document.querySelectorAll('#fixasLista [data-fx-nome]');
+  if(campos.length)campos[campos.length-1].focus();
+}
+function removerDespesaFixa(btn){
+  const atual=lerFixasDoDOM();
+  const linhas=[...document.querySelectorAll('#fixasLista [data-fx]')];
+  const i=linhas.indexOf(btn.closest('[data-fx]'));
+  if(i>=0)atual.splice(i,1);
+  renderFixasEdit(atual);
+}
+function fecharDespesasFixas(){
+  // descarta o que estava sendo editado — a lista salva continua intacta
+  closeModal('modalFixas');
+}
+function salvarDespesasFixas(){
+  // ignora linhas totalmente em branco (nome vazio E valor zero)
+  const lista=lerFixasDoDOM().filter(d=>d.nome||d.valor);
+  const semNome=lista.find(d=>!d.nome);
+  if(semNome){alert('Uma despesa está sem nome. Preencha o nome ou remova a linha (🗑).');return;}
+  if(!DB.set('despesas_fixas',lista))return;   // DB.set já avisa se falhar
+  despesasFixas=lista;
+  closeModal('modalFixas');
+  renderFin();renderDash();
+  alert('✅ Despesas fixas salvas.\n\nNova meta do mês: R$ '+totalFixo().toLocaleString('pt-BR'));
 }
 
 // ─── LEITURA DE CUPOM FISCAL / NOTA ───
@@ -4026,10 +4120,12 @@ function setPeriodo(p,btn){
   renderFin();
 }
 function renderFin(){
-  // despesas fixas vêm da constante — um lugar só para mudar valor
+  // despesas fixas vêm do DB (editáveis pela Ju) — fallback já tratado no load
   document.getElementById('finFixas').innerHTML=
-    DESPESAS_FIXAS.map(d=>`<div class="fin-item"><div><div class="fin-desc">${esc(d.nome)}</div></div><div class="fin-valor saida">${brl(d.valor)}</div></div>`).join('')+
-    `<div class="det-total" style="font-size:14px;"><span>Total por mês</span><span>${brl(TOTAL_FIXO)}</span></div>`;
+    (despesasFixas.length
+      ? despesasFixas.map(d=>`<div class="fin-item"><div><div class="fin-desc">${esc(d.nome)}</div></div><div class="fin-valor saida">${brl(d.valor)}</div></div>`).join('')
+      : `<div style="padding:14px 4px;color:var(--cinza-claro);font-size:13px;">Nenhuma despesa fixa cadastrada. Toque em <b>✏️ Editar</b> para incluir.</div>`)+
+    `<div class="det-total" style="font-size:14px;"><span>Total por mês</span><span>${brl(totalFixo())}</span></div>`;
   const lista=lancamentos.filter(noPeriodo);
   // os totais são o resultado da LOJA: o que está marcado como pessoal fica de
   // fora da conta, mas continua aparecendo na lista abaixo (marcado)
@@ -4052,7 +4148,7 @@ function renderFin(){
   // break-even: meta = R$5.280 por mês do período
   const ms=mesesDoPeriodo();
   let nMeses=ms?ms.length:(new Set(lancamentos.filter(l=>l.data).map(l=>l.data.substring(0,7))).size||1);
-  const metaFixa=TOTAL_FIXO*nMeses;
+  const metaFixa=totalFixo()*nMeses;
   const pct=Math.min(100,Math.round((totalE/metaFixa)*100));
   document.getElementById('finProgress').style.width=pct+'%';
   document.getElementById('finMeta').innerHTML=pct+'% da meta de despesas fixas ('+brl(metaFixa)+(nMeses>1?' · '+nMeses+' meses':'')+') coberto'
@@ -4093,7 +4189,7 @@ function gerarRelatorio(){
   const atendMes=atendimentos.filter(a=>a.data&&a.data.startsWith(mes)&&a.status==='concluido');
   let pacotesAtivos=0, recorrente=0;
   clientes.forEach(c=>petsDe(c).forEach(p=>{if(p.pacote){pacotesAtivos++;recorrente+=valorPacote(p.pacote);}}));
-  const pct=Math.min(100,Math.round((totalE/TOTAL_FIXO)*100));
+  const pct=Math.min(100,Math.round((totalE/totalFixo())*100));
   // relatorio impresso: usa o brl global (respeita o olhinho)
   // agrupa por categoria
   const porCat=arr=>{const m={};arr.forEach(l=>{m[l.cat||'Outros']=(m[l.cat||'Outros']||0)+l.valor;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
@@ -4119,7 +4215,7 @@ function gerarRelatorio(){
     <div class="rp-row total"><span>Total de receitas</span><span>${brl(totalE)}</span></div>
     <div class="rp-sec">Despesas variáveis por categoria</div>
     ${linhasCat(porCat(saidas))}
-    <div class="rp-row"><span style="color:#8A8A8A;">+ Despesas fixas mensais estimadas</span><span style="color:#8A8A8A;">${brl(TOTAL_FIXO)}</span></div>
+    <div class="rp-row"><span style="color:#8A8A8A;">+ Despesas fixas mensais estimadas</span><span style="color:#8A8A8A;">${brl(totalFixo())}</span></div>
     <div class="rp-row total"><span>Total de despesas variáveis</span><span>${brl(totalS)}</span></div>
     <div class="rp-foot">Gerado em ${hoje.toLocaleDateString('pt-BR')} · Ju Pet · @ju.pett 🐾</div>
   </div>`;
@@ -4294,16 +4390,23 @@ async function trocarPin(){
 // backup bom seria recusado como corrompido.
 // ⚠️ Ao criar um tipo novo de dado, INCLUIR AQUI (e nas outras duas marcas ⚠️).
 function corpoDoBackup(o){
-  return JSON.stringify({
+  const c={
     clientes:o.clientes||[], atendimentos:o.atendimentos||[],
     lancamentos:o.lancamentos||[], produtos:o.produtos||[],
     movimentacoes:o.movimentacoes||[]
-  });
+  };
+  // despesasFixas entrou depois (backup v4). Só serializa quando o campo existe:
+  // assim um backup v3 (que não tem a chave) continua batendo o próprio checksum
+  // e não é recusado como corrompido. Vai por ÚLTIMO para não mexer na ordem.
+  if(o.despesasFixas!==undefined)c.despesasFixas=o.despesasFixas;
+  return JSON.stringify(c);
 }
 function contagemDoBackup(o){
-  return {clientes:(o.clientes||[]).length, atendimentos:(o.atendimentos||[]).length,
-          lancamentos:(o.lancamentos||[]).length, produtos:(o.produtos||[]).length,
-          movimentacoes:(o.movimentacoes||[]).length};
+  const c={clientes:(o.clientes||[]).length, atendimentos:(o.atendimentos||[]).length,
+           lancamentos:(o.lancamentos||[]).length, produtos:(o.produtos||[]).length,
+           movimentacoes:(o.movimentacoes||[]).length};
+  if(o.despesasFixas!==undefined)c.despesasFixas=(o.despesasFixas||[]).length;
+  return c;
 }
 // SHA-256 do conteúdo. crypto.subtle só existe em contexto seguro (https ou
 // localhost); se faltar, devolve null e o backup segue sem checksum em vez de
@@ -4319,17 +4422,17 @@ async function somaDeVerificacao(txt){
 async function exportarBackup(){
   // ⚠️ Ao criar um tipo novo de dado, INCLUIR AQUI e no importarBackup.
   // Um dado fora do backup é um dado que se perde na troca de celular.
-  const dados={clientes, atendimentos, lancamentos, produtos, movimentacoes};
+  const dados={clientes, atendimentos, lancamentos, produtos, movimentacoes, despesasFixas};
   const corpo=corpoDoBackup(dados);
   const dump={
-    _app:'Ju Pet', _versao:3,
+    _app:'Ju Pet', _versao:4,
     _gerado_em:new Date().toISOString(),
     // Contagem e checksum são o que permite provar, na hora de restaurar, que
     // o arquivo chegou inteiro. Sem isso um arquivo truncado (upload cortado,
     // pen drive com defeito) passaria batido e apagaria os dados bons.
     _contagem:contagemDoBackup(dados),
     _checksum:await somaDeVerificacao(corpo),
-    clientes, atendimentos, lancamentos, produtos, movimentacoes
+    clientes, atendimentos, lancamentos, produtos, movimentacoes, despesasFixas
   };
   const blob=new Blob([JSON.stringify(dump)],{type:'application/json'});
   const d=new Date();
@@ -4386,7 +4489,8 @@ function importarBackup(input){
       +'\n\n• '+dump.clientes.length+' clientes'
       +'\n• '+(dump.atendimentos||[]).length+' atendimentos'
       +'\n• '+(dump.lancamentos||[]).length+' lançamentos'
-      +'\n• '+(dump.produtos||[]).length+' produtos';
+      +'\n• '+(dump.produtos||[]).length+' produtos'
+      +(dump.despesasFixas!==undefined?'\n• '+(dump.despesasFixas||[]).length+' despesas fixas':'');
     if(!confirm('⚠️ ATENÇÃO — isto APAGA tudo que está no app agora e coloca o backup no lugar.\n\n'+resumo+'\n\nTem certeza?')){input.value='';return;}
     clientes=dump.clientes||[];
     atendimentos=dump.atendimentos||[];
@@ -4394,8 +4498,12 @@ function importarBackup(input){
     // backup antigo (versão 1) não tem estoque — entra vazio, sem quebrar
     produtos=dump.produtos||[];
     movimentacoes=dump.movimentacoes||[];
+    // backup antigo (v1/v2/v3) não tem despesas fixas — mantém a semente atual
+    // em vez de zerar; só sobrescreve quando o backup realmente traz a lista
+    if(dump.despesasFixas!==undefined)despesasFixas=dump.despesasFixas||[];
     const ok=DB.set('clientes',clientes)&&DB.set('atend',atendimentos)&&DB.set('lanc',lancamentos)
-             &&DB.set('produtos',produtos)&&DB.set('mov',movimentacoes);
+             &&DB.set('produtos',produtos)&&DB.set('mov',movimentacoes)
+             &&DB.set('despesas_fixas',despesasFixas);
     input.value='';
     if(!ok)return; // DB.set já avisou do erro
     migrarClientes();
