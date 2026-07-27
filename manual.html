@@ -61,12 +61,16 @@ ol.steps li::before{content:counter(s);position:absolute;left:0;top:8px;width:28
 .callout{background:var(--amarelo-claro);border-left:4px solid var(--amarelo);border-radius:8px;padding:11px 14px;font-size:13px;color:#7a5b00;margin:12px 0;}
 .callout.rosa{background:var(--rosa-claro);border-color:var(--rosa);color:#9c3163;}
 .callout.verde{background:var(--verde-claro);border-color:var(--verde);color:#176b4f;}
+.callout.roxo{background:var(--lilas-palido);border-color:var(--roxo);color:var(--roxo-dark);}
 
 .toolbar{text-align:center;margin-bottom:14px;}
 .btn-print{background:var(--roxo);color:#fff;border:none;border-radius:30px;padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .foot{text-align:center;font-size:12px;color:var(--roxo);padding:18px;}
 .foot b{font-weight:600;}
 a{color:var(--roxo);font-weight:600;}
+.idx{list-style:none;}
+.idx li{padding:6px 0;font-size:13.5px;border-bottom:1px dashed var(--borda);}
+.idx li:last-child{border-bottom:none;}
 @media print{body{background:#fff;}.toolbar{display:none;}.card,.zap-card,.capa{box-shadow:none;break-inside:avoid;}}
 </style>
 </head>
@@ -82,12 +86,27 @@ a{color:var(--roxo);font-weight:600;}
 
   <div class="toolbar"><button class="btn-print" onclick="window.print()">🖨️ Salvar este manual em PDF</button></div>
 
-  <!-- O QUE É -->
+  <!-- BEM-VINDA -->
   <div class="card">
     <h2>👋 Bem-vinda, Tia Ju!</h2>
-    <p class="lead">Este é o manual do seu app de gestão. Com ele você controla agenda, clientes, pets, dinheiro e recibos — tudo pelo celular, sem mensalidade.</p>
-    <div class="callout verde">✅ <b>Funciona sem internet</b> depois de aberto, e os dados ficam salvos <b>no seu aparelho</b>. Use sempre o <b>mesmo celular</b> para não perder informação.</div>
-    <p style="font-size:13.5px;">🔗 <b>Link do app:</b> <a href="https://freudbritho-dotcom.github.io/jupet/" target="_blank">freudbritho-dotcom.github.io/jupet</a></p>
+    <p class="lead">Este é o manual do seu app. Com ele você controla <b>agenda, clientes, pets, estoque, dinheiro e recibos</b> — tudo pelo celular, sem mensalidade e sem complicação.</p>
+    <div class="callout verde">✅ <b>Funciona sem internet</b> depois de aberto, e os dados ficam guardados <b>no seu aparelho</b>. Use sempre o <b>mesmo celular</b> para não perder informação.</div>
+    <p style="font-size:13.5px;">🔗 <b>Link do app:</b> <a href="https://jupet.pages.dev" target="_blank">jupet.pages.dev</a></p>
+    <p style="font-size:13.5px;margin-top:6px;">📅 <b>Link para o cliente agendar:</b> <a href="https://jupet.pages.dev/agendar" target="_blank">jupet.pages.dev/agendar</a></p>
+  </div>
+
+  <!-- ÍNDICE -->
+  <div class="card">
+    <h2>📑 O que tem neste manual</h2>
+    <ol class="idx">
+      <li>📲 Como colocar o app na tela do celular</li>
+      <li>🧭 As 6 abas do app</li>
+      <li>🏠 Início · 📋 Agenda · 🐶 Clientes · 📦 Estoque · 💰 Financeiro · 🧾 Recibo</li>
+      <li>📅 Link de agendamento do cliente (pelo WhatsApp)</li>
+      <li>💬 Como o app usa o WhatsApp</li>
+      <li>🔒 Backup e segurança dos dados</li>
+      <li>☀️ Rotina sugerida do dia</li>
+    </ol>
   </div>
 
   <!-- INSTALAR -->
@@ -97,108 +116,173 @@ a{color:var(--roxo);font-weight:600;}
 
     <div class="os">🤖 Android (Chrome)</div>
     <ol class="steps">
-      <li>Abra o link no <b>Chrome</b>: freudbritho-dotcom.github.io/jupet</li>
+      <li>Abra <b>jupet.pages.dev</b> no <b>Chrome</b>.</li>
       <li>Toque nos <b>três pontinhos ⋮</b> no canto superior direito.</li>
-      <li>Toque em <b>“Adicionar à tela inicial”</b> (ou “Instalar app”).</li>
-      <li>Confirme em <b>“Adicionar”</b>. Pronto — o ícone 🐾 aparece na tela.</li>
+      <li>Toque em <b>"Adicionar à tela inicial"</b> (ou "Instalar app").</li>
+      <li>Confirme em <b>"Adicionar"</b>. O ícone 🐾 aparece na tela.</li>
     </ol>
 
     <div class="os ios">🍎 iPhone (Safari)</div>
     <ol class="steps">
-      <li>Abra o link no <b>Safari</b> (precisa ser o Safari).</li>
+      <li>Abra <b>jupet.pages.dev</b> no <b>Safari</b> (precisa ser o Safari).</li>
       <li>Toque no botão <b>Compartilhar</b> (quadradinho com a setinha ↑) embaixo.</li>
-      <li>Role e toque em <b>“Adicionar à Tela de Início”</b>.</li>
-      <li>Toque em <b>“Adicionar”</b> no canto superior. Pronto! 🎉</li>
+      <li>Role e toque em <b>"Adicionar à Tela de Início"</b>.</li>
+      <li>Toque em <b>"Adicionar"</b> no canto superior. Pronto! 🎉</li>
     </ol>
-    <div class="callout">💡 Coloque também na tela do celular da <b>assistente</b>, se ela for usar. Lembre que cada aparelho guarda os seus próprios dados.</div>
+    <div class="callout">💡 Se um dia o app parecer "travado numa versão antiga", abra a tela <b>Início</b>, desça até o fim e toque em <b>"Forçar atualização"</b>. Ele busca a versão mais nova. Não apaga nada.</div>
   </div>
 
   <!-- NAVEGAÇÃO -->
   <div class="card">
-    <h2>🧭 As 5 abas do app</h2>
-    <p class="lead">Na parte de baixo da tela ficam os 5 botões de navegação:</p>
+    <h2>🧭 As 6 abas do app</h2>
+    <p class="lead">Na parte de baixo da tela ficam os 6 botões. Toque em cada um para trocar de tela:</p>
     <div class="navmock">
       <div><span>🏠</span>Início</div>
-      <div><span>📅</span>Agenda</div>
+      <div><span>📋</span>Agenda</div>
       <div><span>🐶</span>Clientes</div>
+      <div><span>📦</span>Estoque</div>
       <div><span>💰</span>Financeiro</div>
       <div><span>🧾</span>Recibo</div>
     </div>
-    <p style="font-size:13px;color:var(--cinza-claro);">Toque em cada uma para trocar de tela. Abaixo, o que cada botão faz.</p>
   </div>
 
   <!-- INÍCIO -->
   <div class="card">
     <h2>🏠 Início (Painel)</h2>
-    <p class="lead">A primeira tela, com o resumo do dia.</p>
-    <div class="func"><div class="ic">🔢</div><div class="t"><b>Atendimentos hoje / Próximo</b><p>Quantos pets você atende hoje e o horário do próximo agendado.</p></div></div>
-    <div class="func"><div class="ic">🎂</div><div class="t"><b>Aniversários dos Pets</b><p>Avisa os pets que fazem aniversário no mês. O botão <span class="tag">💬</span> abre o WhatsApp do dono com uma mensagem de parabéns pronta.</p></div></div>
-    <div class="func"><div class="ic">🔔</div><div class="t"><b>Hora de voltar</b><p>Mostra os pets que já passaram do tempo de voltar para o banho. O <span class="tag">💬</span> manda o convite de retorno no WhatsApp.</p></div></div>
-    <div class="func"><div class="ic">📊</div><div class="t"><b>Receita / Despesas / Clientes / Break-even</b><p>Os números do mês. <b>Break-even</b> = quanto das contas fixas (R$ 5.280) você já cobriu.</p></div></div>
-    <div class="func"><div class="ic">⚡</div><div class="t"><b>Atalhos rápidos</b><p>4 botões: Novo agendamento · Novo cliente · Registrar entrada · Gerar recibo.</p></div></div>
-    <div class="func"><div class="ic">📦</div><div class="t"><b>Pacotes Mensais &amp; Clubinho fidelidade</b><p>Quantos pets têm pacote ativo (Essencial/Cuidado/Spa Pet) e a receita recorrente. Embaixo, o <b>Clubinho fidelidade</b>: a cada 10 banhos no clube, 1 hidratação simples grátis (o carimbo é dado no perfil do pet, botão “+ carimbo”).</p></div></div>
+    <p class="lead">A primeira tela: o resumo do seu dia, num relance.</p>
+    <div class="func"><div class="ic">🔢</div><div class="t"><b>Atendimentos de hoje</b><p>Quantos pets você atende hoje e o horário do próximo. Toque para ir direto à Agenda.</p></div></div>
+    <div class="func"><div class="ic">🎂</div><div class="t"><b>Aniversários dos pets</b><p>Os pets que fazem aniversário no mês. O botão <span class="tag">💬</span> abre o WhatsApp do dono com os parabéns prontos.</p></div></div>
+    <div class="func"><div class="ic">🔔</div><div class="t"><b>Hora de voltar</b><p>Pets que já passaram do tempo de voltar para o banho. O <span class="tag">💬</span> manda o convite de retorno.</p></div></div>
+    <div class="func"><div class="ic">📊</div><div class="t"><b>Números do mês</b><p>Receita, despesas, clientes e a <b>meta do mês</b> (quanto das suas contas fixas você já cobriu). Toque em cada card para ver os detalhes por trás do número.</p></div></div>
+    <div class="func"><div class="ic">⚡</div><div class="t"><b>Atalhos rápidos</b><p>Botões para: novo agendamento, novo cliente, registrar entrada e gerar recibo.</p></div></div>
+    <div class="func"><div class="ic">💾</div><div class="t"><b>Backup dos dados</b><p>Lá embaixo ficam o <b>backup</b> e a proteção por <b>PIN</b>. Veja a seção "Backup e segurança" mais adiante — é a parte mais importante.</p></div></div>
   </div>
 
   <!-- AGENDA -->
   <div class="card">
-    <h2>📅 Agenda</h2>
-    <div class="func"><div class="ic">🗓️</div><div class="t"><b>Filtrar por data</b><p>Escolha o dia no calendário para ver os agendamentos daquela data.</p></div></div>
-    <div class="func"><div class="ic">➕</div><div class="t"><b>+ Agendar</b><p>Abre a ficha para marcar: pet, tutor, telefone, data, hora, serviço, valor, status e <b>“Retornar em (dias)”</b> (gera o lembrete de volta).</p></div></div>
-    <div class="func"><div class="ic">✅</div><div class="t"><b>Status</b><p>Agendado · Concluído · Cancelado. Ao marcar <b>Concluído</b> com valor, a receita entra sozinha no Financeiro.</p></div></div>
-    <div class="func"><div class="ic">🗑️</div><div class="t"><b>Excluir</b><p>Remove um agendamento.</p></div></div>
+    <h2>📋 Agenda</h2>
+    <p class="lead">Onde você marca e acompanha os atendimentos.</p>
+    <div class="func"><div class="ic">🗓️</div><div class="t"><b>Escolher o dia</b><p>Toque na data para ver os agendamentos daquele dia.</p></div></div>
+    <div class="func"><div class="ic">➕</div><div class="t"><b>+ Agendar</b><p>Marca um atendimento: pet, tutor, telefone, data, hora, <b>serviço</b> (já com a duração) e <b>"retornar em X dias"</b> (cria o lembrete de volta). O app avisa se o horário <b>bate com outro já marcado</b> ou cai no <b>horário de almoço</b>.</p></div></div>
+    <div class="func"><div class="ic">✅</div><div class="t"><b>Status do atendimento</b><p>Agendado → Concluído → (ou Cancelado). Ao marcar <b>Concluído</b> com valor, a receita entra sozinha no Financeiro.</p></div></div>
+    <div class="func"><div class="ic">📥</div><div class="t"><b>Ler pedido</b><p>Quando um cliente agenda pelo link e te manda no WhatsApp, use este botão para trazer o pedido para a agenda (explicado na seção do link de agendamento).</p></div></div>
+    <div class="callout roxo">🕘 <b>Horário de atendimento:</b> 9h às 12h30 e 13h30 às 16h (último horário; pode terminar até 17h). O app respeita isso ao oferecer horários.</div>
   </div>
 
   <!-- CLIENTES -->
   <div class="card">
     <h2>🐶 Clientes &amp; Pets</h2>
-    <div class="func"><div class="ic">🔍</div><div class="t"><b>Buscar</b><p>Procure por nome do tutor ou do pet.</p></div></div>
-    <div class="func"><div class="ic">➕</div><div class="t"><b>+ Cliente</b><p>Cadastra o tutor + 1º pet, com <b>foto</b> (câmera/galeria) e <b>aniversário</b>.</p></div></div>
-    <div class="func"><div class="ic">👆</div><div class="t"><b>Tocar no cliente</b><p>Abre o perfil com todos os pets, o histórico de cada um e o botão <span class="tag">💬 WhatsApp</span>.</p></div></div>
-    <div class="func"><div class="ic">🐾</div><div class="t"><b>➕ Adicionar outro pet</b><p>Um mesmo dono pode ter <b>vários pets</b> — cada um com foto, raça, porte e aniversário próprios.</p></div></div>
-    <div class="callout rosa">💜 Dica: cadastre sempre o <b>telefone</b> e o <b>aniversário</b> do pet — é o que faz os lembretes e os botões de WhatsApp funcionarem.</div>
+    <p class="lead">A ficha de cada tutor e de cada pet.</p>
+    <div class="func"><div class="ic">🔍</div><div class="t"><b>Buscar</b><p>Procure pelo nome do tutor ou do pet.</p></div></div>
+    <div class="func"><div class="ic">➕</div><div class="t"><b>+ Cliente</b><p>Cadastra o tutor + o 1º pet, com <b>foto</b> (câmera ou galeria), <b>raça</b> (lista com busca), <b>porte</b> e <b>aniversário</b>.</p></div></div>
+    <div class="func"><div class="ic">👆</div><div class="t"><b>Tocar no cliente</b><p>Abre o perfil com todos os pets, o histórico de atendimentos e o botão <span class="tag">💬 WhatsApp</span>.</p></div></div>
+    <div class="func"><div class="ic">🐾</div><div class="t"><b>Adicionar outro pet</b><p>Um mesmo dono pode ter <b>vários pets</b> — cada um com foto, raça, porte e aniversário próprios.</p></div></div>
+    <div class="callout rosa">💜 Preencha sempre o <b>telefone</b> e o <b>aniversário</b> do pet — é o que faz os lembretes e os botões de WhatsApp funcionarem.</div>
+  </div>
+
+  <!-- ESTOQUE -->
+  <div class="card">
+    <h2>📦 Estoque</h2>
+    <p class="lead">Controle dos produtos: o que você vende e o que usa no banho.</p>
+    <div class="func"><div class="ic">➕</div><div class="t"><b>+ Produto</b><p>Cadastra um item e diz para que serve: <b>🛍️ Revenda</b> (vende para o cliente, vira receita) ou <b>🧴 Uso interno</b> (shampoo, condicionador…).</p></div></div>
+    <div class="func"><div class="ic">🔢</div><div class="t"><b>Quantidade</b><p>Registra entradas (compra) e saídas (uso/venda). O app mostra <b>quanto tem</b> de cada produto.</p></div></div>
+    <div class="func"><div class="ic">⚠️</div><div class="t"><b>Aviso de acabando</b><p>Quando um produto fica com pouca quantidade, ele te avisa para repor — assim você nunca fica na mão no meio do atendimento.</p></div></div>
   </div>
 
   <!-- FINANCEIRO -->
   <div class="card">
     <h2>💰 Financeiro</h2>
-    <div class="func"><div class="ic">📆</div><div class="t"><b>Período</b><p>Veja os números por <b>Mês · Trimestre · Semestre · Ano · Tudo</b>.</p></div></div>
-    <div class="func"><div class="ic">📄</div><div class="t"><b>Relatório mensal (PDF)</b><p>Gera um relatório do mês pronto para imprimir ou salvar em PDF.</p></div></div>
-    <div class="func"><div class="ic">➕</div><div class="t"><b>+ Lançar</b><p>Registra uma <b>entrada</b> (receita) ou <b>saída</b> (despesa), com categoria.</p></div></div>
-    <div class="func"><div class="ic">📈</div><div class="t"><b>Saldo &amp; Break-even</b><p>Entradas, saídas, saldo e quanto falta para cobrir as contas fixas.</p></div></div>
+    <p class="lead">O coração do controle: tudo que entra e sai, e o <b>resultado</b> real no fim.</p>
+
+    <h3>Ver os números</h3>
+    <div class="func"><div class="ic">📆</div><div class="t"><b>Período</b><p>Veja por <b>Mês · Trimestre · Semestre · Ano · Tudo</b>.</p></div></div>
+    <div class="func"><div class="ic">📈</div><div class="t"><b>Resultado (saldo)</b><p>Entradas − saídas do período. É o número honesto: só conta o que realmente entrou e saiu.</p></div></div>
+    <div class="func"><div class="ic">👁️</div><div class="t"><b>Olhinho de privacidade</b><p>Toque no olho para <b>esconder os valores</b> quando estiver com o cliente do lado. Toque de novo para mostrar.</p></div></div>
+
+    <h3>Lançar entradas e saídas</h3>
+    <div class="func"><div class="ic">➕</div><div class="t"><b>+ Lançar (manual)</b><p>Registra uma <b>entrada</b> (receita) ou <b>saída</b> (despesa), com <b>categoria</b>, data e descrição.</p></div></div>
+    <div class="func"><div class="ic">📷</div><div class="t"><b>Foto do comprovante</b><p>Ao lançar, você pode <b>anexar a foto</b> do recibo ou da nota — fica guardada junto do lançamento.</p></div></div>
+    <div class="func"><div class="ic">⚙️</div><div class="t"><b>Editar categorias</b><p>Crie, renomeie ou remova categorias de receita e despesa do seu jeito.</p></div></div>
+
+    <h3>Despesas fixas (a meta do mês)</h3>
+    <div class="func"><div class="ic">🏷️</div><div class="t"><b>✏️ Editar despesas fixas</b><p>Aluguel, luz, água, transporte… O que você paga todo mês. A <b>soma vira a meta</b> — quanto precisa faturar para empatar. Toque em <b>✏️ Editar</b> para mudar valores, adicionar ou remover.</p></div></div>
+
+    <h3>Importar o extrato do banco</h3>
+    <div class="func"><div class="ic">🏦</div><div class="t"><b>Importar extrato</b><p>Exporte o extrato no <b>Bradesco Net Empresa</b> (em <b>Excel</b> — melhor — ou CSV/PDF) e envie para o app. Ele lê os lançamentos e separa sozinho o que é <b>entrada</b> e o que é <b>saída</b>.</p></div></div>
+    <div class="func"><div class="ic">✅</div><div class="t"><b>Conciliação</b><p>O app <b>casa sozinho</b> o extrato com o que você já lançou. O que sobra, você resolve com um toque: <b>+ Lançar</b>, <b>👤 Pessoal</b> (fica fora do resultado da loja) ou <b>Ignorar</b>.</p></div></div>
+    <div class="func"><div class="ic">📄</div><div class="t"><b>Relatório em PDF</b><p>Gera o relatório do mês pronto para imprimir ou salvar em PDF.</p></div></div>
+    <div class="callout verde">✅ <b>Como fica o resultado real:</b> quando você importa o extrato, o aluguel, a luz e tudo que saiu do banco entram como despesa automaticamente. O resultado passa a refletir o dinheiro de verdade — sem chute.</div>
   </div>
 
   <!-- RECIBO -->
   <div class="card">
     <h2>🧾 Recibo</h2>
     <p class="lead">Monte a comanda do atendimento e envie para o cliente.</p>
-    <div class="func"><div class="ic">✂️</div><div class="t"><b>Serviços</b><p>Toque nos serviços realizados (já com os preços da tabela da Ju Pet). O total é somado automaticamente.</p></div></div>
-    <div class="func"><div class="ic">💳</div><div class="t"><b>Pagamento &amp; Observações</b><p>Forma de pagamento (Pix, cartão, dinheiro) e um recado (ex.: “próximo banho em 30 dias”).</p></div></div>
-    <div class="func"><div class="ic">💾</div><div class="t"><b>Salvar como lançamento</b><p>Lança o valor direto no Financeiro como entrada.</p></div></div>
-    <div class="func"><div class="ic">📋</div><div class="t"><b>Copiar para WhatsApp</b><p>Copia o recibo formatado (com seu número 📱 (71) 98769-9236) para você colar na conversa do cliente.</p></div></div>
+    <div class="func"><div class="ic">✂️</div><div class="t"><b>Serviços</b><p>Toque nos serviços feitos (já com os preços por <b>porte</b>). O total soma sozinho.</p></div></div>
+    <div class="func"><div class="ic">💳</div><div class="t"><b>Pagamento &amp; observações</b><p>Forma de pagamento (Pix, cartão, dinheiro) e um recado (ex.: "próximo banho em 30 dias").</p></div></div>
+    <div class="func"><div class="ic">💾</div><div class="t"><b>Salvar como lançamento</b><p>Joga o valor direto no Financeiro como entrada.</p></div></div>
+    <div class="func"><div class="ic">📋</div><div class="t"><b>Copiar para WhatsApp</b><p>Copia o recibo formatado (com seu número) para você colar na conversa do cliente.</p></div></div>
+  </div>
+
+  <!-- LINK DE AGENDAMENTO -->
+  <div class="card">
+    <h2>📅 Link de agendamento do cliente</h2>
+    <p class="lead">O cliente escolhe pet, serviço, dia e hora por conta própria — mas <b>só entra na sua agenda depois que VOCÊ confirma</b>. Você nunca perde o controle.</p>
+    <h3>Como funciona, na prática</h3>
+    <ol class="steps">
+      <li>Você manda o link <b>jupet.pages.dev/agendar</b> para o cliente (ou coloca no seu Instagram/status).</li>
+      <li>Ele preenche os dados e escolhe um horário livre, aceitando as regras da loja.</li>
+      <li>Ele toca em enviar e cai no <b>seu WhatsApp</b> com o pedido escrito, certinho.</li>
+      <li>No app, aba <b>Agenda → 📥 Ler pedido</b>: copie a mensagem dele no WhatsApp, cole ali e o app <b>preenche o agendamento para você conferir</b>.</li>
+      <li>Você confirma. Só então ele entra na agenda. ✅</li>
+    </ol>
+    <div class="callout">🚫 O Chow Chow é bloqueado no agendamento, por segurança — o cliente é avisado com educação.</div>
   </div>
 
   <!-- WHATSAPP -->
   <div class="zap-card">
-    <h2>💬 Integração com o WhatsApp</h2>
-    <p class="lead">O app não envia sozinho — ele <b>abre o WhatsApp já com a mensagem pronta</b>, você só confere e toca em enviar. 100% no seu controle.</p>
-    <div class="zap-box">🎂 <b>Aniversário</b> — botão 💬 no painel: abre a conversa do dono com a mensagem de parabéns + convite de banho.</div>
-    <div class="zap-box">🔔 <b>Retorno</b> — botão 💬 no aviso “Hora de voltar”: abre a conversa convidando o pet a voltar.</div>
-    <div class="zap-box">🧾 <b>Recibo</b> — “Copiar para WhatsApp”: copia a comanda para colar na conversa do cliente.</div>
-    <div class="zap-box">📇 <b>Perfil do cliente</b> — botão 💬 abre a conversa daquele tutor a qualquer momento.</div>
-    <div style="margin-top:14px;font-size:13.5px;">📱 <b>Seu número da Ju Pet</b> (o que o cliente salva e aparece no recibo):</div>
+    <h2>💬 Como o app usa o WhatsApp</h2>
+    <p class="lead">O app <b>nunca envia sozinho</b> — ele abre o WhatsApp já com a mensagem pronta. Você confere e toca em enviar. 100% no seu controle.</p>
+    <div class="zap-box">🎂 <b>Aniversário</b> — botão 💬 no painel: parabéns + convite de banho.</div>
+    <div class="zap-box">🔔 <b>Retorno</b> — botão 💬 em "Hora de voltar": convida o pet a voltar.</div>
+    <div class="zap-box">🧾 <b>Recibo</b> — "Copiar para WhatsApp": cola a comanda na conversa.</div>
+    <div class="zap-box">📇 <b>Perfil do cliente</b> — botão 💬 abre a conversa daquele tutor a qualquer hora.</div>
+    <div style="margin-top:14px;font-size:13.5px;">📱 <b>Número da Ju Pet</b> (o que o cliente salva e aparece no recibo):</div>
     <div class="zap-num">(71) 98769-9236</div>
-    <div style="font-size:12.5px;margin-top:10px;opacity:0.9;">⚠️ Os botões 💬 só aparecem quando o <b>telefone do tutor</b> está cadastrado. Por isso, sempre preencha o telefone ao cadastrar o cliente.</div>
+    <div style="font-size:12.5px;margin-top:10px;opacity:0.9;">⚠️ Os botões 💬 só aparecem quando o <b>telefone do tutor</b> está cadastrado. Por isso, preencha sempre o telefone.</div>
   </div>
 
-  <!-- ROTINA SUGERIDA -->
+  <!-- BACKUP E SEGURANÇA -->
+  <div class="card">
+    <h2>🔒 Backup e segurança dos dados</h2>
+    <p class="lead">Os dados ficam <b>no seu celular</b>. Isso é ótimo para privacidade — mas quer dizer que <b>o backup é sua rede de proteção</b>. Leia com carinho. 💜</p>
+
+    <h3>Fazer backup (faça toda semana)</h3>
+    <ol class="steps">
+      <li>Tela <b>Início</b> → desça até <b>"Backup dos dados"</b> → <b>💾 Fazer backup</b>.</li>
+      <li>Um arquivo é gerado. <b>Envie para você mesma</b> no WhatsApp ou no e-mail.</li>
+      <li>Se o celular quebrar ou trocar, é com esse arquivo que a gente traz tudo de volta (botão <b>Restaurar</b>).</li>
+    </ol>
+    <div class="callout verde">🛡️ Todo backup agora vem com um <b>selo de conferência</b>: na hora de restaurar, o app checa se o arquivo chegou inteiro e <b>recusa</b> um arquivo corrompido antes de apagar qualquer coisa.</div>
+
+    <h3>Proteger com PIN (opcional)</h3>
+    <div class="func"><div class="ic">🔐</div><div class="t"><b>🔒 Proteger com PIN</b><p>Deixa os dados <b>criptografados</b> no celular: sem o PIN, ninguém abre.</p></div></div>
+    <div class="callout rosa">⚠️ <b>Esqueceu o PIN = perdeu os dados.</b> Não existe recuperação. Por isso o app pede um backup antes de ligar o PIN. Anote o PIN em lugar seguro.</div>
+
+    <h3>Regra de ouro</h3>
+    <div class="callout">📵 Use <b>sempre o mesmo celular</b>. Cada aparelho guarda os seus próprios dados — o que você cadastra no seu celular não aparece no da assistente, e vice-versa. Para passar dados de um para o outro, use <b>backup → restaurar</b>.</div>
+  </div>
+
+  <!-- ROTINA -->
   <div class="card">
     <h2>☀️ Rotina sugerida do dia</h2>
     <ol class="steps">
-      <li>De manhã: abra o <b>Início</b> e veja os atendimentos, aniversários e quem precisa voltar.</li>
-      <li>Mandou os 💬 de aniversário e retorno do dia? Ótimo — isso traz cliente de volta.</li>
+      <li>De manhã: abra o <b>Início</b> e veja atendimentos, aniversários e quem precisa voltar.</li>
+      <li>Mande os 💬 de aniversário e retorno do dia — é o que traz cliente de volta.</li>
       <li>A cada pet atendido: marque <b>Concluído</b> na Agenda ou gere o <b>Recibo</b>.</li>
       <li>No fim do dia: confira o <b>Financeiro</b> e lance qualquer despesa.</li>
-      <li>Todo fim de mês: gere o <b>Relatório em PDF</b> para ver como foi o mês. 📊</li>
+      <li>Uma vez por semana: <b>💾 faça o backup</b>.</li>
+      <li>Todo fim de mês: importe o <b>extrato do banco</b> e gere o <b>Relatório em PDF</b>. 📊</li>
     </ol>
   </div>
 

@@ -572,7 +572,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 <!-- NAV -->
 <nav class="nav">
   <button class="nav-btn active" onclick="goScreen('dash',this)"><span class="nav-icon">🏠</span>Início</button>
-  <button class="nav-btn" onclick="goScreen('agenda',this)"><span class="nav-icon">📅</span>Agenda</button>
+  <!-- 📋 e não 📅: no iPhone o emoji de calendário vem com uma data desenhada
+       dentro (aparecia "17" fixo na barra). Clipboard = a lista de agendamentos. -->
+  <button class="nav-btn" onclick="goScreen('agenda',this)"><span class="nav-icon">📋</span>Agenda</button>
   <button class="nav-btn" onclick="goScreen('clientes',this)"><span class="nav-icon">🐶</span>Clientes</button>
   <button class="nav-btn" onclick="goScreen('estoque',this)"><span class="nav-icon">📦</span>Estoque</button>
   <button class="nav-btn" onclick="goScreen('fin',this)"><span class="nav-icon">💰</span>Financeiro</button>
@@ -982,7 +984,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-27-112543';
+const VERSAO_APP='2026-07-27-113953';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
