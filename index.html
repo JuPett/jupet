@@ -872,6 +872,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <div style="font-size:13px;color:var(--cinza-claro);line-height:1.55;margin-bottom:14px;">
       No WhatsApp, segure a mensagem do cliente → <b>Copiar</b>. Depois cole aqui embaixo e toque em Ler pedido.
       O agendamento vem preenchido — você só confere e salva.
+      <br><br>💡 Funciona com o pedido do <b>link</b> (vem completo) <b>e</b> com mensagem <b>escrita à mão</b>
+      pelo cliente — nesse caso adianto serviço/dia/hora que der e você completa o resto.
     </div>
     <div class="form-group">
       <textarea class="form-input" id="pedidoTexto" rows="7" placeholder="Cole aqui a mensagem do cliente..." style="resize:vertical;font-family:'DM Sans',sans-serif;"></textarea>
@@ -984,7 +986,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-07-27-113953';
+const VERSAO_APP='2026-08-01-090739';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -1958,7 +1960,19 @@ function lerPedido(){
   };
 
   if(!p.tutor||!p.pet){
-    aviso.innerHTML='<div class="det-nota" style="background:var(--vermelho-claro);color:var(--vermelho);">Não achei o tutor e o pet nessa mensagem. Confira se colou a mensagem inteira — ou cadastre na mão pelo "+ Agendar".</div>';
+    // Não veio no formato do link — cliente escreveu solto no WhatsApp.
+    // Em vez de recusar, extrai o que dá e abre o + Agendar adiantado.
+    const livre=extrairPedidoLivre(txt);
+    p.servico=p.servico||livre.servico;
+    p.data=p.data||livre.data;
+    p.hora=p.hora||livre.hora;
+    p.tel=p.tel||livre.tel;
+    p.obs=p.obs||('Pedido pelo WhatsApp: '+txt.trim().replace(/\s+/g,' ').slice(0,180));
+    pedidoPendente=p;
+    closeModal('modalPedido');
+    openModal('modalAtend');
+    aplicarPedidoPendente(true);   // silencioso: mostro a mensagem própria abaixo
+    alert('📝 Mensagem livre (fora do formato do link)\n\nAdiantei o que consegui: serviço, dia e hora quando deu, e coloquei o texto do cliente nas observações.\n\nAgora busque o cliente pelo nome — ou cadastre, se for novo — e confira antes de salvar.');
     return;
   }
 
@@ -2008,7 +2022,7 @@ function lerPedido(){
 }
 
 // aplica serviço/dia/hora do pedido no modal de agendamento já aberto
-function aplicarPedidoPendente(){
+function aplicarPedidoPendente(silencioso){
   const p=pedidoPendente;if(!p)return;
   if(p.servico){
     const sel=document.getElementById('atendServico');
@@ -2023,7 +2037,70 @@ function aplicarPedidoPendente(){
   // entra como PENDENTE: é pedido do cliente, não horário confirmado por ela
   document.getElementById('atendStatus').value='pendente';
   pedidoPendente=null;
-  alert('📥 Pedido carregado!\n\nÉ só salvar. Ele entra como "aguardando você" na Agenda, e lá você confirma, sugere outro horário ou recusa — com a resposta do WhatsApp já pronta.');
+  if(!silencioso)alert('📥 Pedido carregado!\n\nÉ só salvar. Ele entra como "aguardando você" na Agenda, e lá você confirma, sugere outro horário ou recusa — com a resposta do WhatsApp já pronta.');
+}
+
+// ─── PEDIDO EM TEXTO LIVRE ───
+// Quando o cliente NÃO usa o link e escreve solto ("quero banho pro Thor sábado
+// 10h"), não dá pra recusar o cliente. Então extraímos o que der (serviço, dia,
+// hora, telefone) e abrimos o + Agendar já adiantado — a Ju só escolhe/cadastra
+// o cliente e confere. Nomes de tutor/pet não dá pra adivinhar com segurança, e
+// por isso ficam pra ela; o texto original vai nas observações.
+// Borda de palavra à mão: \b do JS trata ã/á/ç como NÃO-letra, então \bsábado\b
+// e \bamanhã\b nunca casavam. Uso separadores explícitos (início/fim ou algo que
+// não seja letra, com acentos incluídos). Sem lookbehind — iPhone antigo não tem.
+function achouPalavra(t,corpo){return new RegExp('(^|[^a-zà-ÿ])(?:'+corpo+')([^a-zà-ÿ]|$)','i').test(t);}
+function dataDiaDaSemana(t){
+  const d=new Date();
+  if(achouPalavra(t,'hoje'))return isoDeData(d);
+  if(achouPalavra(t,'amanh[ãa]')){d.setDate(d.getDate()+1);return isoDeData(d);}
+  const dias=[['domingo',0],['segunda',1],['ter[çc]a',2],['quarta',3],['quinta',4],['sexta',5],['s[áa]bado',6]];
+  for(const[re,idx]of dias){
+    if(achouPalavra(t,re)){
+      const delta=((idx-d.getDay())+7)%7||7;  // próxima ocorrência (nunca hoje, evita data já passada)
+      d.setDate(d.getDate()+delta);return isoDeData(d);
+    }
+  }
+  return '';
+}
+function isoDeData(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function extrairPedidoLivre(txt){
+  const t=txt.toLowerCase();
+  // telefone (aceita (71) 9 8888-7777, 71988887777, +55...)
+  const mtel=txt.match(/(?:\+?55\s*)?\(?\d{2}\)?[\s.\-]?\d{4,5}[\s.\-]?\d{4}/);
+  // hora: 10:30 / 10h30 / 10h / às 14
+  let hora='';
+  let mh=t.match(/(\d{1,2})\s*[:h]\s*(\d{2})/);
+  if(mh)hora=mh[1].padStart(2,'0')+':'+mh[2];
+  else if((mh=t.match(/(\d{1,2})\s*h\b/)))hora=mh[1].padStart(2,'0')+':00';
+  else if((mh=t.match(/\b[àa]s?\s*(\d{1,2})\b/)))hora=mh[1].padStart(2,'0')+':00';
+  // data: dd/mm/aaaa; senão dd/mm (sem ano, o mais comum); senão dia da semana
+  let data=dataBRparaISO(txt);
+  if(!data){
+    const mdm=txt.match(/(?:^|[^\d\/])(\d{1,2})\/(\d{1,2})(?![\/\d])/);
+    if(mdm){
+      const dd=+mdm[1], mm=+mdm[2];
+      if(dd>=1&&dd<=31&&mm>=1&&mm<=12){
+        const hoje=new Date(); const p=n=>String(n).padStart(2,'0');
+        let iso=hoje.getFullYear()+'-'+p(mm)+'-'+p(dd);
+        // se a data já passou neste ano, o cliente quer o ano que vem
+        if(new Date(iso+'T12:00:00')<new Date(isoDeData(hoje)+'T00:00:00'))iso=(hoje.getFullYear()+1)+'-'+p(mm)+'-'+p(dd);
+        data=iso;
+      }
+    }
+  }
+  if(!data)data=dataDiaDaSemana(t);
+  // serviço: casa pelo nome do serviço; senão por palavra-chave
+  let servico='';
+  for(const s of SERVICOS_LISTA){if(t.includes(s.nome.toLowerCase())){servico=s.nome;break;}}
+  if(!servico){
+    const achar=re=>(SERVICOS_LISTA.find(s=>re.test(s.nome))||{}).nome||'';
+    if(/tosa\s*higi/.test(t))servico=achar(/higi/i);
+    else if(/tosa/.test(t))servico=achar(/tosa/i);
+    else if(/hidrata/.test(t))servico=achar(/hidrata/i);
+    else if(/banho/.test(t))servico=achar(/banho/i);
+  }
+  return {tel:mtel?mtel[0].trim():'',hora,data,servico};
 }
 
 // ─── ESTOQUE ───
@@ -4274,7 +4351,10 @@ function copiarRecibo(){
   txt+=`\n💳 Pagamento: ${pgto}\n`;
   if(obs)txt+=`📝 ${obs}\n`;
   if(total>0)txt+=`\n💰 *Total: R$ ${total.toFixed(2)}*\n`;
-  txt+=`━━━━━━━━━━━━━━━━━━\nObrigada pela preferência! 💜\n📱 (71) 98769-9236 · @ju.pett`;
+  // convite de reagendamento: cada recibo vira um empurrãozinho pro cliente
+  // marcar o próximo banho pelo link (conduz pro fluxo da agenda)
+  txt+=`━━━━━━━━━━━━━━━━━━\n📅 Já deixe o próximo banho marcado:\n${LINK_AGENDAMENTO}\n`;
+  txt+=`\nObrigada pela preferência! 💜\n📱 (71) 98769-9236 · @ju.pett`;
   if(navigator.clipboard){navigator.clipboard.writeText(txt).then(()=>alert('✅ Copiado! Cole no WhatsApp.'));}
   else{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('✅ Copiado! Cole no WhatsApp.');}
 }

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ju Pet — Agendamento pelo WhatsApp</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<meta name="theme-color" content="#6B3F8C">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --roxo:#6B3F8C;--roxo-dark:#52307A;--lilas:#B48DC0;--lilas-claro:#E8D8F0;--lilas-palido:#F5EDF9;
+  --amarelo:#F5C518;--amarelo-claro:#FEF9E7;--verde:#2E9E75;--verde-claro:#EDFAF3;--rosa:#E879A0;--rosa-claro:#FDEEF4;
+  --cinza:#4A4A4A;--cinza-claro:#8A8A8A;--borda:#EDE8F2;--zap:#25D366;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#EDE7F2;color:var(--cinza);line-height:1.62;padding:20px 14px 60px;}
+.wrap{max-width:680px;margin:0 auto;}
+
+.capa{background:linear-gradient(160deg,#7A4A9E,var(--roxo-dark));color:#fff;border-radius:22px;padding:38px 30px;text-align:center;position:relative;overflow:hidden;margin-bottom:18px;}
+.capa::before{content:'';position:absolute;width:280px;height:280px;border-radius:50%;border:1px solid rgba(255,255,255,0.10);top:-110px;right:-90px;}
+.capa .logo{width:66px;height:66px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 12px;}
+.capa h1{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:400;line-height:1.05;}
+.capa .sub{font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:var(--lilas-claro);margin-top:8px;}
+
+.card{background:#fff;border-radius:18px;padding:22px 20px 18px;box-shadow:0 3px 16px rgba(107,63,140,0.08);margin-bottom:16px;}
+.card h2{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--roxo);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:10px;}
+.card .lead{font-size:13.5px;color:var(--cinza-claro);margin-bottom:12px;}
+h3{font-size:14px;color:var(--roxo-dark);font-weight:600;margin:14px 0 6px;}
+
+/* MENSAGENS */
+.msg{border:1px solid var(--borda);border-radius:14px;padding:14px 14px 12px;margin-bottom:14px;background:#FCFBFE;}
+.msg .rot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.msg .rot b{color:var(--roxo-dark);font-size:14px;}
+.msg .quando{font-size:11px;color:var(--cinza-claro);}
+.msg pre{white-space:pre-wrap;word-break:break-word;font-family:'DM Sans',sans-serif;font-size:13.5px;color:#333;background:#fff;border:1px dashed var(--borda);border-radius:10px;padding:12px;}
+.btn-copiar{margin-top:10px;width:100%;background:var(--roxo);color:#fff;border:none;border-radius:26px;padding:10px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;}
+.btn-copiar:active{background:var(--roxo-dark);}
+.btn-copiar.ok{background:var(--verde);}
+
+/* QR */
+.qrbox{text-align:center;}
+.qr{width:230px;height:230px;background:#fff;border:1px solid var(--borda);border-radius:16px;padding:14px;margin:6px auto 12px;box-shadow:0 3px 14px rgba(107,63,140,0.10);}
+.qr svg{width:100%;height:100%;display:block;}
+.qr-link{font-size:14px;font-weight:600;color:var(--roxo);word-break:break-all;}
+.btn-linha{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+.btn-linha button{flex:1;min-width:130px;background:var(--lilas-palido);color:var(--roxo);border:1px solid var(--lilas-claro);border-radius:26px;padding:11px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+/* PASSOS */
+ol.steps{list-style:none;counter-reset:s;}
+ol.steps li{counter-increment:s;position:relative;padding:8px 0 8px 42px;font-size:14px;border-bottom:1px dashed var(--borda);}
+ol.steps li:last-child{border-bottom:none;}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:8px;width:28px;height:28px;border-radius:50%;background:var(--lilas-palido);color:var(--roxo);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;}
+
+.callout{background:var(--amarelo-claro);border-left:4px solid var(--amarelo);border-radius:8px;padding:11px 14px;font-size:13px;color:#7a5b00;margin:12px 0;}
+.callout.verde{background:var(--verde-claro);border-color:var(--verde);color:#176b4f;}
+.callout.rosa{background:var(--rosa-claro);border-color:var(--rosa);color:#9c3163;}
+.foot{text-align:center;font-size:12px;color:var(--roxo);padding:16px;}
+a{color:var(--roxo);font-weight:600;}
+
+@media print{
+  body{background:#fff;}
+  .noprint{display:none!important;}
+  .card,.capa{box-shadow:none;break-inside:avoid;}
+  .qr{width:340px;height:340px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="capa">
+    <div class="logo">🐾</div>
+    <h1>Agende pelo WhatsApp</h1>
+    <div class="sub">Guia para a Ju · conduzir o cliente ao agendamento</div>
+  </div>
+
+  <!-- POR QUE -->
+  <div class="card noprint">
+    <h2>💡 A ideia</h2>
+    <p class="lead">Não dá pra <b>obrigar</b> o cliente — mas dá pra <b>conduzir</b>. O segredo é fazer o link ser a primeira coisa que ele vê e o caminho mais fácil. Abaixo, tudo pronto: é só copiar e colar.</p>
+    <div class="callout verde">✅ Configure uma vez no <b>WhatsApp Business</b> e ele passa a mandar o link sozinho pra quem te chama.</div>
+  </div>
+
+  <!-- QR CODE -->
+  <div class="card">
+    <h2>📷 QR Code do agendamento</h2>
+    <p class="lead noprint">Imprima e cole no <b>balcão</b>, na porta, ou mostre no celular. O cliente aponta a câmera e cai direto no agendamento.</p>
+    <div class="qrbox">
+      <div class="qr" id="qrArte">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 35 35" shape-rendering="crispEdges"><path fill="#FFFFFF" d="M0 0h35v35H0z"/><path stroke="#52307A" d="M1 1.5h7m1 0h1m4 0h2m1 0h1m1 0h1m3 0h3m1 0h7M1 2.5h1m5 0h1m3 0h1m3 0h1m3 0h2m1 0h1m1 0h1m2 0h1m5 0h1M1 3.5h1m1 0h3m1 0h1m3 0h1m2 0h1m4 0h1m1 0h1m1 0h3m1 0h1m1 0h3m1 0h1M1 4.5h1m1 0h3m1 0h1m1 0h2m1 0h1m1 0h2m1 0h1m2 0h2m1 0h1m3 0h1m1 0h3m1 0h1M1 5.5h1m1 0h3m1 0h1m2 0h2m2 0h2m2 0h2m1 0h3m3 0h1m1 0h3m1 0h1M1 6.5h1m5 0h1m2 0h1m1 0h1m1 0h4m1 0h2m2 0h1m3 0h1m5 0h1M1 7.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M10 8.5h1m1 0h2m1 0h2m5 0h2m1 0h1M3 9.5h1m1 0h3m1 0h5m1 0h1m4 0h1m1 0h1m1 0h3m3 0h1m2 0h1M1 10.5h2m5 0h1m7 0h1m1 0h2m1 0h2m4 0h1m5 0h1M4 11.5h2m1 0h1m1 0h1m3 0h5m2 0h2m1 0h1m1 0h3m1 0h5M1 12.5h3m1 0h1m3 0h2m2 0h2m1 0h2m1 0h1m1 0h3m1 0h1m6 0h2M2 13.5h2m1 0h3m2 0h1m2 0h2m2 0h5m1 0h1m2 0h2m2 0h1M1 14.5h4m1 0h1m2 0h4m2 0h2m1 0h2m1 0h1m1 0h1m1 0h1m1 0h1m4 0h2M1 15.5h4m2 0h2m1 0h3m1 0h1m2 0h1m1 0h4m2 0h3m1 0h5M1 16.5h2m5 0h1m1 0h4m1 0h1m1 0h1m1 0h2m1 0h2m1 0h2m6 0h1M5 17.5h1m1 0h1m2 0h2m1 0h1m1 0h3m3 0h4m1 0h2m4 0h1M1 18.5h3m4 0h3m1 0h1m2 0h1m1 0h1m1 0h1m1 0h2m3 0h2m2 0h4M1 19.5h1m1 0h3m1 0h2m3 0h4m2 0h2m3 0h1m3 0h1m3 0h3M1 20.5h3m4 0h1m1 0h2m4 0h1m1 0h1m2 0h3m5 0h1m3 0h1M1 21.5h1m2 0h2m1 0h4m3 0h2m1 0h2m1 0h1m1 0h1m2 0h3m2 0h1m1 0h2M2 22.5h3m1 0h1m2 0h1m3 0h1m2 0h5m1 0h1m1 0h1m2 0h1m4 0h2M1 23.5h1m1 0h6m3 0h4m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h5M2 24.5h4m5 0h2m3 0h8m2 0h1m1 0h1m4 0h1M1 25.5h1m1 0h3m1 0h1m1 0h1m3 0h1m1 0h5m2 0h1m2 0h6m1 0h2M9 26.5h1m1 0h1m1 0h1m4 0h2m1 0h1m3 0h1m3 0h2m1 0h2M1 27.5h7m2 0h1m1 0h1m1 0h2m2 0h1m1 0h3m1 0h2m1 0h1m1 0h2m1 0h2M1 28.5h1m5 0h1m1 0h1m4 0h1m2 0h1m1 0h2m4 0h1m3 0h2m2 0h1M1 29.5h1m1 0h3m1 0h1m1 0h1m1 0h1m3 0h2m1 0h2m1 0h1m3 0h5m2 0h1M1 30.5h1m1 0h3m1 0h1m5 0h1m1 0h1m2 0h2m9 0h1m1 0h1M1 31.5h1m1 0h3m1 0h1m1 0h2m2 0h1m2 0h4m1 0h1m1 0h4m1 0h2m3 0h1M1 32.5h1m5 0h1m2 0h1m4 0h1m4 0h2m1 0h3m2 0h1m3 0h1M1 33.5h7m2 0h1m1 0h2m3 0h2m1 0h1m1 0h2m1 0h1m1 0h3m2 0h2"/></svg>
+      </div>
+      <div class="qr-link">jupet.pages.dev/agendar</div>
+      <div class="btn-linha noprint">
+        <button onclick="window.print()">🖨️ Imprimir QR</button>
+        <button onclick="baixarQR()">⬇️ Baixar imagem</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MENSAGENS -->
+  <div class="card">
+    <h2>💬 Mensagens prontas</h2>
+    <p class="lead">Toque em <b>Copiar</b> e cole no WhatsApp Business. Pode mudar as palavras do seu jeito. 💜</p>
+
+    <div class="msg">
+      <div class="rot"><b>1. Saudação automática</b><span class="quando">1ª mensagem do cliente</span></div>
+      <pre>Oi! 🐾 Aqui é a Ju Pet — Banho &amp; Tosa Premium 💜
+
+Que alegria te ver por aqui! Pra garantir o horário do seu pet rapidinho, é só tocar no link e escolher o melhor dia:
+
+👉 jupet.pages.dev/agendar
+
+Assim seu horário já fica reservado e você não corre o risco de pegar a agenda cheia. Qualquer dúvida, é só me chamar. 🐶✨</pre>
+      <button class="btn-copiar" onclick="copiar(this)">📋 Copiar mensagem</button>
+    </div>
+
+    <div class="msg">
+      <div class="rot"><b>2. Mensagem de ausência</b><span class="quando">fora do horário</span></div>
+      <pre>Oi! 🐾 No momento estou cuidando dos pets ou fora do horário, mas já já te respondo. 💜
+
+Enquanto isso, adiante o agendamento por aqui — funciona 24h:
+👉 jupet.pages.dev/agendar
+
+⏰ Atendimento: seg a sex · 9h às 12h30 e 13h30 às 16h
+📍 Acupe de Brotas · Salvador-BA</pre>
+      <button class="btn-copiar" onclick="copiar(this)">📋 Copiar mensagem</button>
+    </div>
+
+    <div class="msg">
+      <div class="rot"><b>3. Resposta rápida — /agendar</b><span class="quando">quando pedem pra marcar</span></div>
+      <pre>Pra garantir seu horário é rapidinho, viu? 🐾 Toca aqui, escolhe o dia e pronto:
+👉 jupet.pages.dev/agendar 💜</pre>
+      <button class="btn-copiar" onclick="copiar(this)">📋 Copiar mensagem</button>
+    </div>
+
+    <div class="msg">
+      <div class="rot"><b>4. Resposta rápida — /garantir</b><span class="quando">cliente insiste no chat</span></div>
+      <pre>Amei! 🐾 Pra eu já reservar certinho e não dar choque de horário, me manda pelo link — leva 1 minutinho:
+👉 jupet.pages.dev/agendar
+
+Aí seu horário fica garantido 💜</pre>
+      <button class="btn-copiar" onclick="copiar(this)">📋 Copiar mensagem</button>
+    </div>
+
+    <div class="msg">
+      <div class="rot"><b>5. Bio do perfil</b><span class="quando">WhatsApp e Instagram</span></div>
+      <pre>🐾 Ju Pet · Banho &amp; Tosa Premium · Acupe de Brotas
+Agende o banho do seu pet 👉 jupet.pages.dev/agendar</pre>
+      <button class="btn-copiar" onclick="copiar(this)">📋 Copiar mensagem</button>
+    </div>
+  </div>
+
+  <!-- ONDE COLAR -->
+  <div class="card">
+    <h2>⚙️ Onde colar (WhatsApp Business)</h2>
+    <p class="lead">Tudo fica em <b>Configurações → Ferramentas comerciais</b>.</p>
+    <h3>Saudação automática (mensagem 1)</h3>
+    <ol class="steps">
+      <li>Ferramentas comerciais → <b>Mensagem de saudação</b>.</li>
+      <li>Ative, cole a mensagem 1 e deixe destinatários em <b>"Todos"</b>.</li>
+    </ol>
+    <h3>Ausência (mensagem 2)</h3>
+    <ol class="steps">
+      <li>Ferramentas comerciais → <b>Mensagem de ausência</b>.</li>
+      <li>Ative, cole a mensagem 2 e programe para <b>"Fora do horário"</b> (seg–sex, 9h–16h30).</li>
+    </ol>
+    <h3>Respostas rápidas (mensagens 3 e 4)</h3>
+    <ol class="steps">
+      <li>Ferramentas comerciais → <b>Respostas rápidas</b> → <b>+</b>.</li>
+      <li>Crie o atalho <b>/agendar</b> com a mensagem 3.</li>
+      <li>Crie o atalho <b>/garantir</b> com a mensagem 4.</li>
+      <li>No chat, digite a barra e o atalho — o texto sai pronto.</li>
+    </ol>
+    <div class="callout rosa">💜 Dica de ouro: quem agenda pelo link tem <b>horário garantido</b>. Fale isso — a vantagem é o que muda o hábito, não a regra.</div>
+  </div>
+
+  <div class="foot">
+    <b>Ju Pet · Banho &amp; Tosa Premium</b><br>
+    📍 Acupe de Brotas · Salvador-BA · 📱 (71) 98769-9236 · 📸 @ju.pett
+  </div>
+
+</div>
+
+<script>
+function copiar(btn){
+  const txt=btn.parentElement.querySelector('pre').innerText;
+  const feito=()=>{const o=btn.textContent;btn.textContent='✅ Copiado!';btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent=o;btn.classList.remove('ok');},1600);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(feito).catch(()=>fallback(txt,feito));
+  }else fallback(txt,feito);
+}
+function fallback(txt,feito){
+  const t=document.createElement('textarea');t.value=txt;t.style.position='fixed';t.style.opacity='0';
+  document.body.appendChild(t);t.select();
+  try{document.execCommand('copy');feito();}catch(e){alert('Copie manualmente:\n\n'+txt);}
+  document.body.removeChild(t);
+}
+// baixa o QR como arquivo SVG (vetorial, imprime nítido em qualquer tamanho)
+function baixarQR(){
+  const svg=document.getElementById('qrArte').innerHTML;
+  const blob=new Blob([svg],{type:'image/svg+xml'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='ju-pet-qr-agendamento.svg';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+</script>
+</body>
+</html>
