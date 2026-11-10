@@ -986,7 +986,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
 // Carimbada pelo deploy.ps1 a cada publicação — serve para saber, olhando o
 // celular, qual versão aquele aparelho está rodando. Sem isso, "atualizou?"
 // vira adivinhação (aconteceu em 19/07/2026 com o seletor de arquivo do iPhone).
-const VERSAO_APP='2026-08-03-131236';
+const VERSAO_APP='2026-11-10-192528';
 
 // ─── STORAGE ───
 // Dois modos, e o resto do app não precisa saber em qual está:
@@ -1098,34 +1098,37 @@ function valorPacote(nome){return PACOTES[nome]||0;}
 const PORTES=['Pequeno','Médio','Grande'];
 // `dur` = duração média em MINUTOS. É o que evita choque na agenda: dois
 // atendimentos de 2h não cabem no mesmo intervalo de 1h.
-// ✅ Tempos informados pela Ju (19/07/2026): banho simples, banho+hidratação,
-//    tosa higiênica, tosa máquina, tosa modelada e tintura.
-// ⚠️ `durSugerida:true` = tempo ESTIMADO por mim, aguardando confirmação dela.
+// Tabela OFICIAL da Ju (PDF "Tabela de Serviços", atualizada 10/11/2026):
+// modelo "a partir de / faixa" — fixo = preço único; fixo+faixaAte = faixa
+// (R$ X a R$ Y); fixo+apartir = "a partir de R$ X"; consultar = sob consulta.
+// Não varia mais por porte (o folder da Ju também não varia).
 const SERVICOS_LISTA=[
-  {nome:'Banho simples',       grupo:'Banhos', precos:{Pequeno:65, Médio:75,  Grande:85},  sugerido:true, dur:50,  retorno:30},
-  {nome:'Banho + finalização', grupo:'Banhos', precos:{Pequeno:80, Médio:90,  Grande:105}, sugerido:true, dur:60,  durSugerida:true, retorno:30},
-  {nome:'Banho + hidratação',  grupo:'Banhos', precos:{Pequeno:100,Médio:110, Grande:120}, dur:70,  retorno:30},
-  {nome:'Spa Premium',         grupo:'Banhos', precos:{Pequeno:130,Médio:140, Grande:150}, dur:90,  durSugerida:true, retorno:30},
+  {nome:'Banho simples',       grupo:'Banhos', fixo:65,  apartir:true, dur:50, retorno:30},
+  {nome:'Banho + finalização', grupo:'Banhos', fixo:80,  dur:60, retorno:30},
+  {nome:'Banho + hidratação',  grupo:'Banhos', fixo:100, faixaAte:120, dur:70, retorno:30},
+  {nome:'Spa Premium',         grupo:'Banhos', fixo:130, faixaAte:150, dur:90, retorno:30},
 
-  {nome:'Tosa higiênica',      grupo:'Tosas',  precos:{Pequeno:75, Médio:85,  Grande:95},  sugerido:true, dur:80,  retorno:45},
-  {nome:'Tosa máquina',        grupo:'Tosas',  precos:{Pequeno:90, Médio:105, Grande:120}, sugerido:true, dur:90,  retorno:45},
-  {nome:'Tosa modelada',       grupo:'Tosas',  precos:{Pequeno:120,Médio:135, Grande:150}, dur:120, retorno:45},
-  {nome:'Outros tipos de tosa',grupo:'Tosas',  consultar:true, dur:90, durSugerida:true, retorno:45},
+  {nome:'Tosa higiênica padrão',                 grupo:'Tosas', fixo:75,  dur:80,  retorno:45},
+  {nome:'Tosa higiênica + rostinho harmonizado', grupo:'Tosas', fixo:100, dur:90,  retorno:45},
+  {nome:'Tosa geral (máquina total)',            grupo:'Tosas', fixo:90,  dur:90,  retorno:45},
+  {nome:'Tosa premium design',                   grupo:'Tosas', fixo:110, dur:110, retorno:45},
+  {nome:'Tosa modelada e tosa bebê',             grupo:'Tosas', fixo:125, faixaAte:150, dur:120, retorno:45},
+  {nome:'Outros tipos de tosa',                  grupo:'Tosas', consultar:true, dur:90, retorno:45},
 
-  {nome:'Tintura',             grupo:'Extras', consultar:true, dur:80, retorno:30},
-  {nome:'Hidratação',          grupo:'Extras', precos:{Pequeno:25, Médio:40,  Grande:60},  dur:20, durSugerida:true, retorno:30},
-  {nome:'Mechas coloridas',    grupo:'Extras', precos:{Pequeno:30, Médio:45,  Grande:60},  dur:60, durSugerida:true, retorno:30},
-  // não dependem do porte:
-  {nome:'Perfume especial',    grupo:'Extras', fixo:10, dur:5,  durSugerida:true, retorno:30},
-  {nome:'Desembolo leve',      grupo:'Extras', fixo:20,  apartir:true, dur:15, durSugerida:true, retorno:30},
-  {nome:'Desembolo médio',     grupo:'Extras', fixo:50,  apartir:true, dur:30, durSugerida:true, retorno:30},
-  {nome:'Desembolo intenso',   grupo:'Extras', fixo:100, apartir:true, dur:60, durSugerida:true, retorno:30},
+  {nome:'Hidratação',          grupo:'Extras', fixo:25, faixaAte:60, dur:20, retorno:30},
+  {nome:'Mechas coloridas',    grupo:'Extras', fixo:30, faixaAte:60, dur:60, retorno:30},
+  {nome:'Perfume especial',    grupo:'Extras', fixo:10, dur:5,  retorno:30},
+  {nome:'Desembolo leve',      grupo:'Extras', fixo:20,  apartir:true, dur:15, retorno:30},
+  {nome:'Desembolo médio',     grupo:'Extras', fixo:50,  apartir:true, dur:30, retorno:30},
+  {nome:'Desembolo intenso',   grupo:'Extras', fixo:100, apartir:true, dur:60, retorno:30},
 
-  {nome:'Pacote Essencial',          grupo:'Pacotes mensais', fixo:120, pacote:true, dur:50, durSugerida:true, retorno:30},
-  {nome:'Pacote Cuidado',            grupo:'Pacotes mensais', fixo:250, pacote:true, dur:70, durSugerida:true, retorno:30},
-  {nome:'Pacote Spa Pet',            grupo:'Pacotes mensais', fixo:350, pacote:true, dur:90, durSugerida:true, retorno:30},
-  {nome:'Pacote Família (2 pets)',   grupo:'Pacotes mensais', fixo:220, faixaAte:480, pacote:true, dur:100, durSugerida:true, retorno:30},
-  {nome:'Pacote Manutenção (2 pets)',grupo:'Pacotes mensais', fixo:360, faixaAte:750, pacote:true, dur:160, durSugerida:true, retorno:30}
+  {nome:'Pacote Essencial',                      grupo:'Pacotes mensais', fixo:120, pacote:true, dur:50,  retorno:30},
+  {nome:'Pacote Cuidado',                        grupo:'Pacotes mensais', fixo:250, pacote:true, dur:70,  retorno:30},
+  {nome:'Pacote Spa Pet',                        grupo:'Pacotes mensais', fixo:350, pacote:true, dur:90,  retorno:30},
+  {nome:'Pacote Família quinzenal (2 pets)',     grupo:'Pacotes mensais', fixo:220, faixaAte:240, pacote:true, dur:100, retorno:30},
+  {nome:'Pacote Família semanal (2 pets)',       grupo:'Pacotes mensais', fixo:420, faixaAte:480, pacote:true, dur:200, retorno:30},
+  {nome:'Pacote Manutenção quinzenal (2 pets)',  grupo:'Pacotes mensais', fixo:360, faixaAte:400, pacote:true, dur:160, retorno:30},
+  {nome:'Pacote Manutenção semanal (2 pets)',    grupo:'Pacotes mensais', fixo:650, faixaAte:750, pacote:true, dur:320, retorno:30}
 ];
 const DUR_PADRAO=60;
 function duracaoServico(nome){

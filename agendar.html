@@ -355,17 +355,20 @@ const WHATSAPP='5571987699236';
 // ⚠️ Tem que bater com SERVICOS_LISTA do index.html. Mudou lá, mude aqui.
 // `dur` = duração média em minutos. Define quais horários cabem na agenda.
 // ⚠️ Tem que bater com SERVICOS_LISTA do index.html.
+// Tabela OFICIAL da Ju (PDF atualizado 10/11/2026) — modelo "a partir de / faixa".
+// fixo = único; fixo+faixaAte = R$X a R$Y; fixo+apartir = "a partir de R$X".
 const SERVICOS=[
-  {nome:'Banho simples',        precos:{Pequeno:65, Médio:75,  Grande:85},  dur:50},
-  {nome:'Banho + finalização',  precos:{Pequeno:80, Médio:90,  Grande:105}, dur:60},
-  {nome:'Banho + hidratação',   precos:{Pequeno:100,Médio:110, Grande:120}, dur:70},
-  {nome:'Spa Premium',          precos:{Pequeno:130,Médio:140, Grande:150}, dur:90},
-  {nome:'Tosa higiênica',       precos:{Pequeno:75, Médio:85,  Grande:95},  dur:80},
-  {nome:'Tosa máquina',         precos:{Pequeno:90, Médio:105, Grande:120}, dur:90},
-  {nome:'Tosa modelada',        precos:{Pequeno:120,Médio:135, Grande:150}, dur:120},
-  {nome:'Tintura',              consultar:true, dur:80},
-  {nome:'Hidratação',           precos:{Pequeno:25, Médio:40,  Grande:60},  dur:20},
-  {nome:'Mechas coloridas',     precos:{Pequeno:30, Médio:45,  Grande:60},  dur:60},
+  {nome:'Banho simples',        fixo:65,  apartir:true, dur:50},
+  {nome:'Banho + finalização',  fixo:80,  dur:60},
+  {nome:'Banho + hidratação',   fixo:100, faixaAte:120, dur:70},
+  {nome:'Spa Premium',          fixo:130, faixaAte:150, dur:90},
+  {nome:'Tosa higiênica padrão',                 fixo:75,  dur:80},
+  {nome:'Tosa higiênica + rostinho harmonizado', fixo:100, dur:90},
+  {nome:'Tosa geral (máquina total)',            fixo:90,  dur:90},
+  {nome:'Tosa premium design',                   fixo:110, dur:110},
+  {nome:'Tosa modelada e tosa bebê',             fixo:125, faixaAte:150, dur:120},
+  {nome:'Hidratação',           fixo:25, faixaAte:60, dur:20},
+  {nome:'Mechas coloridas',     fixo:30, faixaAte:60, dur:60},
   {nome:'Perfume especial',     fixo:10, dur:5},
   {nome:'Não sei, quero orientação', consultar:true, dur:60}
 ];
@@ -434,6 +437,8 @@ function precoDe(s,porte){
 }
 function rotuloPreco(s,porte){
   if(s.consultar)return '';
+  if(s.apartir)return 'a partir de R$ '+s.fixo;
+  if(s.fixo!=null)return s.faixaAte ? 'R$ '+s.fixo+' a R$ '+s.faixaAte : 'R$ '+s.fixo;
   return 'R$ '+precoDe(s,porte);
 }
 
