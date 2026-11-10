@@ -177,7 +177,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--fundo);color:va
     <!-- 2. SERVIÇO -->
     <div class="card">
       <div class="passo"><div class="passo-num">2</div><div class="passo-txt">O que seu pet precisa <span class="obr">*</span></div></div>
-      <div style="font-size:12px;color:var(--roxo);background:var(--lilas-palido);border-radius:10px;padding:9px 12px;margin-bottom:12px;" id="porteAviso">Preços para porte pequeno.</div>
+      <div style="font-size:12px;color:var(--roxo);background:var(--lilas-palido);border-radius:10px;padding:9px 12px;margin-bottom:12px;" id="porteAviso">Valores de tabela — o valor final é confirmado no atendimento, conforme o pelo do pet.</div>
       <div class="chips" id="servicos"></div>
       <div style="font-size:11px;color:var(--cinza-claro);margin-top:12px;line-height:1.5;">
         Desembolo, nós e tosas especiais são avaliados no dia e cobrados à parte.
@@ -467,7 +467,8 @@ function montarServicos(){
     const p=rotuloPreco(s,porte);
     return `<span class="chip${i===idxSel?' sel':''}" onclick="selServico(${i},this)">${esc(s.nome)}${p?` <span class="chip-preco">${p}</span>`:''}</span>`;
   }).join('');
-  document.getElementById('porteAviso').textContent='Preços para porte '+porte.toLowerCase()+'.';
+  // preço não varia mais por porte (tabela "a partir de / faixa"); aviso fixo e honesto
+  document.getElementById('porteAviso').textContent='Valores de tabela — o valor final é confirmado no atendimento, conforme o pelo do pet.';
 }
 function selServico(i,el){
   servicoSel=SERVICOS[i];
